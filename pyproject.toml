@@ -1,0 +1,81 @@
+[project]
+name = "tablo-legacy-m3u"
+version = "0.1.0"
+description = "TabloTV M3U & EPG generator for legacy devices."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "pytest-xdist>=3.8.0",
+    "ruff>=0.15.7",
+    "typeguard>=4.5.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.mypy]
+strict = true
+pretty = true
+
+[tool.pytest.ini_options]
+testpaths = ["./tests"]
+
+[tool.ruff]
+line-length = 88
+preview = true
+target-version = "py312"
+
+[tool.ruff.lint]
+extend-select = [
+    "A",    # flake8-builtins
+    "ARG",  # flake8-unused-arguments
+    "C4",   # flake8-comprehensions
+    "D",    # pydocstyle
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "FA",   # flake8-future-annotations
+    "B",    # flake8-bugbear
+    "I",    # isort
+    "N",    # pep8-naming
+    "PERF", # perflint
+    "PL",   # pylint
+    "PT",   # flake8-pytest-style
+    "PYI",  # flake8-pyi
+    "RUF",  # ruff
+    "SIM",  # flake8-simplify
+    "SLF",  # flake8-self
+    "TD",   # flake8-todos
+    "TC",   # flake8-type-checking
+    "UP",   # pyupgrade
+    "W",    # pycodestyle
+    "PTH",  # flake8-use-pathlib
+]
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
+parametrize-names-type = "csv"
+
+[tool.ruff.lint.flake8-unused-arguments]
+ignore-variadic-names = true
+
+[tool.ruff.lint.isort]
+lines-between-types = 1
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 88
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.pyupgrade]
+# Preserve types, even if a file imports `from __future__ import annotations`.
+keep-runtime-typing = true

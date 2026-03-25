@@ -19,9 +19,11 @@ def main() -> None:
 
     client = TabloClient(tablo_ip)
     server_info = client.get_server_info()
+    has_guide = client.has_guide_subscription()
 
     app.config["APP_CONFIG"] = config
     app.config["TABLO_CLIENT"] = client
     app.config["TABLO_SERVER_INFO"] = server_info
+    app.config["ENABLE_EPG"] = config.enable_epg and has_guide
 
     app.run(host=config.host, port=config.port, use_reloader=True)

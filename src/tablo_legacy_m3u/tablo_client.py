@@ -6,7 +6,11 @@ from typing import Any
 
 import requests
 
-from tablo_legacy_m3u.tablo_types import DiscoveryResponse, ServerInfo
+from tablo_legacy_m3u.tablo_types import (
+    DiscoveryResponse,
+    ServerInfo,
+    SubscriptionResponse,
+)
 
 # Tablo API ports
 TABLO_API_PORT = 8885
@@ -47,6 +51,16 @@ class TabloClient:
         logger.debug("Tablo server info: %s", server_info)
 
         return server_info
+
+    def has_guide_subscription(self) -> bool:
+        """Check if the Tablo has an active guide data subscription."""
+        data: SubscriptionResponse = self._get("/account/subscription")
+        logger.debug("Subscription info: %s", data)
+
+        return any(
+            sub["kind"] == "guide" and sub["state"] == "active"
+            for sub in data["subscriptions"]
+        )
 
 
 def discover_tablo_ip(autodiscover: bool, tablo_ip: str) -> str:

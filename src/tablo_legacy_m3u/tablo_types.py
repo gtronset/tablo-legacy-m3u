@@ -32,6 +32,31 @@ class ServerInfo(TypedDict):
     product: str
 
 
+class Subscription(TypedDict):
+    """A single subscription entry from /account/subscription."""
+
+    kind: str
+    state: str
+    name: str
+    title: str
+    deprecated: str
+    expires: str | None
+    registration_url: str
+    registration_identifier: str
+    subtitle: str
+    description: str
+    actions: list[str]
+    warnings: list[str]
+
+
+class SubscriptionResponse(TypedDict):
+    """Response from /account/subscription."""
+
+    state: str
+    trial: str | None
+    subscriptions: list[Subscription]
+
+
 class DiscoveryCpe(TypedDict):
     """A single Tablo device from the cloud discovery API.
 

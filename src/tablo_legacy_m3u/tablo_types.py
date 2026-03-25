@@ -87,6 +87,18 @@ class SubscriptionResponse(TypedDict):
     subscriptions: list[Subscription]
 
 
+class WatchResponse(TypedDict):
+    """Response from a channel /watch endpoint."""
+
+    token: str
+    expires: str
+    keepalive: int
+    playlist_url: str
+    bif_url_sd: str | None
+    bif_url_hd: str | None
+    canRecord: bool
+
+
 class DiscoveryCpe(TypedDict):
     """A single Tablo device from the cloud discovery API.
 

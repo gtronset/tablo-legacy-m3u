@@ -12,6 +12,7 @@ from tablo_legacy_m3u.tablo_types import (
     DiscoveryResponse,
     ServerInfo,
     SubscriptionResponse,
+    WatchResponse,
 )
 
 # Tablo API ports
@@ -87,6 +88,20 @@ class TabloClient:
             sub["kind"] == "guide" and sub["state"] == "active"
             for sub in data["subscriptions"]
         )
+
+    def get_watch_url(self, channel_path: str) -> str:
+        """Start a live stream and return the playlist URL.
+
+        Args:
+            channel_path: The channel path (e.g., "/guide/channels/1027125").
+
+        Returns:
+            The HLS playlist URL for the live stream.
+        """
+        data: WatchResponse = self._post(f"{channel_path}/watch")
+        logger.debug("Watch response for %s: token=%s", channel_path, data["token"])
+
+        return data["playlist_url"]
 
 
 def discover_tablo_ip(autodiscover: bool, tablo_ip: str) -> str:

@@ -7,6 +7,8 @@ from typing import Any
 import requests
 
 from tablo_legacy_m3u.tablo_types import (
+    BatchChannelResponse,
+    Channel,
     DiscoveryResponse,
     ServerInfo,
     SubscriptionResponse,
@@ -44,6 +46,30 @@ class TabloClient:
         response.raise_for_status()
 
         return response.json()
+
+    def _batch(self, paths: list[str]) -> dict[str, Any]:
+        """Fetch multiple resources in one call via POST /batch."""
+        result: dict[str, Any] = self._post("/batch", json=paths)
+
+        return result
+
+    def get_channels(self) -> list[Channel]:
+        """Fetch all channel details from the Tablo.
+
+        First GETs the channel path list, then hydrates via /batch.
+        """
+        paths: list[str] = self._get("/guide/channels")
+        logger.debug("Found %d channel paths", len(paths))
+
+        if not paths:
+            return []
+
+        batch: BatchChannelResponse = self._batch(paths)
+        channels = list(batch.values())
+
+        logger.debug("Hydrated %d channels", len(channels))
+
+        return channels
 
     def get_server_info(self) -> ServerInfo:
         """Fetch device info from /server/info."""

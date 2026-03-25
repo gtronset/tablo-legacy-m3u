@@ -6,6 +6,36 @@ See https://github.com/jessedp/tablo-api-docs for details on the legacy Tablo AP
 from typing import TypedDict
 
 
+class ChannelInfo(TypedDict):
+    """Channel tuning and metadata from a channel detail object."""
+
+    call_sign: str
+    name: str
+    call_sign_src: str
+    major: int
+    minor: int
+    network: str
+    flags: list[str]
+    resolution: str
+    favourite: bool
+    tms_station_id: str
+    tms_affiliate_id: str
+    channel_identifier: str
+    source: str
+    logos: list[str]
+
+
+class Channel(TypedDict):
+    """A single hydrated channel from /guide/channels/<id> or /batch."""
+
+    object_id: int
+    path: str
+    channel: ChannelInfo
+
+
+type BatchChannelResponse = dict[str, Channel]
+
+
 class TabloModel(TypedDict):
     """Model information from the Tablo API."""
 

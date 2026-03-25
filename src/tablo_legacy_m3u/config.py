@@ -9,6 +9,8 @@ from dataclasses import dataclass
 class Config:
     """Application configuration loaded from environment variables."""
 
+    log_level: str = "DEBUG"
+
     # Tablo device
     tablo_ip: str = ""
     autodiscover: bool = True
@@ -18,8 +20,7 @@ class Config:
     port: int = 5004
 
     # Device identity (for discover.json)
-    device_name: str = "tablo-legacy-m3u"
-    device_id: str = "12345678"
+    device_name: str = ""
 
     # Feature flags
     enable_epg: bool = True
@@ -39,12 +40,12 @@ def load_config() -> Config:
     autodiscover = _env("AUTODISCOVER_TABLO", Config.autodiscover).lower() == "true"
 
     return Config(
+        log_level=_env("LOG_LEVEL", Config.log_level).upper(),
         tablo_ip=tablo_ip,
         autodiscover=autodiscover or not tablo_ip,
         host=_env("HOST", Config.host),
         port=int(_env("PORT", Config.port)),
         device_name=_env("DEVICE_NAME", Config.device_name),
-        device_id=_env("DEVICE_ID", Config.device_id),
         enable_epg=_env("ENABLE_EPG", Config.enable_epg).lower() == "true",
         cache_ttl=int(_env("CACHE_TTL", Config.cache_ttl)),
     )

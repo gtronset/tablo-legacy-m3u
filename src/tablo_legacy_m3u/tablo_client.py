@@ -6,6 +6,8 @@ from typing import Any
 
 import requests
 
+from tablo_legacy_m3u.tablo_types import DiscoveryResponse, ServerInfo
+
 # Tablo API ports
 TABLO_API_PORT = 8885
 TABLO_DISCOVERY_URL = "https://api.tablotv.com/assocserver/getipinfo/"
@@ -39,9 +41,9 @@ class TabloClient:
 
         return response.json()
 
-    def get_server_info(self) -> dict[str, str]:
+    def get_server_info(self) -> ServerInfo:
         """Fetch device info from /server/info."""
-        server_info: dict[str, str] = self._get("/server/info")
+        server_info: ServerInfo = self._get("/server/info")
         logger.debug("Tablo server info: %s", server_info)
 
         return server_info
@@ -65,11 +67,11 @@ def discover_tablo_ip(autodiscover: bool, tablo_ip: str) -> str:
 
     response = requests.get(TABLO_DISCOVERY_URL, timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
-    data = response.json()
+    data: DiscoveryResponse = response.json()
 
     logger.debug("Cloud discovery response: %s", data)
 
-    cpes: list[dict[str, str]] = data.get("cpes", [])
+    cpes = data.get("cpes", [])
     if not cpes:
         msg = "No Tablo devices found via cloud discovery"
         raise RuntimeError(msg)

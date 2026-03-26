@@ -1,0 +1,47 @@
+"""M3U playlist generator for Tablo channels."""
+
+from tablo_legacy_m3u.tablo_types import Channel
+
+
+def channel_number(channel: Channel) -> str:
+    """Format the channel number as `major.minor`."""
+    info = channel["channel"]
+
+    return f"{info['major']}.{info['minor']}"
+
+
+def generate_m3u(channels: list[Channel], base_url: str) -> str:
+    """Generate a sorted M3U playlist from a list of Tablo channels.
+
+    For M3U format details, see https://en.wikipedia.org/wiki/M3U.
+
+    Args:
+        channels: Hydrated channel objects from the Tablo API.
+        base_url: The base URL of this server (e.g., "http://localhost:5004").
+
+    Returns:
+        A complete M3U playlist string.
+    """
+    m3u_header = "#EXTM3U"
+    live_stream_duration = -1
+
+    lines = [m3u_header]
+
+    sorted_channels = sorted(
+        channels,
+        key=lambda channel: (channel["channel"]["major"], channel["channel"]["minor"]),
+    )
+
+    for channel in sorted_channels:
+        info = channel["channel"]
+        channel_num = channel_number(channel)
+        object_id = channel["object_id"]
+
+        lines.append(
+            f'#EXTINF:{live_stream_duration} channel-id="{channel_num}" channel-number='
+            f'"{channel_num}" tvg-name="{info["call_sign"]}" tvg-chno="{channel_num}"'
+            f",{info['call_sign']}"
+        )
+        lines.append(f"{base_url}/watch/{object_id}")
+
+    return "\n".join(lines) + "\n"

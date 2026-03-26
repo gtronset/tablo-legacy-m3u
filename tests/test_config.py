@@ -30,7 +30,7 @@ class TestConfigDefaults:
         config = Config()
 
         with pytest.raises(AttributeError):
-            config.port = 9999
+            config.port = 9999  # type: ignore[misc]
 
 
 class TestLoadConfig:

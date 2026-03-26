@@ -63,6 +63,7 @@ class TabloClient:
         logger.debug("Found %d channel paths", len(paths))
 
         if not paths:
+            logger.info("No channels found")
             return []
 
         batch: BatchChannelResponse = self._batch(paths)
@@ -75,19 +76,29 @@ class TabloClient:
     def get_server_info(self) -> ServerInfo:
         """Fetch device info from /server/info."""
         server_info: ServerInfo = self._get("/server/info")
-        logger.debug("Tablo server info: %s", server_info)
+        model = server_info["model"]
+
+        logger.info(
+            "Tablo Server: %s (%s, %d tuners)",
+            server_info["name"],
+            model["name"],
+            model["tuners"],
+        )
 
         return server_info
 
     def has_guide_subscription(self) -> bool:
         """Check if the Tablo has an active guide data subscription."""
         data: SubscriptionResponse = self._get("/account/subscription")
-        logger.debug("Subscription info: %s", data)
 
-        return any(
+        active = any(
             sub["kind"] == "guide" and sub["state"] == "active"
             for sub in data["subscriptions"]
         )
+
+        logger.info("Guide subscription active: %s", active)
+
+        return active
 
     def get_watch_url(self, channel_path: str) -> str:
         """Start a live stream and return the playlist URL.
@@ -124,9 +135,14 @@ def discover_tablo_ip(autodiscover: bool, tablo_ip: str) -> str:
     response.raise_for_status()
     data: DiscoveryResponse = response.json()
 
-    logger.debug("Cloud discovery response: %s", data)
-
     cpes = data.get("cpes", [])
+
+    logger.info(
+        "Discovery: found %d device(s), using %s",
+        len(cpes),
+        cpes[0]["private_ip"],
+    )
+
     if not cpes:
         msg = "No Tablo devices found via cloud discovery"
         raise RuntimeError(msg)

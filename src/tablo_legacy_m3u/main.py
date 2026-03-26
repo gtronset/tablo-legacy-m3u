@@ -2,6 +2,8 @@
 
 import logging
 
+from rich.logging import RichHandler
+
 from tablo_legacy_m3u.app import app
 from tablo_legacy_m3u.config import load_config
 from tablo_legacy_m3u.tablo_client import TabloClient, discover_tablo_ip
@@ -12,9 +14,15 @@ def main() -> None:
     config = load_config()
 
     logger = logging.getLogger(__name__)
-    logging.basicConfig(level=config.log_level)
+    logging.basicConfig(
+        level=config.log_level,
+        format="%(name)s  %(message)s",
+        datefmt="[%H:%M:%S]",
+        handlers=[RichHandler(rich_tracebacks=True)],
+    )
 
     tablo_ip = discover_tablo_ip(config.autodiscover, config.tablo_ip)
+
     logger.info("Using Tablo device at %s", tablo_ip)
 
     client = TabloClient(tablo_ip)

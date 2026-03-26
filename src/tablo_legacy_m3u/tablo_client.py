@@ -110,7 +110,10 @@ class TabloClient:
             The HLS playlist URL for the live stream.
         """
         data: WatchResponse = self._post(f"{channel_path}/watch")
-        logger.debug("Watch response for %s: token=%s", channel_path, data["token"])
+
+        logger.debug(
+            "Watch response for %s: token=%s...", channel_path, data["token"][:8]
+        )
 
         return data["playlist_url"]
 

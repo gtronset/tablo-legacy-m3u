@@ -43,6 +43,7 @@ def main() -> None:
     app.run(
         host=config.host,
         port=config.port,
+        debug=config.debug,
         use_reloader=config.debug,
         exclude_patterns=["**/tests/**"],
     )

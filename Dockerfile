@@ -18,4 +18,6 @@ ENV DEBUG=false \
 
 EXPOSE 5004
 
-CMD ["uv", "run", "python", "-m", "tablo_legacy_m3u"]
+ENV PATH="/app/.venv/bin:$PATH"
+
+CMD ["python", "-m", "tablo_legacy_m3u"]

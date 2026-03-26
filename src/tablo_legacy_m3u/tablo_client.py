@@ -131,6 +131,10 @@ def discover_tablo_ip(autodiscover: bool, tablo_ip: str) -> str:
     if not autodiscover and tablo_ip:
         return tablo_ip
 
+    if not autodiscover and not tablo_ip:
+        msg = "No Tablo IP provided and autodiscover is disabled"
+        raise RuntimeError(msg)
+
     response = requests.get(TABLO_DISCOVERY_URL, timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
     data: DiscoveryResponse = response.json()

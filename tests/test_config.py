@@ -23,7 +23,7 @@ class TestConfigDefaults:
         assert config.enable_epg is True
         assert config.cache_ttl == DEFAULT_CACHE_TTL
 
-    def test_config_immutability(self) -> None:
+    def test_config_is_frozen_and_immutabile(self) -> None:
         config = Config()
 
         with pytest.raises(AttributeError):

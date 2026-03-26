@@ -219,26 +219,7 @@ class TestGetChannels:
             responses.POST,
             f"{BASE_URL}/batch",
             json={
-                "/guide/channels/100": {
-                    "object_id": 100,
-                    "path": "/guide/channels/100",
-                    "channel": {
-                        "call_sign": "WABC",
-                        "name": "WABC",
-                        "call_sign_src": "tms",
-                        "major": 7,
-                        "minor": 1,
-                        "network": "ABC",
-                        "flags": [],
-                        "resolution": "hd_1080",
-                        "favourite": False,
-                        "tms_station_id": "12345",
-                        "tms_affiliate_id": "67890",
-                        "channel_identifier": "abc",
-                        "source": "antenna",
-                        "logos": [],
-                    },
-                },
+                "/guide/channels/100": make_channel(100, "WABC", 7, 1),
             },
         )
 

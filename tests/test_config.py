@@ -16,6 +16,7 @@ class TestConfigDefaults:
     def test_default_values(self) -> None:
         config = Config()
 
+        assert config.debug is True
         assert config.log_level == DEFAULT_LOG_LEVEL
         assert not config.tablo_ip
         assert config.autodiscover is True
@@ -37,6 +38,7 @@ class TestLoadConfig:
 
     def test_defaults_when_no_env_vars(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Ensure no value mutations when environment variables are not set."""
+        monkeypatch.delenv("DEBUG", raising=False)
         monkeypatch.delenv("TABLO_IP", raising=False)
         monkeypatch.delenv("AUTODISCOVER_TABLO", raising=False)
         monkeypatch.delenv("LOG_LEVEL", raising=False)
@@ -61,6 +63,7 @@ class TestLoadConfig:
         new_tablo_ip: str = "192.168.1.50"
         new_device_name: str = "Living Room Tablo"
 
+        monkeypatch.setenv("DEBUG", "false")
         monkeypatch.setenv("LOG_LEVEL", "warning")
         monkeypatch.setenv("TABLO_IP", new_tablo_ip)
         monkeypatch.setenv("AUTODISCOVER_TABLO", "false")
@@ -72,6 +75,7 @@ class TestLoadConfig:
 
         config = load_config()
 
+        assert config.debug is False
         assert config.log_level == "WARNING"
         assert config.tablo_ip == new_tablo_ip
         assert config.autodiscover is False

@@ -20,7 +20,7 @@ def _require_config(key: str) -> Any:
         return current_app.config[key]
     except KeyError:
         msg = (
-            f"Missing app config '{key}'. Start the app via'"
+            f"Missing app config '{key}'. Start the app via '"
             "'python -m tablo_legacy_m3u'."
         )
         raise RuntimeError(msg) from None

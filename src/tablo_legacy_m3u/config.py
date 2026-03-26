@@ -9,6 +9,9 @@ from dataclasses import dataclass
 class Config:
     """Application configuration loaded from environment variables."""
 
+    # Development
+    debug: bool = True
+
     log_level: str = "DEBUG"
 
     # Tablo device
@@ -40,6 +43,7 @@ def load_config() -> Config:
     autodiscover = _env("AUTODISCOVER_TABLO", Config.autodiscover).lower() == "true"
 
     return Config(
+        debug=_env("DEBUG", Config.debug).lower() == "true",
         log_level=_env("LOG_LEVEL", Config.log_level).upper(),
         tablo_ip=tablo_ip,
         autodiscover=autodiscover or not tablo_ip,

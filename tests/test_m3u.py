@@ -21,7 +21,7 @@ class TestChannelNumber:
 
 
 class TestGenerateM3u:
-    """Tests for generate_m3u()."""
+    """Tests for `generate_m3u()`."""
 
     def test_empty_channels(self) -> None:
         result = generate_m3u([], BASE_URL)

@@ -26,7 +26,7 @@ def tablo() -> TabloClient:
 
 
 class TestDiscoverTabloIp:
-    """Tests for the discover_tablo_ip() standalone function."""
+    """Tests for the `discover_tablo_ip()` standalone function."""
 
     def test_returns_manual_ip_when_autodiscover_off(self) -> None:
         ip = discover_tablo_ip(autodiscover=False, tablo_ip="10.0.0.123")
@@ -69,7 +69,7 @@ class TestDiscoverTabloIp:
 
 
 class TestGetServerInfo:
-    """Tests for TabloClient.get_server_info()."""
+    """Tests for `TabloClient.get_server_info()`."""
 
     @responses.activate
     def test_returns_server_info(self, tablo: TabloClient) -> None:
@@ -111,7 +111,7 @@ class TestGetServerInfo:
 
 
 class TestHasGuideSubscription:
-    """Tests for TabloClient.has_guide_subscription()."""
+    """Tests for `TabloClient.has_guide_subscription()`."""
 
     @responses.activate
     def test_true_when_guide_active(self, tablo: TabloClient) -> None:
@@ -183,7 +183,7 @@ class TestHasGuideSubscription:
 
 
 class TestGetChannels:
-    """Tests for TabloClient.get_channels()."""
+    """Tests for `TabloClient.get_channels()`."""
 
     @responses.activate
     def test_returns_empty_list_when_no_channels(self, tablo: TabloClient) -> None:
@@ -232,7 +232,7 @@ class TestGetChannels:
 
 
 class TestGetWatchUrl:
-    """Tests for TabloClient.get_watch_url()."""
+    """Tests for `TabloClient.get_watch_url()`."""
 
     @responses.activate
     def test_returns_playlist_url(self, tablo: TabloClient) -> None:

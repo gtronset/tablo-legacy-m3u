@@ -66,7 +66,7 @@ class TestDiscoverJson:
     """Tests for GET /discover.json."""
 
     def test_returns_all_fields(self, client: FlaskClient) -> None:
-        """discover.json should return all expected fields."""
+        """`discover.json` should return all expected fields."""
         resp = client.get("/discover.json")
 
         assert resp.status_code == HTTPStatus.OK
@@ -123,7 +123,7 @@ class TestDiscoverJson:
 
 
 class TestLineupM3u:
-    """Tests for GET /lineup.m3u."""
+    """Tests for GET `/lineup.m3u`."""
 
     def test_returns_m3u_content_type(
         self, client: FlaskClient, tablo_client: MagicMock
@@ -161,7 +161,7 @@ class TestLineupM3u:
 
 
 class TestLineupJson:
-    """Tests for GET /hdhr/lineup.json."""
+    """Tests for GET `/hdhr/lineup.json`."""
 
     def test_returns_json_array(
         self, client: FlaskClient, tablo_client: MagicMock
@@ -220,7 +220,7 @@ class TestLineupJson:
 
 
 class TestLineupStatus:
-    """Tests for GET /hdhr/lineup_status.json."""
+    """Tests for GET `/hdhr/lineup_status.json`."""
 
     def test_returns_scan_complete(self, client: FlaskClient) -> None:
         resp = client.get("/hdhr/lineup_status.json")
@@ -235,7 +235,7 @@ class TestLineupStatus:
 
 
 class TestWatch:
-    """Tests for GET /watch/<channel_id>."""
+    """Tests for GET `/watch/<channel_id>`."""
 
     def test_redirects_to_playlist_url(
         self, client: FlaskClient, tablo_client: MagicMock

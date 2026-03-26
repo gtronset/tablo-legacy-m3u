@@ -26,7 +26,7 @@ class ChannelInfo(TypedDict):
 
 
 class Channel(TypedDict):
-    """A single hydrated channel from /guide/channels/<id> or /batch."""
+    """A single hydrated channel from `/guide/channels/<id>` or `/batch`."""
 
     object_id: int
     path: str
@@ -63,7 +63,7 @@ class ServerInfo(TypedDict):
 
 
 class Subscription(TypedDict):
-    """A single subscription entry from /account/subscription."""
+    """A single subscription entry from `/account/subscription`."""
 
     kind: str
     state: str
@@ -80,7 +80,7 @@ class Subscription(TypedDict):
 
 
 class SubscriptionResponse(TypedDict):
-    """Response from /account/subscription."""
+    """Response from `/account/subscription`."""
 
     state: str
     trial: str | None
@@ -88,7 +88,7 @@ class SubscriptionResponse(TypedDict):
 
 
 class WatchResponse(TypedDict):
-    """Response from a channel /watch endpoint."""
+    """Response from a channel `/watch` endpoint."""
 
     token: str
     expires: str

@@ -40,4 +40,9 @@ def main() -> None:
     app.config["TABLO_SERVER_INFO"] = server_info
     app.config["ENABLE_EPG"] = config.enable_epg and has_guide
 
-    app.run(host=config.host, port=config.port, use_reloader=config.debug)
+    app.run(
+        host=config.host,
+        port=config.port,
+        use_reloader=config.debug,
+        exclude_patterns=["**/tests/**"],
+    )

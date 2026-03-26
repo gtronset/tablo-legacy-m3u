@@ -11,7 +11,7 @@ DEFAULT_LOG_LEVEL: str = "DEBUG"
 
 
 class TestConfigDefaults:
-    """Tests for Config dataclass defaults."""
+    """Tests for `Config` dataclass defaults."""
 
     def test_default_values(self) -> None:
         config = Config()
@@ -34,7 +34,7 @@ class TestConfigDefaults:
 
 
 class TestLoadConfig:
-    """Tests for load_config() environment variable loading."""
+    """Tests for `load_config()` environment variable loading."""
 
     def test_defaults_when_no_env_vars(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Ensure no value mutations when environment variables are not set."""

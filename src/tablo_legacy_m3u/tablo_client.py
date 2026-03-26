@@ -49,7 +49,7 @@ class TabloClient:
         return response.json()
 
     def _batch(self, paths: list[str]) -> dict[str, Any]:
-        """Fetch multiple resources in one call via POST /batch."""
+        """Fetch multiple resources in one call via POST `/batch`."""
         result: dict[str, Any] = self._post("/batch", json=paths)
 
         return result
@@ -57,7 +57,7 @@ class TabloClient:
     def get_channels(self) -> list[Channel]:
         """Fetch all channel details from the Tablo.
 
-        First GETs the channel path list, then hydrates via /batch.
+        First GETs the channel path list, then hydrates via POST `/batch`.
         """
         paths: list[str] = self._get("/guide/channels")
         logger.debug("Found %d channel paths", len(paths))
@@ -74,7 +74,7 @@ class TabloClient:
         return channels
 
     def get_server_info(self) -> ServerInfo:
-        """Fetch device info from /server/info."""
+        """Fetch device info from `/server/info`."""
         server_info: ServerInfo = self._get("/server/info")
         model = server_info["model"]
 
@@ -96,7 +96,7 @@ class TabloClient:
             for sub in data["subscriptions"]
         )
 
-        logger.info("Guide subscription active: %s", active)
+        logger.info("Tablo guide subscription: active=%s", active)
 
         return active
 
@@ -104,7 +104,7 @@ class TabloClient:
         """Start a live stream and return the playlist URL.
 
         Args:
-            channel_path: The channel path (e.g., "/guide/channels/1027125").
+            channel_path: The channel path (e.g., `/guide/channels/1027125`).
 
         Returns:
             The HLS playlist URL for the live stream.

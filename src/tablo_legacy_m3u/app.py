@@ -55,13 +55,15 @@ def lineup_m3u() -> Response:
     tablo_client: TabloClient = _require_config("TABLO_CLIENT")
     channels: list[Channel] = tablo_client.get_channels()
 
+    m3u_mimetype = "application/x-mpegurl"
+
     base_url = request.host_url.rstrip("/")
     body = generate_m3u(channels, base_url)
 
     return Response(
         body,
-        mimetype="application/x-mpegurl",
-        content_type="application/x-mpegurl; charset=utf-8",
+        mimetype=m3u_mimetype,
+        content_type=f"{m3u_mimetype}; charset=utf-8",
     )
 
 

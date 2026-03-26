@@ -44,3 +44,6 @@ dmypy.json
 
 # PyPI configuration file
 .pypirc
+
+# asdf
+.tool-versions

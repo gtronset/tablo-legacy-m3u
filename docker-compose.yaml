@@ -1,0 +1,15 @@
+services:
+  tablo-legacy-m3u:
+    build: .
+    ports:
+      - "5004:5004"
+    environment:
+      TABLO_IP: ""
+      AUTODISCOVER_TABLO: true
+      HOST: 0.0.0.0
+      PORT: 5004
+      LOG_LEVEL: INFO
+      DEBUG: false
+      ENABLE_EPG: true
+      CACHE_TTL: 60
+    restart: unless-stopped

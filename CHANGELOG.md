@@ -4,14 +4,17 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog], and this project adheres to [Semantic Versioning].
+
+[Keep a Changelog]: https://keepachangelog.com/en/1.0.0/
+[Semantic Versioning]: https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
 ### Added
 
 - Add Initial CI Workflows <https://github.com/gtronset/tablo-legacy-m3u/pull/2>
+- Initial Docker Setup and CONTRIBUTING <https://github.com/gtronset/tablo-legacy-m3u/pull/3>
 
 ## [0.1.0] - 2026-03-26
 

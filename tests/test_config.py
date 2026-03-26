@@ -4,8 +4,10 @@ import pytest
 
 from tablo_legacy_m3u.config import Config, load_config
 
-DEFAULT_PORT = 5004
-DEFAULT_CACHE_TTL = 60
+DEFAULT_HOST: str = "127.0.0.1"
+DEFAULT_PORT: int = 5004
+DEFAULT_CACHE_TTL: int = 60
+DEFAULT_LOG_LEVEL: str = "DEBUG"
 
 
 class TestConfigDefaults:
@@ -14,10 +16,10 @@ class TestConfigDefaults:
     def test_default_values(self) -> None:
         config = Config()
 
-        assert config.log_level == "DEBUG"
+        assert config.log_level == DEFAULT_LOG_LEVEL
         assert not config.tablo_ip
         assert config.autodiscover is True
-        assert config.host == "127.0.0.1"
+        assert config.host == DEFAULT_HOST
         assert config.port == DEFAULT_PORT
         assert not config.device_name
         assert config.enable_epg is True
@@ -46,33 +48,36 @@ class TestLoadConfig:
 
         config = load_config()
 
-        assert config.log_level == "DEBUG"
-        assert config.host == "127.0.0.1"
+        assert config.log_level == DEFAULT_LOG_LEVEL
+        assert config.host == DEFAULT_HOST
         assert config.port == DEFAULT_PORT
         assert config.enable_epg is True
         assert config.cache_ttl == DEFAULT_CACHE_TTL
 
     def test_env_vars_override_defaults(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        new_host: str = "localhost"
         new_port: int = 8080
         new_cache_ttl: int = 120
+        new_tablo_ip: str = "192.168.1.50"
+        new_device_name: str = "Living Room Tablo"
 
         monkeypatch.setenv("LOG_LEVEL", "warning")
-        monkeypatch.setenv("TABLO_IP", "192.168.1.50")
+        monkeypatch.setenv("TABLO_IP", new_tablo_ip)
         monkeypatch.setenv("AUTODISCOVER_TABLO", "false")
-        monkeypatch.setenv("HOST", "localhost")
+        monkeypatch.setenv("HOST", new_host)
         monkeypatch.setenv("PORT", str(new_port))
-        monkeypatch.setenv("DEVICE_NAME", "Living Room Tablo")
+        monkeypatch.setenv("DEVICE_NAME", new_device_name)
         monkeypatch.setenv("ENABLE_EPG", "false")
         monkeypatch.setenv("CACHE_TTL", str(new_cache_ttl))
 
         config = load_config()
 
         assert config.log_level == "WARNING"
-        assert config.tablo_ip == "192.168.1.50"
+        assert config.tablo_ip == new_tablo_ip
         assert config.autodiscover is False
-        assert config.host == "localhost"
+        assert config.host == new_host
         assert config.port == new_port
-        assert config.device_name == "Living Room Tablo"
+        assert config.device_name == new_device_name
         assert config.enable_epg is False
         assert config.cache_ttl == new_cache_ttl
 
@@ -111,21 +116,25 @@ class TestAutodiscoverLogic:
     def test_autodiscover_false_when_ip_provided(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("TABLO_IP", "10.0.0.123")
+        new_tablo_ip: str = "10.0.0.123"
+
+        monkeypatch.setenv("TABLO_IP", new_tablo_ip)
         monkeypatch.setenv("AUTODISCOVER_TABLO", "false")
 
         config = load_config()
 
         assert config.autodiscover is False
-        assert config.tablo_ip == "10.0.0.123"
+        assert config.tablo_ip == new_tablo_ip
 
     def test_autodiscover_true_overrides_manual_ip(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("TABLO_IP", "10.0.0.123")
+        new_tablo_ip: str = "10.0.0.123"
+
+        monkeypatch.setenv("TABLO_IP", new_tablo_ip)
         monkeypatch.setenv("AUTODISCOVER_TABLO", "true")
 
         config = load_config()
 
         assert config.autodiscover is True
-        assert config.tablo_ip == "10.0.0.123"
+        assert config.tablo_ip == new_tablo_ip

@@ -13,6 +13,7 @@ from tablo_legacy_m3u.tablo_client import (
     TabloClient,
     discover_tablo_ip,
 )
+from tests.helpers import make_channel
 
 TABLO_IP = "192.168.1.100"
 BASE_URL = f"http://{TABLO_IP}:8885"
@@ -196,46 +197,8 @@ class TestGetChannels:
     def test_returns_hydrated_channels(self, tablo: TabloClient) -> None:
         channel_paths = ["/guide/channels/100", "/guide/channels/200"]
         batch_response = {
-            "/guide/channels/100": {
-                "object_id": 100,
-                "path": "/guide/channels/100",
-                "channel": {
-                    "call_sign": "WABC",
-                    "name": "WABC",
-                    "call_sign_src": "tms",
-                    "major": 7,
-                    "minor": 1,
-                    "network": "ABC",
-                    "flags": [],
-                    "resolution": "hd_1080",
-                    "favourite": False,
-                    "tms_station_id": "12345",
-                    "tms_affiliate_id": "67890",
-                    "channel_identifier": "abc",
-                    "source": "antenna",
-                    "logos": [],
-                },
-            },
-            "/guide/channels/200": {
-                "object_id": 200,
-                "path": "/guide/channels/200",
-                "channel": {
-                    "call_sign": "WCBS",
-                    "name": "WCBS",
-                    "call_sign_src": "tms",
-                    "major": 2,
-                    "minor": 1,
-                    "network": "CBS",
-                    "flags": [],
-                    "resolution": "hd_1080",
-                    "favourite": True,
-                    "tms_station_id": "54321",
-                    "tms_affiliate_id": "09876",
-                    "channel_identifier": "cbs",
-                    "source": "antenna",
-                    "logos": [],
-                },
-            },
+            "/guide/channels/100": make_channel(100, "WABC", 7, 1),
+            "/guide/channels/200": make_channel(200, "WCBS", 2, 1, network="CBS"),
         }
 
         batch_length = len(batch_response.keys())

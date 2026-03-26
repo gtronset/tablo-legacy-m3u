@@ -137,14 +137,14 @@ def discover_tablo_ip(autodiscover: bool, tablo_ip: str) -> str:
 
     cpes = data.get("cpes", [])
 
+    if not cpes:
+        msg = "No Tablo devices found via cloud discovery"
+        raise RuntimeError(msg)
+
     logger.info(
         "Discovery: found %d device(s), using %s",
         len(cpes),
         cpes[0]["private_ip"],
     )
-
-    if not cpes:
-        msg = "No Tablo devices found via cloud discovery"
-        raise RuntimeError(msg)
 
     return cpes[0]["private_ip"]

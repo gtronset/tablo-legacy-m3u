@@ -64,3 +64,6 @@ prek run
 - Fill out the PR template
 - Ensure CI passes (lint, type check, test, Docker build)
 - Update [CHANGELOG.md] and [README.md] if applicable
+
+[CHANGELOG.md]: CHANGELOG.md
+[README.md]: READEME.md

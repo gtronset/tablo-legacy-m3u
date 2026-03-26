@@ -32,6 +32,8 @@ docker compose up --build
 
 See [CONTRIBUTING.md].
 
+[CONTRIBUTING.md]: CONTRIBUTING.md
+
 ## AI Disclosure
 
 This project is human-designed and human-maintained. All architecture decisions, code

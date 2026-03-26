@@ -77,18 +77,18 @@ def lineup_json() -> list[dict[str, str]]:
 
     sorted_channels = sorted(
         channels,
-        key=lambda c: (c["channel"]["major"], c["channel"]["minor"]),
+        key=lambda channel: (channel["channel"]["major"], channel["channel"]["minor"]),
     )
 
     return [
         {
-            "Guide_ID": channel_number(ch),
-            "GuideNumber": channel_number(ch),
-            "GuideName": ch["channel"]["call_sign"],
-            "Station": channel_number(ch),
-            "URL": f"{base_url}/watch/{ch['object_id']}",
+            "Guide_ID": channel_number(channel),
+            "GuideNumber": channel_number(channel),
+            "GuideName": channel["channel"]["call_sign"],
+            "Station": channel_number(channel),
+            "URL": f"{base_url}/watch/{channel['object_id']}",
         }
-        for ch in sorted_channels
+        for channel in sorted_channels
     ]
 
 

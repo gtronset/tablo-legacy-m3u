@@ -66,4 +66,4 @@ prek run
 - Update [CHANGELOG.md] and [README.md] if applicable
 
 [CHANGELOG.md]: CHANGELOG.md
-[README.md]: READEME.md
+[README.md]: README.md

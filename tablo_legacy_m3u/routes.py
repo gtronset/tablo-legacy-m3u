@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from flask import Flask, Response, current_app, request
 
+from tablo_legacy_m3u.discover import device_info, generate_device_xml
 from tablo_legacy_m3u.lineup import (
     generate_json,
     generate_m3u,
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
 def register_routes(app: Flask) -> None:
     """Register all route handlers on the Flask app."""
     app.add_url_rule("/discover.json", view_func=discover)
+    app.add_url_rule("/device.xml", view_func=device_xml)
 
     app.add_url_rule("/lineup.m3u", view_func=lineup_m3u)
     app.add_url_rule("/lineup.m3u8", view_func=lineup_m3u, endpoint="lineup_m3u8")
@@ -35,21 +37,24 @@ def discover() -> dict[str, str | int]:
     """Return HDHomeRun-style device descriptor."""
     config: Config = current_app.config["APP_CONFIG"]
     server_info: ServerInfo = current_app.config["TABLO_SERVER_INFO"]
+    base_url = request.host_url.rstrip("/")
 
-    friendly_name = config.device_name or server_info["name"]
-    request_host = request.host_url.rstrip("/")
+    return device_info(config, server_info, base_url)
 
-    return {
-        "FriendlyName": friendly_name,
-        "Manufacturer": "Tablo",
-        "ModelNumber": server_info["model"]["name"],
-        "FirmwareVersion": server_info["version"],
-        "DeviceID": server_info["server_id"],
-        "DeviceAuth": friendly_name,
-        "BaseURL": request_host,
-        "LineupURL": f"{request_host}/lineup.json",
-        "TunerCount": server_info["model"]["tuners"],
-    }
+
+def device_xml() -> Response:
+    """Return HDHomeRun-style device descriptor as XML."""
+    config: Config = current_app.config["APP_CONFIG"]
+    server_info: ServerInfo = current_app.config["TABLO_SERVER_INFO"]
+    base_url = request.host_url.rstrip("/")
+
+    body = generate_device_xml(config, server_info, base_url)
+
+    return Response(
+        body,
+        mimetype="application/xml",
+        content_type="application/xml; charset=utf-8",
+    )
 
 
 def lineup_m3u() -> Response:
@@ -59,6 +64,7 @@ def lineup_m3u() -> Response:
 
     m3u_mimetype = "application/x-mpegurl"
     base_url = request.host_url.rstrip("/")
+
     body = generate_m3u(channels, base_url)
 
     return Response(
@@ -83,6 +89,7 @@ def lineup_xml() -> Response:
     channels: list[Channel] = tablo_client.get_channels()
 
     base_url = request.host_url.rstrip("/")
+
     body = generate_xml(channels, base_url)
 
     return Response(

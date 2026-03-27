@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog], and this project adheres to [Semantic
 - Flatten package layout and adopt app factory pattern <https://github.com/gtronset/tablo-legacy-m3u/pull/4>
 - Refactor lineup generation, include XML and M3U8 based lineups <https://github.com/gtronset/tablo-legacy-m3u/pull/5>
 - Add `device.xml` endpoint and extract discover module <https://github.com/gtronset/tablo-legacy-m3u/pull/6>
+- Improve README <https://github.com/gtronset/tablo-legacy-m3u/pull/7>
 
 ## [0.1.0] - 2026-03-26
 

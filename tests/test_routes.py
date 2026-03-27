@@ -39,8 +39,33 @@ def client(
     return app.test_client()
 
 
+class TestIndex:
+    """Tests for GET `/`."""
+
+    def test_returns_html_content_type(self, client: FlaskClient) -> None:
+        resp = client.get("/")
+
+        assert resp.status_code == HTTPStatus.OK
+        assert "text/html" in resp.content_type
+
+    def test_contains_device_name(self, client: FlaskClient) -> None:
+        resp = client.get("/")
+
+        body = resp.data.decode()
+
+        assert "Test Tablo" in body
+
+    def test_contains_endpoint_links(self, client: FlaskClient) -> None:
+        resp = client.get("/")
+
+        body = resp.data.decode()
+
+        assert "/lineup.m3u" in body
+        assert "/discover.json" in body
+
+
 class TestDiscoverJson:
-    """Tests for GET /discover.json."""
+    """Tests for GET `/discover.json`."""
 
     def test_returns_json_content_type(self, client: FlaskClient) -> None:
         resp = client.get("/discover.json")
@@ -76,7 +101,7 @@ class TestDiscoverJson:
 
 
 class TestDeviceXml:
-    """Tests for GET /device.xml."""
+    """Tests for GET `/device.xml`."""
 
     def test_returns_xml_content_type(self, client: FlaskClient) -> None:
         resp = client.get("/device.xml")

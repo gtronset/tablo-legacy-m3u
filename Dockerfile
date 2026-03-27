@@ -4,12 +4,10 @@ WORKDIR /app
 
 # Install dependencies first (layer cache)
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --no-install-project
-
-# Copy source and install the project itself
-COPY src/ src/
-COPY README.md ./
 RUN uv sync --frozen --no-dev
+
+# Copy application source
+COPY tablo_legacy_m3u/ tablo_legacy_m3u/
 
 # Production defaults
 ENV DEBUG=false \

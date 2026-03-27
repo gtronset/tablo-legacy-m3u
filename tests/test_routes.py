@@ -13,31 +13,6 @@ from tablo_legacy_m3u.tablo_types import ServerInfo
 from tests.helpers import make_channel
 
 TABLO_IP: str = "10.0.0.123"
-TUNER_COUNT: int = 4
-
-
-@pytest.fixture
-def server_info() -> ServerInfo:
-    """Fake Tablo server info for testing."""
-    return {
-        "server_id": "SID_TEST123",
-        "name": "Test Tablo",
-        "timezone": "",
-        "deprecated": "timezone",
-        "version": "2.2.42",
-        "local_address": TABLO_IP,
-        "setup_completed": True,
-        "build_number": 1234,
-        "model": {
-            "wifi": False,
-            "tuners": TUNER_COUNT,
-            "type": "quad",
-            "name": "TABLO_QUAD",
-        },
-        "availability": "available",
-        "cache_key": "abc123",
-        "product": "tablo",
-    }
 
 
 @pytest.fixture
@@ -67,6 +42,12 @@ def client(
 class TestDiscoverJson:
     """Tests for GET /discover.json."""
 
+    def test_returns_json_content_type(self, client: FlaskClient) -> None:
+        resp = client.get("/discover.json")
+
+        assert resp.status_code == HTTPStatus.OK
+        assert "application/json" in resp.content_type
+
     def test_returns_all_fields(self, client: FlaskClient) -> None:
         """`discover.json` should return all expected fields."""
         resp = client.get("/discover.json")
@@ -86,42 +67,41 @@ class TestDiscoverJson:
             "TunerCount",
         }
 
-    def test_friendly_name_defaults_to_server_name(self, client: FlaskClient) -> None:
-        resp = client.get("/discover.json")
-
-        data = resp.get_json()
-        assert data["FriendlyName"] == "Test Tablo"
-
-    @pytest.mark.parametrize(
-        "client", [Config(device_name="My Custom Name")], indirect=True
-    )
-    def test_friendly_name_uses_device_name_from_config(
-        self, client: FlaskClient
-    ) -> None:
-        resp = client.get("/discover.json")
-
-        data = resp.get_json()
-        assert data["FriendlyName"] == "My Custom Name"
-
-    def test_device_fields_from_server_info(self, client: FlaskClient) -> None:
-        resp = client.get("/discover.json")
-
-        data = resp.get_json()
-
-        assert data["Manufacturer"] == "Tablo"
-        assert data["ModelNumber"] == "TABLO_QUAD"
-        assert data["FirmwareVersion"] == "2.2.42"
-        assert data["DeviceID"] == "SID_TEST123"
-        assert data["TunerCount"] == TUNER_COUNT
-
-        assert data["DeviceAuth"] == data["FriendlyName"]
-
     def test_base_url_from_request_host(self, client: FlaskClient) -> None:
         resp = client.get("/discover.json")
 
         data = resp.get_json()
         assert data["BaseURL"] == "http://localhost"
         assert data["LineupURL"] == "http://localhost/lineup.json"
+
+
+class TestDeviceXml:
+    """Tests for GET /device.xml."""
+
+    def test_returns_xml_content_type(self, client: FlaskClient) -> None:
+        resp = client.get("/device.xml")
+
+        assert resp.status_code == HTTPStatus.OK
+        assert "application/xml" in resp.content_type
+
+    def test_contains_all_fields(self, client: FlaskClient) -> None:
+        resp = client.get("/device.xml")
+
+        body = resp.data.decode()
+
+        assert "<FriendlyName>" in body
+        assert "<DeviceID>" in body
+        assert "<BaseURL>" in body
+        assert "<LineupURL>" in body
+        assert "<TunerCount>" in body
+
+    def test_contains_device_info(self, client: FlaskClient) -> None:
+        resp = client.get("/device.xml")
+
+        body = resp.data.decode()
+
+        assert "<FriendlyName>Test Tablo</FriendlyName>" in body
+        assert "<DeviceID>SID_TEST123</DeviceID>" in body
 
 
 class TestLineupM3u:

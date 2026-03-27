@@ -1,5 +1,7 @@
 """Tests for the lineup generators."""
 
+import xml.etree.ElementTree as ET
+
 from tablo_legacy_m3u.lineup import (
     channel_number,
     generate_json,
@@ -145,24 +147,30 @@ class TestGenerateJson:
 class TestGenerateXml:
     """Tests for `generate_xml()`."""
 
-    def test_empty_channels(self) -> None:
+    def test_has_valid_xml(self) -> None:
         result = generate_xml([], BASE_URL)
 
-        assert "<Lineup />" in result or "<Lineup/>" in result
+        assert result.startswith("<?xml")
+        ET.fromstring(result)
+
+    def test_empty_channels(self) -> None:
+        result = generate_xml([], BASE_URL)
+        root = ET.fromstring(result)
+
+        assert root.tag == "Lineup"
+        assert len(root) == 0
 
     def test_single_channel(self) -> None:
         channels = [make_channel(100, "WABC", 7, 1)]
 
         result = generate_xml(channels, BASE_URL)
+        root = ET.fromstring(result)
 
-        assert "<GuideNumber>7.1</GuideNumber>" in result
-        assert "<GuideName>WABC</GuideName>" in result
-        assert f"<URL>{BASE_URL}/watch/100</URL>" in result
-
-    def test_has_xml_declaration(self) -> None:
-        result = generate_xml([], BASE_URL)
-
-        assert result.startswith("<?xml")
+        program = root.find("Program")
+        assert program is not None
+        assert program.findtext("GuideNumber") == "7.1"
+        assert program.findtext("GuideName") == "WABC"
+        assert program.findtext("URL") == f"{BASE_URL}/watch/100"
 
     def test_sorted_by_channel_number(self) -> None:
         channels = [
@@ -171,11 +179,11 @@ class TestGenerateXml:
         ]
 
         result = generate_xml(channels, BASE_URL)
+        root = ET.fromstring(result)
 
-        # 7.1 should appear before 11.1 in the output
-        position_of_channel_7 = result.index("<GuideNumber>7.1</GuideNumber>")
-        position_of_channel_11 = result.index("<GuideNumber>11.1</GuideNumber>")
-        assert position_of_channel_7 < position_of_channel_11
+        programs = root.findall("Program")
+        guide_numbers = [p.findtext("GuideNumber") for p in programs]
+        assert guide_numbers == ["7.1", "11.1"]
 
     def test_ends_with_newline(self) -> None:
         result = generate_xml([], BASE_URL)

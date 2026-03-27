@@ -1,4 +1,4 @@
-"""M3U playlist generator for Tablo channels."""
+"""Generators for Tablo channel lineups in M3U, JSON, and XML formats."""
 
 from xml.etree.ElementTree import (  # noqa: S405, This is only used for generating XML, not parsing untrusted input.
     Element,
@@ -60,13 +60,14 @@ def generate_json(channels: list[Channel], base_url: str) -> list[dict[str, str]
     """Generate an HDHomeRun-style JSON lineup from a list of Tablo channels."""
     return [
         {
-            "Guide_ID": channel_number(channel),
-            "GuideNumber": channel_number(channel),
+            "Guide_ID": channel_num,
+            "GuideNumber": channel_num,
             "GuideName": channel["channel"]["call_sign"],
-            "Station": channel_number(channel),
+            "Station": channel_num,
             "URL": f"{base_url}/watch/{channel['object_id']}",
         }
         for channel in sort_channels(channels)
+        for channel_num in (channel_number(channel),)
     ]
 
 

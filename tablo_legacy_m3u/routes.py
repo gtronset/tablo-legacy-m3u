@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from flask import Flask, Response, current_app, render_template, request
 
-from tablo_legacy_m3u import __version__
+from tablo_legacy_m3u._version import __version__
 from tablo_legacy_m3u.discover import device_info, generate_device_xml
 from tablo_legacy_m3u.lineup import (
     generate_json,

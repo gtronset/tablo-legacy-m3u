@@ -4,7 +4,11 @@ from typing import TYPE_CHECKING
 
 from flask import Flask, Response, current_app, request
 
-from tablo_legacy_m3u.m3u import channel_number, generate_m3u
+from tablo_legacy_m3u.lineup import (
+    generate_json,
+    generate_m3u,
+    generate_xml,
+)
 
 if TYPE_CHECKING:
     from tablo_legacy_m3u.config import Config
@@ -17,6 +21,7 @@ def register_routes(app: Flask) -> None:
     app.add_url_rule("/discover.json", view_func=discover)
     app.add_url_rule("/lineup.m3u", view_func=lineup_m3u)
     app.add_url_rule("/lineup.m3u8", view_func=lineup_m3u, endpoint="lineup_m3u8")
+    app.add_url_rule("/lineup.xml", view_func=lineup_xml)
     app.add_url_rule("/hdhr/lineup.json", view_func=lineup_json)
     app.add_url_rule("/hdhr/lineup_status.json", view_func=lineup_status)
     app.add_url_rule("/watch/<int:channel_id>", view_func=watch)
@@ -63,24 +68,24 @@ def lineup_json() -> list[dict[str, str]]:
     """Return the channel lineup in HDHomeRun JSON format."""
     tablo_client: TabloClient = current_app.config["TABLO_CLIENT"]
     channels = tablo_client.get_channels()
-
     base_url = request.host_url.rstrip("/")
 
-    sorted_channels = sorted(
-        channels,
-        key=lambda channel: (channel["channel"]["major"], channel["channel"]["minor"]),
-    )
+    return generate_json(channels, base_url)
 
-    return [
-        {
-            "Guide_ID": channel_number(channel),
-            "GuideNumber": channel_number(channel),
-            "GuideName": channel["channel"]["call_sign"],
-            "Station": channel_number(channel),
-            "URL": f"{base_url}/watch/{channel['object_id']}",
-        }
-        for channel in sorted_channels
-    ]
+
+def lineup_xml() -> Response:
+    """Return the channel lineup as HDHomeRun-style XML."""
+    tablo_client: TabloClient = current_app.config["TABLO_CLIENT"]
+    channels: list[Channel] = tablo_client.get_channels()
+
+    base_url = request.host_url.rstrip("/")
+    body = generate_xml(channels, base_url)
+
+    return Response(
+        body,
+        mimetype="application/xml",
+        content_type="application/xml; charset=utf-8",
+    )
 
 
 def lineup_status() -> dict[str, str | int | list[str]]:

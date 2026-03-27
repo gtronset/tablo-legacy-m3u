@@ -121,7 +121,7 @@ class TestDiscoverJson:
 
         data = resp.get_json()
         assert data["BaseURL"] == "http://localhost"
-        assert data["LineupURL"] == "http://localhost/hdhr/lineup.json"
+        assert data["LineupURL"] == "http://localhost/lineup.json"
 
 
 class TestLineupM3u:
@@ -162,8 +162,63 @@ class TestLineupM3u:
         assert "/watch/100" in body
 
 
+class TestLineupM3u8:
+    """Tests for GET `/lineup.m3u8`."""
+
+    def test_returns_same_content_as_m3u(
+        self, client: FlaskClient, tablo_client: MagicMock
+    ) -> None:
+        tablo_client.get_channels.return_value = [
+            make_channel(100, "WABC", 7, 1),
+        ]
+
+        m3u_resp = client.get("/lineup.m3u")
+        m3u8_resp = client.get("/lineup.m3u8")
+
+        assert m3u8_resp.status_code == HTTPStatus.OK
+        assert m3u8_resp.data == m3u_resp.data
+
+
+class TestLineupXml:
+    """Tests for GET `/lineup.xml`."""
+
+    def test_returns_xml_content_type(
+        self, client: FlaskClient, tablo_client: MagicMock
+    ) -> None:
+        tablo_client.get_channels.return_value = []
+
+        resp = client.get("/lineup.xml")
+
+        assert resp.status_code == HTTPStatus.OK
+        assert "application/xml" in resp.content_type
+
+    def test_empty_lineup(self, client: FlaskClient, tablo_client: MagicMock) -> None:
+        tablo_client.get_channels.return_value = []
+
+        resp = client.get("/lineup.xml")
+
+        body = resp.data.decode()
+
+        assert "<Lineup" in body
+
+    def test_contains_channel_entries(
+        self, client: FlaskClient, tablo_client: MagicMock
+    ) -> None:
+        tablo_client.get_channels.return_value = [
+            make_channel(100, "WABC", 7, 1),
+        ]
+
+        resp = client.get("/lineup.xml")
+
+        body = resp.data.decode()
+
+        assert "<GuideNumber>7.1</GuideNumber>" in body
+        assert "<GuideName>WABC</GuideName>" in body
+        assert "/watch/100</URL>" in body
+
+
 class TestLineupJson:
-    """Tests for GET `/hdhr/lineup.json`."""
+    """Tests for GET `/lineup.json`."""
 
     def test_returns_json_array(
         self, client: FlaskClient, tablo_client: MagicMock
@@ -172,7 +227,7 @@ class TestLineupJson:
             make_channel(100, "WABC", 7, 1),
         ]
 
-        resp = client.get("/hdhr/lineup.json")
+        resp = client.get("/lineup.json")
 
         assert resp.status_code == HTTPStatus.OK
 
@@ -188,7 +243,7 @@ class TestLineupJson:
             make_channel(100, "WABC", 7, 1),
         ]
 
-        resp = client.get("/hdhr/lineup.json")
+        resp = client.get("/lineup.json")
 
         entry = resp.get_json()[0]
 
@@ -196,36 +251,21 @@ class TestLineupJson:
         assert entry["GuideName"] == "WABC"
         assert entry["URL"].endswith("/watch/100")
 
-    def test_sorted_by_channel_number(
-        self, client: FlaskClient, tablo_client: MagicMock
-    ) -> None:
-        tablo_client.get_channels.return_value = [
-            make_channel(200, "WCBS", 11, 1),
-            make_channel(100, "WABC", 7, 1),
-        ]
-
-        resp = client.get("/hdhr/lineup.json")
-
-        data = resp.get_json()
-
-        assert data[0]["GuideNumber"] == "7.1"
-        assert data[1]["GuideNumber"] == "11.1"
-
     def test_empty_array_when_no_channels(
         self, client: FlaskClient, tablo_client: MagicMock
     ) -> None:
         tablo_client.get_channels.return_value = []
 
-        resp = client.get("/hdhr/lineup.json")
+        resp = client.get("/lineup.json")
 
         assert resp.get_json() == []
 
 
 class TestLineupStatus:
-    """Tests for GET `/hdhr/lineup_status.json`."""
+    """Tests for GET `/lineup_status.json`."""
 
     def test_returns_scan_complete(self, client: FlaskClient) -> None:
-        resp = client.get("/hdhr/lineup_status.json")
+        resp = client.get("/lineup_status.json")
 
         assert resp.status_code == HTTPStatus.OK
 

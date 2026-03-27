@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from flask import Flask
 
-# from tablo_legacy_m3u.routes import register_routes
+from tablo_legacy_m3u.routes import register_routes
 
 if TYPE_CHECKING:
     from tablo_legacy_m3u.config import Config
@@ -29,6 +29,6 @@ def create_app(
         ENABLE_EPG=enable_epg,
     )
 
-    # register_routes(app)
+    register_routes(app)
 
     return app

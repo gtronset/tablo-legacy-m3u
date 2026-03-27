@@ -7,8 +7,8 @@ import pytest
 
 from flask.testing import FlaskClient
 
+from tablo_legacy_m3u import create_app
 from tablo_legacy_m3u.config import Config
-from tablo_legacy_m3u.routes import app
 from tablo_legacy_m3u.tablo_types import ServerInfo
 from tests.helpers import make_channel
 
@@ -55,9 +55,11 @@ def client(
     """Flask test client with configurable app config."""
     config = getattr(request, "param", Config())
 
-    app.config["APP_CONFIG"] = config
-    app.config["TABLO_SERVER_INFO"] = server_info
-    app.config["TABLO_CLIENT"] = tablo_client
+    app = create_app(
+        config=config,
+        tablo_client=tablo_client,
+        server_info=server_info,
+    )
 
     return app.test_client()
 

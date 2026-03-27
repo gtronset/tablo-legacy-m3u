@@ -30,16 +30,16 @@ docker compose up --build
 
 ## Endpoints
 
-| Route                 | Description                                            |
-| --------------------- | ------------------------------------------------------ |
-| `/discover.json`      | HDHomeRun-style device descriptor                      |
-| `/device.xml`         | Fallback to `discover.json` for older HDHomeRun device |
-| `/lineup.m3u`         | M3U playlist                                           |
-| `/lineup.m3u8`        | M3U8 alias                                             |
-| `/lineup.xml`         | HDHomeRun XML lineup                                   |
-| `/lineup.json`        | HDHomeRun JSON lineup                                  |
-| `/lineup_status.json` | HDHomeRun lineup scan status                           |
-| `/watch/<channel_id>` | Redirect to live stream                                |
+| Route                 | Description                                             |
+| --------------------- | ------------------------------------------------------- |
+| `/discover.json`      | HDHomeRun-style device descriptor                       |
+| `/device.xml`         | Fallback to `discover.json` for older HDHomeRun devices |
+| `/lineup.m3u`         | M3U playlist                                            |
+| `/lineup.m3u8`        | M3U8 alias                                              |
+| `/lineup.xml`         | HDHomeRun XML lineup                                    |
+| `/lineup.json`        | HDHomeRun JSON lineup                                   |
+| `/lineup_status.json` | HDHomeRun lineup scan status                            |
+| `/watch/<channel_id>` | Redirect to live stream                                 |
 
 ## Contributing
 

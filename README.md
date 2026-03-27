@@ -29,8 +29,8 @@ such as [Dispatcharr] and [Threadfin] to aggregate Tablo channels.
 
 Tablo's [legacy transition] encourages users to adopt 4th Generation apps, which
 currently lack support for remote/out-of-home streaming ([Tablo Connect]). While legacy
-apps continue to work, users who want the best of both worlds (new apps but still are able
-to have remote streaming) need another option.
+apps continue to work, users need another option if they want the best of both worlds
+(new apps but still be able to stream remotely).
 
 `tablo-legacy-m3u` makes your Tablo's live channels accessible to any
 HDHomeRun-compatible app or IPTV client, including those that support remote access
@@ -83,12 +83,12 @@ All settings are configured via environment variables:
 | `HOST`               | `127.0.0.1` | Server bind address                            |
 | `PORT`               | `5004`      | Server port                                    |
 | `LOG_LEVEL`          | `DEBUG`     | Logging level                                  |
-| `DEBUG`              | `true`      | Enable Flask debug mode and re-loader          |
+| `DEBUG`              | `true`      | Enable Flask debug mode and reloader           |
 | `DEVICE_NAME`        | _(empty)_   | Override advertised device name (FriendlyName) |
 | `ENABLE_EPG`*        | `true`      | Enable EPG generation                          |
 | `CACHE_TTL`*         | `60`        | Cache TTL in seconds                           |
 
-_*Not yet implemented._
+_*Not yet implemented and/or currently have no effect._
 
 ## Client Setup
 

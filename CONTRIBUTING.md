@@ -37,7 +37,7 @@ docker compose -f docker-compose.dev.yaml up --build
 | `HOST`               | `127.0.0.1` | Server bind address                            |
 | `PORT`               | `5004`      | Server port                                    |
 | `LOG_LEVEL`          | `DEBUG`     | Logging level                                  |
-| `DEBUG`              | `true`      | Enable Flask debug mode and re-loader          |
+| `DEBUG`              | `true`      | Enable Flask debug mode and reloader           |
 | `DEVICE_NAME`        | _(empty)_   | Override advertised device name (FriendlyName) |
 | `ENABLE_EPG`         | `true`      | Enable EPG generation                          |
 | `CACHE_TTL`          | `60`        | Cache TTL in seconds                           |

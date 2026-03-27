@@ -1,5 +1,6 @@
 """Route handlers for HDHomeRun-compatible endpoints."""
 
+from importlib.metadata import version
 from typing import TYPE_CHECKING
 
 from flask import Flask, Response, current_app, render_template, request
@@ -48,6 +49,7 @@ def index() -> str:
         friendly_name=friendly_name,
         server_info=server_info,
         base_url=base_url,
+        version=version("tablo-legacy-m3u"),
     )
 
 

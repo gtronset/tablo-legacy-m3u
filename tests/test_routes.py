@@ -13,7 +13,6 @@ from tablo_legacy_m3u.tablo_types import ServerInfo
 from tests.helpers import make_channel
 
 TABLO_IP: str = "10.0.0.123"
-TUNER_COUNT: int = 4
 
 
 @pytest.fixture

@@ -7,6 +7,7 @@ from typing import Any
 import requests
 
 from tablo_legacy_m3u.tablo_types import (
+    Airing,
     BatchChannelResponse,
     Channel,
     DiscoveryResponse,
@@ -116,6 +117,25 @@ class TabloClient:
         )
 
         return data["playlist_url"]
+
+    def get_airings(self) -> list[Airing]:
+        """Fetch all upcoming guide airings from the Tablo.
+
+        First GETs the airing path list, then hydrates via POST `/batch`.
+        """
+        paths: list[str] = self._get("/guide/airings")
+        logger.debug("Found %d airing paths", len(paths))
+
+        if not paths:
+            logger.info("No airings found")
+            return []
+
+        batch: dict[str, Airing] = self._batch(paths)
+        airings = [v for v in batch.values() if v is not None]
+
+        logger.debug("Hydrated %d airings", len(airings))
+
+        return airings
 
 
 def discover_tablo_ip(autodiscover: bool, tablo_ip: str) -> str:

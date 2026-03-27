@@ -2,7 +2,6 @@
 name = "tablo-legacy-m3u"
 version = "0.1.0"
 description = "TabloTV M3U & EPG generator for legacy devices."
-readme = "README.md"
 requires-python = ">=3.12"
 dependencies = ["flask>=3.1.3", "requests>=2.32.5", "rich>=14.3.3"]
 
@@ -16,10 +15,6 @@ dev = [
     "typeguard>=4.5.1",
     "types-requests>=2.32.4.20260324",
 ]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
 
 [tool.mypy]
 strict = true

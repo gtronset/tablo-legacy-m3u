@@ -8,7 +8,6 @@
 __pycache__/
 tests/
 *.md
-!README.md
 LICENSE
 .dockerignore
 .gitignore

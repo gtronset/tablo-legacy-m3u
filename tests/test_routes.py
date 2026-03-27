@@ -121,7 +121,7 @@ class TestDiscoverJson:
 
         data = resp.get_json()
         assert data["BaseURL"] == "http://localhost"
-        assert data["LineupURL"] == "http://localhost/hdhr/lineup.json"
+        assert data["LineupURL"] == "http://localhost/lineup.json"
 
 
 class TestLineupM3u:
@@ -218,7 +218,7 @@ class TestLineupXml:
 
 
 class TestLineupJson:
-    """Tests for GET `/hdhr/lineup.json`."""
+    """Tests for GET `/lineup.json`."""
 
     def test_returns_json_array(
         self, client: FlaskClient, tablo_client: MagicMock
@@ -227,7 +227,7 @@ class TestLineupJson:
             make_channel(100, "WABC", 7, 1),
         ]
 
-        resp = client.get("/hdhr/lineup.json")
+        resp = client.get("/lineup.json")
 
         assert resp.status_code == HTTPStatus.OK
 
@@ -243,7 +243,7 @@ class TestLineupJson:
             make_channel(100, "WABC", 7, 1),
         ]
 
-        resp = client.get("/hdhr/lineup.json")
+        resp = client.get("/lineup.json")
 
         entry = resp.get_json()[0]
 
@@ -256,16 +256,16 @@ class TestLineupJson:
     ) -> None:
         tablo_client.get_channels.return_value = []
 
-        resp = client.get("/hdhr/lineup.json")
+        resp = client.get("/lineup.json")
 
         assert resp.get_json() == []
 
 
 class TestLineupStatus:
-    """Tests for GET `/hdhr/lineup_status.json`."""
+    """Tests for GET `/lineup_status.json`."""
 
     def test_returns_scan_complete(self, client: FlaskClient) -> None:
-        resp = client.get("/hdhr/lineup_status.json")
+        resp = client.get("/lineup_status.json")
 
         assert resp.status_code == HTTPStatus.OK
 

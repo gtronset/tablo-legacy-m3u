@@ -28,6 +28,9 @@ jobs:
             - name: Ruff format
               run: uv run ruff format --check .
 
+            - name: Djlint
+              run: uv run djlint tablo_legacy_m3u/templates/ --lint --check
+
     typecheck:
         name: Type check
         runs-on: ubuntu-24.04

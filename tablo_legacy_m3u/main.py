@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 
 from rich.logging import RichHandler
 
-from tablo_legacy_m3u.app import app
 from tablo_legacy_m3u.config import load_config
+from tablo_legacy_m3u.routes import app
 from tablo_legacy_m3u.tablo_client import TabloClient, discover_tablo_ip
 
 if TYPE_CHECKING:

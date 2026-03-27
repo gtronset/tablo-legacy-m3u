@@ -16,14 +16,14 @@ app = Flask(__name__)
 
 def _require_config(key: str) -> Any:
     """Get a required app config value or raise a clear error."""
-    try:
-        return current_app.config[key]
-    except KeyError:
+    value = current_app.config.get(key)
+    if value is None:
         msg = (
             f"Missing app config '{key}'. Start the app via '"
             "'python -m tablo_legacy_m3u'."
         )
-        raise RuntimeError(msg) from None
+        raise RuntimeError(msg)
+    return value
 
 
 @app.route("/discover.json")

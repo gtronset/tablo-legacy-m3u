@@ -66,6 +66,9 @@ extend-select = [
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.per-file-ignores]
+"tablo_legacy_m3u/__init__.py" = [
+    "RUF067", # ruff: Flask app factory convention requires code in __init__.py
+]
 "tests/**" = [
     "D102",    # pydocstyle: ignore missing docstring in test methods
     "PLR6301", # pylint: ignore unused self in test methods

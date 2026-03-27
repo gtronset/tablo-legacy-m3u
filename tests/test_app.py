@@ -7,8 +7,8 @@ import pytest
 
 from flask.testing import FlaskClient
 
-from tablo_legacy_m3u.app import app
 from tablo_legacy_m3u.config import Config
+from tablo_legacy_m3u.routes import app
 from tablo_legacy_m3u.tablo_types import ServerInfo
 from tests.helpers import make_channel
 

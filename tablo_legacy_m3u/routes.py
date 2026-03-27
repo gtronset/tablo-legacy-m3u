@@ -16,6 +16,7 @@ def register_routes(app: Flask) -> None:
     """Register all route handlers on the Flask app."""
     app.add_url_rule("/discover.json", view_func=discover)
     app.add_url_rule("/lineup.m3u", view_func=lineup_m3u)
+    app.add_url_rule("/lineup.m3u8", view_func=lineup_m3u, endpoint="lineup_m3u8")
     app.add_url_rule("/hdhr/lineup.json", view_func=lineup_json)
     app.add_url_rule("/hdhr/lineup_status.json", view_func=lineup_status)
     app.add_url_rule("/watch/<int:channel_id>", view_func=watch)

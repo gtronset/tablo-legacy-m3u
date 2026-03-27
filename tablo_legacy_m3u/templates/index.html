@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{{ friendly_name }} — tablo-legacy-m3u</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+              rel="stylesheet">
+        <style>
+            :root {
+            --color-primary: #355872;
+            --color-secondary: #7AAACE;
+            --color-accent: #9CD5FF;
+            --color-bg: #F7F8F0;
+            }
+            body {
+            font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+            max-width: 640px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            color: var(--color-primary);
+            background-color: var(--color-bg);
+            }
+            h1 {
+                font-size: 2rem;
+                color: var(--color-bg);
+                background-color: var(--color-primary);
+                padding: 1rem;
+            }
+            h2 {
+                font-size: 1.1rem;
+                margin-top: 1.5rem;
+                padding: 0 0 0.5rem;
+                border-bottom: 0.5rem solid;
+            }
+            dl {
+            display: grid;
+            grid-template-columns: 10rem 1fr;
+            gap: 1rem;
+            margin: 1rem 0 2rem;
+            }
+            dt {
+            color: var(--color-secondary);
+            font-weight: 600;
+            }
+            dd {
+            margin: 0;
+            }
+            a { color: var(--color-primary); }
+            a:hover { color: var(--color-secondary); }
+            .status { font-weight: bold; }
+            .border-gradient {
+                --angle: 0deg;
+
+                border: 3px solid #0000;
+                border-radius: 12px;
+                background:  linear-gradient(var(--color-primary),var(--color-primary)) padding-box,
+                    linear-gradient(
+                        var(--angle),
+                        var(--color-primary),
+                        var(--color-secondary)
+                    ) border-box;
+
+                animation: 8s rotate linear infinite;
+            }
+
+            @keyframes rotate {
+                to {
+                    --angle: 360deg;
+                }
+            }
+            @property --angle {
+                syntax: '<angle>';
+                initial-value: 0deg;
+                inherits: false;
+            }
+        </style>
+    </head>
+    <body>
+        <h1 class="border-gradient">tablo-legacy-m3u</h1>
+        <h2>Status</h2>
+        <dl>
+            <dt>Status</dt>
+            <dd class="status">
+                Running ✅
+            </dd>
+        </dl>
+        <h2>Tablo Device</h2>
+        <dl>
+            <dt>Name</dt>
+            <dd>
+                {{ friendly_name }}
+            </dd>
+            <dt>IP Address</dt>
+            <dd>
+                {{ server_info.local_address }}
+            </dd>
+            <dt>Model</dt>
+            <dd>
+                {{ server_info.model.name }}
+            </dd>
+            <dt>Firmware</dt>
+            <dd>
+                {{ server_info.version }}
+            </dd>
+            <dt>Tuners</dt>
+            <dd>
+                {{ server_info.model.tuners }}
+            </dd>
+        </dl>
+        <h2>Endpoints</h2>
+        <dl>
+            <dt>M3U Playlist</dt>
+            <dd>
+                <a href="{{ url_for('lineup_m3u') }}">{{ base_url }}/lineup.m3u</a>
+            </dd>
+            <dt>M3U8 Playlist</dt>
+            <dd>
+                <a href="{{ url_for('lineup_m3u8') }}">{{ base_url }}/lineup.m3u8</a>
+            </dd>
+            <dt>JSON Lineup</dt>
+            <dd>
+                <a href="{{ url_for('lineup_json') }}">{{ base_url }}/lineup.json</a>
+            </dd>
+            <dt>XML Lineup</dt>
+            <dd>
+                <a href="{{ url_for('lineup_xml') }}">{{ base_url }}/lineup.xml</a>
+            </dd>
+            <dt>Device Descriptor</dt>
+            <dd>
+                <a href="{{ url_for('discover') }}">{{ base_url }}/discover.json</a>
+            </dd>
+            <dt>Device XML</dt>
+            <dd>
+                <a href="{{ url_for('device_xml') }}">{{ base_url }}/device.xml</a>
+            </dd>
+        </dl>
+    </body>
+</html>

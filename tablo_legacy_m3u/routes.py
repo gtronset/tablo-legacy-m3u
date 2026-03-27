@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from flask import Flask, Response, current_app, request
+from flask import Flask, Response, current_app, render_template, request
 
 from tablo_legacy_m3u.discover import device_info, generate_device_xml
 from tablo_legacy_m3u.lineup import (
@@ -19,6 +19,8 @@ if TYPE_CHECKING:
 
 def register_routes(app: Flask) -> None:
     """Register all route handlers on the Flask app."""
+    app.add_url_rule("/", view_func=index)
+
     app.add_url_rule("/discover.json", view_func=discover)
     app.add_url_rule("/device.xml", view_func=device_xml)
 
@@ -31,6 +33,22 @@ def register_routes(app: Flask) -> None:
     app.add_url_rule("/lineup_status.json", view_func=lineup_status)
 
     app.add_url_rule("/watch/<int:channel_id>", view_func=watch)
+
+
+def index() -> str:
+    """Render the landing page with device info and endpoint links."""
+    config: Config = current_app.config["APP_CONFIG"]
+    server_info: ServerInfo = current_app.config["TABLO_SERVER_INFO"]
+
+    friendly_name = config.device_name or server_info["name"]
+    base_url = request.host_url.rstrip("/")
+
+    return render_template(
+        "index.html",
+        friendly_name=friendly_name,
+        server_info=server_info,
+        base_url=base_url,
+    )
 
 
 def discover() -> dict[str, str | int]:

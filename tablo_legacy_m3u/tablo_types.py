@@ -127,3 +127,87 @@ class DiscoveryResponse(TypedDict):
 
     success: bool
     cpes: list[DiscoveryCpe]
+
+
+class AiringDetails(TypedDict):
+    """Common airing schedule block shared by all guide airing types."""
+
+    datetime: str
+    duration: int
+    channel_path: str
+    channel: Channel
+    show_title: str
+
+
+class EpisodeInfo(TypedDict):
+    """Episode metadata from a series episode airing."""
+
+    title: str | None
+    description: str
+    number: int
+    season_number: int
+    orig_air_date: str
+
+
+class EpisodeAiring(TypedDict):
+    """A hydrated series episode from `/guide/series/episodes/<id>`."""
+
+    path: str
+    object_id: int
+    series_path: str
+    season_path: str
+    episode: EpisodeInfo
+    airing_details: AiringDetails
+    qualifiers: list[str]
+
+
+class MovieAiringInfo(TypedDict):
+    """Movie-specific metadata from a movie airing."""
+
+    release_year: int
+    film_rating: str | None
+    quality_rating: int | None
+
+
+class MovieAiring(TypedDict):
+    """A hydrated movie airing from `/guide/movies/airings/<id>`."""
+
+    path: str
+    object_id: int
+    movie_path: str
+    movie_airing: MovieAiringInfo
+    airing_details: AiringDetails
+    qualifiers: list[str]
+
+
+class SportTeam(TypedDict):
+    """A team entry in a sport event."""
+
+    name: str
+    team_id: int
+
+
+class SportEventInfo(TypedDict):
+    """Sport event metadata from a sport event airing."""
+
+    title: str
+    description: str
+    season: str | None
+    season_type: str | None
+    venue: str | None
+    teams: list[SportTeam]
+    home_team_id: int | None
+
+
+class SportEventAiring(TypedDict):
+    """A hydrated sport event from `/guide/sports/events/<id>`."""
+
+    path: str
+    object_id: int
+    sport_path: str
+    event: SportEventInfo
+    airing_details: AiringDetails
+    qualifiers: list[str]
+
+
+type Airing = EpisodeAiring | MovieAiring | SportEventAiring

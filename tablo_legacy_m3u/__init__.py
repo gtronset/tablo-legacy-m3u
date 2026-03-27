@@ -17,7 +17,6 @@ def create_app(
     config: "Config",
     tablo_client: "TabloClient",
     server_info: "ServerInfo",
-    enable_epg: bool = False,
 ) -> Flask:
     """Create and configure the Flask application."""
     app = Flask(__name__)
@@ -26,7 +25,6 @@ def create_app(
         APP_CONFIG=config,
         TABLO_CLIENT=tablo_client,
         TABLO_SERVER_INFO=server_info,
-        ENABLE_EPG=enable_epg,
     )
 
     register_routes(app)

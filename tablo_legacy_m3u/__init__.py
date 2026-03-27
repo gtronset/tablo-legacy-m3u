@@ -1,5 +1,7 @@
 """tablo-legacy-m3u: Tablo TV M3U & EPG generator for legacy devices."""
 
+__version__ = "0.1.0"
+
 from typing import TYPE_CHECKING
 
 from flask import Flask

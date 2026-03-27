@@ -14,9 +14,9 @@ if TYPE_CHECKING:
 
 def create_app(
     *,
-    config: "Config | None" = None,
-    tablo_client: "TabloClient | None" = None,
-    server_info: "ServerInfo | None" = None,
+    config: "Config",
+    tablo_client: "TabloClient",
+    server_info: "ServerInfo",
     enable_epg: bool = False,
 ) -> Flask:
     """Create and configure the Flask application."""

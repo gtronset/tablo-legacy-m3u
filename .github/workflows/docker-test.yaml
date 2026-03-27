@@ -50,4 +50,9 @@ jobs:
             - name: Smoke Test
               run: |
                   docker run --rm tablo-legacy-m3u \
-                    python -c "from tablo_legacy_m3u import create_app; print(create_app().name)"
+                        python -c "
+                    from tablo_legacy_m3u.config import Config
+                    from tablo_legacy_m3u import create_app
+                    app = create_app(config=Config(), tablo_client=object(), server_info={})
+                    print(app.name)
+                    "

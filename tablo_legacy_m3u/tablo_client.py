@@ -36,6 +36,9 @@ class TabloClient:
     def _get(self, path: str) -> Any:
         """Make a GET request to the Tablo API."""
         response = requests.get(f"{self.base_url}{path}", timeout=REQUEST_TIMEOUT)
+
+        if not response.ok:
+            logger.error("GET %s failed: %s", path, response.text)
         response.raise_for_status()
 
         return response.json()
@@ -45,6 +48,8 @@ class TabloClient:
         response = requests.post(
             f"{self.base_url}{path}", json=json, timeout=REQUEST_TIMEOUT
         )
+        if not response.ok:
+            logger.error("POST %s failed: %s", path, response.text)
         response.raise_for_status()
 
         return response.json()

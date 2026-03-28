@@ -2,6 +2,7 @@
 
 import logging
 
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import requests
@@ -15,6 +16,10 @@ from tablo_legacy_m3u.tablo_types import (
     SubscriptionResponse,
     WatchResponse,
 )
+
+# Batching parameters for fetching channels and airings
+BATCH_SIZE = 50
+MAX_CONCURRENT_BATCHES = 5
 
 # Tablo API ports
 TABLO_API_PORT = 8885
@@ -36,6 +41,12 @@ class TabloClient:
     def _get(self, path: str) -> Any:
         """Make a GET request to the Tablo API."""
         response = requests.get(f"{self.base_url}{path}", timeout=REQUEST_TIMEOUT)
+        logger.debug(
+            "GET %s %s (%.3fs)",
+            path,
+            response.status_code,
+            response.elapsed.total_seconds(),
+        )
 
         if not response.ok:
             logger.error("GET %s failed: %s", path, response.text)
@@ -48,6 +59,13 @@ class TabloClient:
         response = requests.post(
             f"{self.base_url}{path}", json=json, timeout=REQUEST_TIMEOUT
         )
+        logger.debug(
+            "POST %s %s (%.3fs)",
+            path,
+            response.status_code,
+            response.elapsed.total_seconds(),
+        )
+
         if not response.ok:
             logger.error("POST %s failed: %s", path, response.text)
         response.raise_for_status()
@@ -59,6 +77,17 @@ class TabloClient:
         result: dict[str, Any] = self._post("/batch", json=paths)
 
         return result
+
+    def _chunked_batch(self, paths: list[str]) -> dict[str, Any]:
+        """Fetch paths via `/batch` in parallel chunks."""
+        chunks = [paths[i : i + BATCH_SIZE] for i in range(0, len(paths), BATCH_SIZE)]
+
+        results: dict[str, Any] = {}
+        with ThreadPoolExecutor(max_workers=MAX_CONCURRENT_BATCHES) as executor:
+            for batch_result in executor.map(self._batch, chunks):
+                results.update(batch_result)
+
+        return results
 
     def get_channels(self) -> list[Channel]:
         """Fetch all channel details from the Tablo.
@@ -72,7 +101,7 @@ class TabloClient:
             logger.info("No channels found")
             return []
 
-        batch: BatchChannelResponse = self._batch(paths)
+        batch: BatchChannelResponse = self._chunked_batch(paths)
         channels = list(batch.values())
 
         logger.debug("Hydrated %d channels", len(channels))
@@ -135,7 +164,7 @@ class TabloClient:
             logger.info("No airings found")
             return []
 
-        batch: dict[str, Airing] = self._batch(paths)
+        batch: dict[str, Airing] = self._chunked_batch(paths)
         airings = [v for v in batch.values() if v is not None]
 
         logger.debug("Hydrated %d airings", len(airings))

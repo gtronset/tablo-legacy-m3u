@@ -13,12 +13,14 @@
 ## What It Does
 
 `tablo-legacy-m3u` connects to a legacy Tablo device on your local network, reads its
-channel lineup, and serves it as an [HDHomeRun]-compatible HTTP server. This allows
-media apps like [Plex], [Jellyfin], and [Emby] to discover and stream live TV channels
-from your Tablo as if it were an HDHomeRun tuner. This also allows IPTV helpers/proxies
-such as [Dispatcharr] and [Threadfin] to aggregate Tablo channels.
+channel lineup and guide data, and serves it as an [HDHomeRun]-compatible HTTP server
+with [XMLTV] EPG support (if "guide" subscription is available). This allows media apps
+like [Plex], [Jellyfin], and [Emby] to discover and stream live TV channels from your
+Tablo as if it were an HDHomeRun tuner. This also allows IPTV helpers/proxies such as
+[Dispatcharr] and [Threadfin] to aggregate Tablo channels.
 
 [HDHomeRun]: https://www.silicondust.com/
+[XMLTV]: https://wiki.xmltv.org/index.php/XMLTVFormat
 [Plex]: https://www.plex.tv/
 [Emby]: https://emby.media/
 [Jellyfin]: https://jellyfin.org/
@@ -47,7 +49,7 @@ Tablo Connect or legacy app availability.
 ## How It Works
 
 1. On startup, the app discovers your Tablo device (via cloud API or manual IP)
-2. It queries the Tablo for device info and channel data
+2. It queries the Tablo for device info, channel data, and guide airings (if subscribed)
 3. It starts an HTTP server that emulates HDHomeRun endpoints
 4. Media clients connect and see it as a standard HDHomeRun tuner
 
@@ -99,6 +101,7 @@ Add this app as an HDHomeRun tuner in your media server:
 - __Emby__: Live TV → Add Tuner Device → HDHomeRun → `http://<host>:5004`
 - Any app that supports HDHomeRun tuners or M3U playlists should work (Dispatcharr,
   Threadfin, etc.). For M3U-only clients, point to `http://<host>:5004/lineup.m3u`.
+- For EPG/guide data, point your client to `http://<host>:5004/xmltv.xml`.
 
 ## Endpoints
 
@@ -112,6 +115,7 @@ Add this app as an HDHomeRun tuner in your media server:
 | `/lineup.json`        | HDHomeRun JSON lineup                                   |
 | `/lineup_status.json` | HDHomeRun lineup scan status                            |
 | `/watch/<channel_id>` | Redirect to live stream                                 |
+| `/xmltv.xml`          | XMLTV EPG guide data (requires guide subscription)      |
 
 ## Contributing
 

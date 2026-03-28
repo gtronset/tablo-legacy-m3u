@@ -325,11 +325,12 @@ class TestGetAirings:
         assert batch_calls[0].request.body is not None
         assert batch_calls[1].request.body is not None
 
-        first_batch = json.loads(batch_calls[0].request.body)
-        assert len(first_batch) == BATCH_SIZE
-
-        second_batch = json.loads(batch_calls[1].request.body)
-        assert len(second_batch) == path_count - BATCH_SIZE
+        # Execution order of batches is not guaranteed; check sizes as a set
+        batch_sizes = {
+            len(json.loads(batch_calls[0].request.body)),
+            len(json.loads(batch_calls[1].request.body)),
+        }
+        assert batch_sizes == {BATCH_SIZE, path_count - BATCH_SIZE}
 
 
 class TestGetWatchUrl:

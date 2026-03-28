@@ -1,7 +1,7 @@
 """XMLTV EPG generator from Tablo guide airings.
 
 - For XMLTV format details, see https://wiki.xmltv.org/index.php/XMLTVFormat.
-- For offical XMLTV DTD, see: https://github.com/XMLTV/xmltv/blob/master/xmltv.dtd
+- For official XMLTV DTD, see: https://github.com/XMLTV/xmltv/blob/master/xmltv.dtd
 """
 
 from datetime import UTC, datetime, timedelta
@@ -162,7 +162,7 @@ def generate_xmltv(channels: list[Channel], airings: list[Airing]) -> str:
 
     Example output::
 
-        <?xml version='1.0' encoding='us-ascii'?>
+        <?xml version='1.0' encoding='utf-8'?>
         <tv generator-info-name="tablo-legacy-m3u">
           <channel id="7.1">
             <display-name>WABC</display-name>

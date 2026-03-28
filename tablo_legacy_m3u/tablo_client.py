@@ -164,7 +164,7 @@ class TabloClient:
             logger.info("No airings found")
             return []
 
-        batch: dict[str, Airing] = self._chunked_batch(paths)
+        batch: dict[str, Airing | None] = self._chunked_batch(paths)
         airings = [v for v in batch.values() if v is not None]
 
         logger.debug("Hydrated %d airings", len(airings))

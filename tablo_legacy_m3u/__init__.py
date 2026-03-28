@@ -20,7 +20,7 @@ def create_app(
     config: "Config",
     tablo_client: "TabloClient",
     server_info: "ServerInfo",
-    enable_epg: bool = True,
+    enable_epg: bool,
 ) -> Flask:
     """Create and configure the Flask application."""
     app = Flask(__name__)

@@ -64,7 +64,7 @@ class TestIndex:
         assert "/lineup.m3u" in body
         assert "/discover.json" in body
 
-    def test_shows_epg_disabled_when_no_subscription(
+    def test_shows_epg_disabled_when_epg_not_enabled(
         self, server_info: ServerInfo, tablo_client: MagicMock
     ) -> None:
         app = create_app(

@@ -14,7 +14,7 @@
 
 `tablo-legacy-m3u` connects to a legacy Tablo device on your local network, reads its
 channel lineup and guide data, and serves it as an [HDHomeRun]-compatible HTTP server
-with [XMLTV] EPG support (if "guide" subscription is available). This allows media apps
+with [XMLTV] EPG support (requires an active guide subscription). This allows media apps
 like [Plex], [Jellyfin], and [Emby] to discover and stream live TV channels from your
 Tablo as if it were an HDHomeRun tuner. This also allows IPTV helpers/proxies such as
 [Dispatcharr] and [Threadfin] to aggregate Tablo channels.

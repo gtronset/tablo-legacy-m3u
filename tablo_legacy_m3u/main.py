@@ -34,10 +34,16 @@ def main() -> None:
     client = TabloClient(tablo_ip)
     server_info: ServerInfo = client.get_server_info()
 
+    if config.enable_epg and not client.has_guide_subscription():
+        logger.warning("EPG enabled but no active guide subscription. EPG disabled.")
+
+    enable_epg = config.enable_epg and client.has_guide_subscription()
+
     app = create_app(
         config=config,
         tablo_client=client,
         server_info=server_info,
+        enable_epg=enable_epg,
     )
 
     app.run(

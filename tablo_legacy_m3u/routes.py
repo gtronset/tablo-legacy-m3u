@@ -38,7 +38,8 @@ def register_routes(app: Flask) -> None:
     app.add_url_rule("/lineup.json", view_func=lineup_json)
     app.add_url_rule("/lineup_status.json", view_func=lineup_status)
 
-    app.add_url_rule("/xmltv.xml", view_func=xmltv)
+    if app.config["ENABLE_EPG"]:
+        app.add_url_rule("/xmltv.xml", view_func=xmltv)
 
     app.add_url_rule("/watch/<int:channel_id>", view_func=watch)
 
@@ -51,12 +52,15 @@ def index() -> str:
     friendly_name = config.device_name or server_info["name"]
     base_url = request.host_url.rstrip("/")
 
+    enable_epg = current_app.config["ENABLE_EPG"]
+
     return render_template(
         "index.html",
         friendly_name=friendly_name,
         server_info=server_info,
         base_url=base_url,
         version=__version__,
+        enable_epg=enable_epg,
     )
 
 

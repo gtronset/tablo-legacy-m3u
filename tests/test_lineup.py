@@ -115,6 +115,14 @@ class TestGenerateM3u:
         lines = result.strip().split("\n")
         assert lines[1].startswith("#EXTINF:-1 ")
 
+    def test_extinf_includes_tvg_id(self) -> None:
+        channels = [make_channel(100, "WABC", 7, 1)]
+
+        result = generate_m3u(channels, BASE_URL)
+
+        lines = result.strip().split("\n")
+        assert 'tvg-id="7.1"' in lines[1]
+
 
 class TestGenerateJson:
     """Tests for generate_json()."""

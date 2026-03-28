@@ -187,6 +187,7 @@ class TestLineupM3u:
         body = resp.data.decode()
 
         assert "#EXTM3U" in body
+        assert 'tvg-id="7.1"' in body
         assert 'tvg-name="WABC"' in body
         assert "/watch/100" in body
 

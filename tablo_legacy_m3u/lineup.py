@@ -47,9 +47,9 @@ def generate_m3u(channels: list[Channel], base_url: str) -> str:
         object_id = channel["object_id"]
 
         lines.append(
-            f'#EXTINF:{live_stream_duration} channel-id="{channel_num}" channel-number='
-            f'"{channel_num}" tvg-name="{info["call_sign"]}" tvg-chno="{channel_num}"'
-            f",{info['call_sign']}"
+            f'#EXTINF:{live_stream_duration} tvg-id="{channel_num}" channel-id="'
+            f'{channel_num}" channel-number="{channel_num}" tvg-name="'
+            f'{info["call_sign"]}" tvg-chno="{channel_num}",{info["call_sign"]}'
         )
         lines.append(f"{base_url}/watch/{object_id}")
 

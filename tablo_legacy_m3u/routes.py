@@ -6,6 +6,7 @@ from flask import Flask, Response, current_app, render_template, request
 
 from tablo_legacy_m3u._version import __version__
 from tablo_legacy_m3u.discover import device_info, generate_device_xml
+from tablo_legacy_m3u.epg import generate_xmltv
 from tablo_legacy_m3u.lineup import (
     generate_json,
     generate_m3u,
@@ -15,7 +16,11 @@ from tablo_legacy_m3u.lineup import (
 if TYPE_CHECKING:
     from tablo_legacy_m3u.config import Config
     from tablo_legacy_m3u.tablo_client import TabloClient
-    from tablo_legacy_m3u.tablo_types import Channel, ServerInfo
+    from tablo_legacy_m3u.tablo_types import Airing, Channel, ServerInfo
+
+XML_MIMETYPE = "application/xml"
+M3U_MIMETYPE = "application/x-mpegurl"
+UTF8_CHARSET = "utf-8"
 
 
 def register_routes(app: Flask) -> None:
@@ -32,6 +37,8 @@ def register_routes(app: Flask) -> None:
     app.add_url_rule("/lineup.xml", view_func=lineup_xml)
     app.add_url_rule("/lineup.json", view_func=lineup_json)
     app.add_url_rule("/lineup_status.json", view_func=lineup_status)
+
+    app.add_url_rule("/xmltv.xml", view_func=xmltv)
 
     app.add_url_rule("/watch/<int:channel_id>", view_func=watch)
 
@@ -72,8 +79,8 @@ def device_xml() -> Response:
 
     return Response(
         body,
-        mimetype="application/xml",
-        content_type="application/xml; charset=utf-8",
+        mimetype=XML_MIMETYPE,
+        content_type=f"{XML_MIMETYPE}; charset={UTF8_CHARSET}",
     )
 
 
@@ -82,15 +89,14 @@ def lineup_m3u() -> Response:
     tablo_client: TabloClient = current_app.config["TABLO_CLIENT"]
     channels: list[Channel] = tablo_client.get_channels()
 
-    m3u_mimetype = "application/x-mpegurl"
     base_url = request.host_url.rstrip("/")
 
     body = generate_m3u(channels, base_url)
 
     return Response(
         body,
-        mimetype=m3u_mimetype,
-        content_type=f"{m3u_mimetype}; charset=utf-8",
+        mimetype=M3U_MIMETYPE,
+        content_type=f"{M3U_MIMETYPE}; charset={UTF8_CHARSET}",
     )
 
 
@@ -114,8 +120,8 @@ def lineup_xml() -> Response:
 
     return Response(
         body,
-        mimetype="application/xml",
-        content_type="application/xml; charset=utf-8",
+        mimetype=XML_MIMETYPE,
+        content_type=f"{XML_MIMETYPE}; charset={UTF8_CHARSET}",
     )
 
 
@@ -127,6 +133,21 @@ def lineup_status() -> dict[str, str | int | list[str]]:
         "Source": "Antenna",
         "SourceList": ["Antenna"],
     }
+
+
+def xmltv() -> Response:
+    """Return the XMLTV EPG guide."""
+    tablo_client: TabloClient = current_app.config["TABLO_CLIENT"]
+    channels: list[Channel] = tablo_client.get_channels()
+    airings: list[Airing] = tablo_client.get_airings()
+
+    body = generate_xmltv(channels, airings)
+
+    return Response(
+        body,
+        mimetype=XML_MIMETYPE,
+        content_type=f"{XML_MIMETYPE}; charset={UTF8_CHARSET}",
+    )
 
 
 def watch(channel_id: int) -> Response:

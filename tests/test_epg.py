@@ -85,6 +85,125 @@ class TestGenerateXmltvChannels:
         assert names[3].text == "2.1 WCBS"
 
 
+class TestGenerateXmltvEpisode:
+    """Tests for episode programme elements in `generate_xmltv()`."""
+
+    @pytest.fixture
+    def xml_root(self, channels: list["Channel"]) -> ET.Element:
+        channel = channels[0]
+        airing = make_episode_airing(500, "Test Show", channel)
+        xml = generate_xmltv([channel], [airing])
+
+        return ET.fromstring(xml)
+
+    def test_programme_attributes(self, xml_root: ET.Element) -> None:
+        prog = xml_root.find("programme")
+
+        assert prog is not None
+        assert prog.get("start") == "20260328010000 +0000"
+        assert prog.get("stop") == "20260328020000 +0000"
+        assert prog.get("channel") == "7.1"
+
+    def test_title(self, xml_root: ET.Element) -> None:
+        title = xml_root.findtext("programme/title")
+
+        assert title == "Test Show"
+
+    def test_sub_title(self, xml_root: ET.Element) -> None:
+        sub_title = xml_root.findtext("programme/sub-title")
+
+        assert sub_title == "Pilot"
+
+    def test_desc(self, xml_root: ET.Element) -> None:
+        desc = xml_root.findtext("programme/desc")
+
+        assert desc == "The first episode."
+
+    def test_episode_num(self, xml_root: ET.Element) -> None:
+        ep_num = xml_root.find("programme/episode-num")
+
+        assert ep_num is not None
+        assert ep_num.text == "S1E1"
+        assert ep_num.get("system") == "onscreen"
+
+    def test_null_title_omits_sub_title(self, channels: list["Channel"]) -> None:
+        channel = channels[0]
+        airing = make_episode_airing(500, channel=channel)
+        airing["episode"]["title"] = None
+
+        xml = generate_xmltv([channel], [airing])
+        root = ET.fromstring(xml)
+
+        assert root.find("programme/sub-title") is None
+
+    def test_season_zero_omits_episode_num(self, channels: list["Channel"]) -> None:
+        channel = channels[0]
+        airing = make_episode_airing(500, channel=channel)
+        airing["episode"]["season_number"] = 0
+
+        xml = generate_xmltv([channel], [airing])
+        root = ET.fromstring(xml)
+
+        assert root.find("programme/episode-num") is None
+
+
+class TestGenerateXmltvMovie:
+    """Tests for movie programme elements in `generate_xmltv()`."""
+
+    def test_movie_with_rating(self, channels: list["Channel"]) -> None:
+        channel = channels[0]
+        airing = make_movie_airing(600, "Test Movie", channel, film_rating="pg")
+
+        xml = generate_xmltv([channel], [airing])
+        root = ET.fromstring(xml)
+
+        rating_value = root.findtext("programme/rating/value")
+
+        assert rating_value == "pg"
+
+    def test_movie_without_rating(self, channels: list["Channel"]) -> None:
+        channel = channels[0]
+        airing = make_movie_airing(600, "Test Movie", channel, film_rating=None)
+
+        xml = generate_xmltv([channel], [airing])
+        root = ET.fromstring(xml)
+
+        assert root.find("programme/rating") is None
+
+    def test_movie_title_from_show_title(self, channels: list["Channel"]) -> None:
+        channel = channels[0]
+        airing = make_movie_airing(600, "The Great Film", channel)
+
+        xml = generate_xmltv([channel], [airing])
+        root = ET.fromstring(xml)
+
+        assert root.findtext("programme/title") == "The Great Film"
+
+
+class TestGenerateXmltvSportEvent:
+    """Tests for sport event programme elements in `generate_xmltv()`."""
+
+    def test_sport_event_desc(self, channels: list["Channel"]) -> None:
+        channel = channels[0]
+        airing = make_sport_event_airing(700, "Test Sports", channel)
+
+        xml = generate_xmltv([channel], [airing])
+        root = ET.fromstring(xml)
+
+        desc = root.findtext("programme/desc")
+
+        assert desc == "From Test Arena in Test City."
+
+    def test_sport_event_title(self, channels: list["Channel"]) -> None:
+        channel = channels[0]
+        airing = make_sport_event_airing(700, "PWHL Hockey", channel)
+
+        xml = generate_xmltv([channel], [airing])
+        root = ET.fromstring(xml)
+
+        assert root.findtext("programme/title") == "PWHL Hockey"
+
+
 class TestGenerateXmltvStructure:
     """Tests for overall XMLTV document structure."""
 

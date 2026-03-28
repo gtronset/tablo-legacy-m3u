@@ -9,6 +9,7 @@ import requests
 import responses
 
 from tablo_legacy_m3u.tablo_client import (
+    BATCH_SIZE,
     TABLO_DISCOVERY_URL,
     TabloClient,
     discover_tablo_ip,
@@ -296,6 +297,39 @@ class TestGetAirings:
 
         posted = json.loads(responses.calls[1].request.body)
         assert posted == ["/guide/series/episodes/500"]
+
+    @responses.activate
+    def test_chunked_batch_splits_large_lists(self, tablo: TabloClient) -> None:
+        path_count = 75
+
+        paths = [f"/guide/series/episodes/{i}" for i in range(path_count)]
+        batch_response_1 = {
+            p: make_episode_airing(i) for i, p in enumerate(paths[:BATCH_SIZE])
+        }
+        batch_response_2 = {
+            p: make_episode_airing(i)
+            for i, p in enumerate(paths[BATCH_SIZE:], start=BATCH_SIZE)
+        }
+
+        responses.add(responses.GET, f"{BASE_URL}/guide/airings", json=paths)
+        responses.add(responses.POST, f"{BASE_URL}/batch", json=batch_response_1)
+        responses.add(responses.POST, f"{BASE_URL}/batch", json=batch_response_2)
+
+        result = tablo.get_airings()
+
+        assert len(result) == path_count
+
+        batch_calls = [c for c in responses.calls if c.request.method == "POST"]
+        assert len(batch_calls) == 2  # noqa: PLR2004, Value here is more readable raw.
+
+        assert batch_calls[0].request.body is not None
+        assert batch_calls[1].request.body is not None
+
+        first_batch = json.loads(batch_calls[0].request.body)
+        assert len(first_batch) == BATCH_SIZE
+
+        second_batch = json.loads(batch_calls[1].request.body)
+        assert len(second_batch) == path_count - BATCH_SIZE
 
 
 class TestGetWatchUrl:

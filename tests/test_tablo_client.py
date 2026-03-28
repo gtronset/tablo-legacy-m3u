@@ -9,11 +9,12 @@ import requests
 import responses
 
 from tablo_legacy_m3u.tablo_client import (
+    BATCH_SIZE,
     TABLO_DISCOVERY_URL,
     TabloClient,
     discover_tablo_ip,
 )
-from tests.helpers import make_channel
+from tests.helpers import make_channel, make_episode_airing
 
 TABLO_IP = "192.168.1.100"
 BASE_URL = f"http://{TABLO_IP}:8885"
@@ -229,6 +230,107 @@ class TestGetChannels:
 
         posted = json.loads(responses.calls[1].request.body)
         assert posted == ["/guide/channels/100"]
+
+
+class TestGetAirings:
+    """Tests for `TabloClient.get_airings()`."""
+
+    @responses.activate
+    def test_returns_empty_list_when_no_airings(self, tablo: TabloClient) -> None:
+        responses.add(responses.GET, f"{BASE_URL}/guide/airings", json=[])
+
+        result = tablo.get_airings()
+
+        assert result == []
+
+    @responses.activate
+    def test_returns_hydrated_airings(self, tablo: TabloClient) -> None:
+        airing_paths = [
+            "/guide/series/episodes/500",
+            "/guide/series/episodes/501",
+        ]
+        batch_response = {
+            "/guide/series/episodes/500": make_episode_airing(500, "Show A"),
+            "/guide/series/episodes/501": make_episode_airing(501, "Show B"),
+        }
+
+        batch_length = len(batch_response.keys())
+
+        responses.add(responses.GET, f"{BASE_URL}/guide/airings", json=airing_paths)
+        responses.add(responses.POST, f"{BASE_URL}/batch", json=batch_response)
+
+        result = tablo.get_airings()
+
+        assert len(result) == batch_length
+
+    @responses.activate
+    def test_filters_none_from_batch(self, tablo: TabloClient) -> None:
+        airing_paths = [
+            "/guide/series/episodes/500",
+            "/guide/series/episodes/999",
+        ]
+        batch_response = {
+            "/guide/series/episodes/500": make_episode_airing(500),
+            "/guide/series/episodes/999": None,
+        }
+
+        responses.add(responses.GET, f"{BASE_URL}/guide/airings", json=airing_paths)
+        responses.add(responses.POST, f"{BASE_URL}/batch", json=batch_response)
+
+        result = tablo.get_airings()
+
+        assert len(result) == 1
+
+    @responses.activate
+    def test_batch_receives_airing_paths(self, tablo: TabloClient) -> None:
+        airing_paths = ["/guide/series/episodes/500"]
+        responses.add(responses.GET, f"{BASE_URL}/guide/airings", json=airing_paths)
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/series/episodes/500": make_episode_airing(500)},
+        )
+
+        tablo.get_airings()
+
+        assert responses.calls[1].request.body is not None
+
+        posted = json.loads(responses.calls[1].request.body)
+        assert posted == ["/guide/series/episodes/500"]
+
+    @responses.activate
+    def test_chunked_batch_splits_large_lists(self, tablo: TabloClient) -> None:
+        path_count = 75
+
+        paths = [f"/guide/series/episodes/{i}" for i in range(path_count)]
+        batch_response_1 = {
+            p: make_episode_airing(i) for i, p in enumerate(paths[:BATCH_SIZE])
+        }
+        batch_response_2 = {
+            p: make_episode_airing(i)
+            for i, p in enumerate(paths[BATCH_SIZE:], start=BATCH_SIZE)
+        }
+
+        responses.add(responses.GET, f"{BASE_URL}/guide/airings", json=paths)
+        responses.add(responses.POST, f"{BASE_URL}/batch", json=batch_response_1)
+        responses.add(responses.POST, f"{BASE_URL}/batch", json=batch_response_2)
+
+        result = tablo.get_airings()
+
+        assert len(result) == path_count
+
+        batch_calls = [c for c in responses.calls if c.request.method == "POST"]
+        assert len(batch_calls) == 2  # noqa: PLR2004, Value here is more readable raw.
+
+        assert batch_calls[0].request.body is not None
+        assert batch_calls[1].request.body is not None
+
+        # Execution order of batches is not guaranteed; check sizes as a set
+        batch_sizes = {
+            len(json.loads(batch_calls[0].request.body)),
+            len(json.loads(batch_calls[1].request.body)),
+        }
+        assert batch_sizes == {BATCH_SIZE, path_count - BATCH_SIZE}
 
 
 class TestGetWatchUrl:

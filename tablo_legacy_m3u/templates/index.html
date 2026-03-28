@@ -107,7 +107,7 @@
         <dl>
             <dt>Status</dt>
             <dd class="status">
-                Running ✅
+                ✅ Running
             </dd>
         </dl>
         <h2>Tablo Device</h2>
@@ -150,6 +150,14 @@
             <dt>XML Lineup</dt>
             <dd>
                 <a href="{{ url_for('lineup_xml') }}">{{ base_url }}/lineup.xml</a>
+            </dd>
+            <dt>XMLTV EPG</dt>
+            <dd>
+                {% if enable_epg %}
+                    <a href="{{ url_for('xmltv') }}">{{ base_url }}/xmltv.xml</a>
+                {% else %}
+                    ⚠️ EPG Disabled
+                {% endif %}
             </dd>
             <dt>Device Descriptor</dt>
             <dd>

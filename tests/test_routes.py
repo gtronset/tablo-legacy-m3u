@@ -10,7 +10,7 @@ from flask.testing import FlaskClient
 from tablo_legacy_m3u import create_app
 from tablo_legacy_m3u.config import Config
 from tablo_legacy_m3u.tablo_types import ServerInfo
-from tests.helpers import make_channel
+from tests.helpers import make_channel, make_episode_airing
 
 TABLO_IP: str = "10.0.0.123"
 
@@ -34,6 +34,7 @@ def client(
         config=config,
         tablo_client=tablo_client,
         server_info=server_info,
+        enable_epg=True,
     )
 
     return app.test_client()
@@ -62,6 +63,29 @@ class TestIndex:
 
         assert "/lineup.m3u" in body
         assert "/discover.json" in body
+
+    def test_shows_epg_disabled_when_epg_not_enabled(
+        self, server_info: ServerInfo, tablo_client: MagicMock
+    ) -> None:
+        app = create_app(
+            config=Config(),
+            tablo_client=tablo_client,
+            server_info=server_info,
+            enable_epg=False,
+        )
+
+        resp = app.test_client().get("/")
+
+        body = resp.data.decode()
+
+        assert "EPG Disabled" in body
+
+    def test_shows_epg_link_when_enabled(self, client: FlaskClient) -> None:
+        resp = client.get("/")
+
+        body = resp.data.decode()
+
+        assert "/xmltv.xml" in body
 
 
 class TestDiscoverJson:
@@ -264,6 +288,78 @@ class TestLineupJson:
         resp = client.get("/lineup.json")
 
         assert resp.get_json() == []
+
+
+class TestXmltvXml:
+    """Tests for GET `/xmltv.xml`."""
+
+    def test_returns_xml_content_type(
+        self, client: FlaskClient, tablo_client: MagicMock
+    ) -> None:
+        tablo_client.get_channels.return_value = []
+        tablo_client.get_airings.return_value = []
+
+        resp = client.get("/xmltv.xml")
+
+        assert resp.status_code == HTTPStatus.OK
+        assert "application/xml" in resp.content_type
+
+    def test_contains_xml_declaration(
+        self, client: FlaskClient, tablo_client: MagicMock
+    ) -> None:
+        tablo_client.get_channels.return_value = []
+        tablo_client.get_airings.return_value = []
+
+        resp = client.get("/xmltv.xml")
+
+        body = resp.data.decode()
+
+        assert body.startswith("<?xml version='1.0' encoding='utf-8'?>")
+
+    def test_contains_channel_element(
+        self, client: FlaskClient, tablo_client: MagicMock
+    ) -> None:
+        tablo_client.get_channels.return_value = [
+            make_channel(100, "WABC", 7, 1),
+        ]
+        tablo_client.get_airings.return_value = []
+
+        resp = client.get("/xmltv.xml")
+
+        body = resp.data.decode()
+
+        assert '<channel id="7.1">' in body
+        assert "<display-name>WABC</display-name>" in body
+
+    def test_contains_programme_element(
+        self, client: FlaskClient, tablo_client: MagicMock
+    ) -> None:
+        channel = make_channel(100, "WABC", 7, 1)
+        tablo_client.get_channels.return_value = [channel]
+        tablo_client.get_airings.return_value = [
+            make_episode_airing(500, "Test Show", channel),
+        ]
+
+        resp = client.get("/xmltv.xml")
+
+        body = resp.data.decode()
+
+        assert "<programme" in body
+        assert "<title>Test Show</title>" in body
+
+    def test_returns_404_when_epg_disabled(
+        self, server_info: ServerInfo, tablo_client: MagicMock
+    ) -> None:
+        app = create_app(
+            config=Config(),
+            tablo_client=tablo_client,
+            server_info=server_info,
+            enable_epg=False,
+        )
+
+        resp = app.test_client().get("/xmltv.xml")
+
+        assert resp.status_code == HTTPStatus.NOT_FOUND
 
 
 class TestLineupStatus:

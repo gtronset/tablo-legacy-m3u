@@ -154,9 +154,9 @@
             <dt>XMLTV EPG</dt>
             <dd>
                 {% if enable_epg %}
-                <a href="{{ url_for('xmltv') }}">{{ base_url }}/xmltv.xml</a>
+                    <a href="{{ url_for('xmltv') }}">{{ base_url }}/xmltv.xml</a>
                 {% else %}
-                ⚠️ EPG Disabled
+                    ⚠️ EPG Disabled
                 {% endif %}
             </dd>
             <dt>Device Descriptor</dt>

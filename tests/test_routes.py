@@ -34,6 +34,7 @@ def client(
         config=config,
         tablo_client=tablo_client,
         server_info=server_info,
+        enable_epg=True,
     )
 
     return app.test_client()
@@ -62,6 +63,29 @@ class TestIndex:
 
         assert "/lineup.m3u" in body
         assert "/discover.json" in body
+
+    def test_shows_epg_disabled_when_no_subscription(
+        self, server_info: ServerInfo, tablo_client: MagicMock
+    ) -> None:
+        app = create_app(
+            config=Config(),
+            tablo_client=tablo_client,
+            server_info=server_info,
+            enable_epg=False,
+        )
+
+        resp = app.test_client().get("/")
+
+        body = resp.data.decode()
+
+        assert "EPG Disabled" in body
+
+    def test_shows_epg_link_when_enabled(self, client: FlaskClient) -> None:
+        resp = client.get("/")
+
+        body = resp.data.decode()
+
+        assert "/xmltv.xml" in body
 
 
 class TestDiscoverJson:
@@ -322,6 +346,20 @@ class TestXmltvXml:
 
         assert "<programme" in body
         assert "<title>Test Show</title>" in body
+
+    def test_returns_404_when_epg_disabled(
+        self, server_info: ServerInfo, tablo_client: MagicMock
+    ) -> None:
+        app = create_app(
+            config=Config(),
+            tablo_client=tablo_client,
+            server_info=server_info,
+            enable_epg=False,
+        )
+
+        resp = app.test_client().get("/xmltv.xml")
+
+        assert resp.status_code == HTTPStatus.NOT_FOUND
 
 
 class TestLineupStatus:

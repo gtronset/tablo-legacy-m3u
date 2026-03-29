@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog], and this project adheres to [Semantic
 - Add `tvg-id` to EPG <https://github.com/gtronset/tablo-legacy-m3u/pull/10>
 - Add simple cache for multi-batch requests via `cachetools.cachedmethod` <https://github.com/gtronset/tablo-legacy-m3u/pull/11>
 - Add `act` for local GitHub Actions running <https://github.com/gtronset/tablo-legacy-m3u/pull/12>
+- Add "release" action for docker builds <https://github.com/gtronset/tablo-legacy-m3u/pull/13>
 
 ## [0.1.0] - 2026-03-26
 

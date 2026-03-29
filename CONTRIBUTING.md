@@ -40,7 +40,7 @@ docker compose -f docker-compose.dev.yaml up --build
 | `DEBUG`              | `true`      | Enable Flask debug mode and reloader           |
 | `DEVICE_NAME`        | _(empty)_   | Override advertised device name (FriendlyName) |
 | `ENABLE_EPG`         | `true`      | Enable EPG generation                          |
-| `CACHE_TTL`          | `60`        | Cache TTL in seconds                           |
+| `CACHE_TTL`          | `900`       | Cache TTL in seconds; defaults to 15 minutes   |
 
 ## Checks
 

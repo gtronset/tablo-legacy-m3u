@@ -4,6 +4,8 @@ import os
 
 from dataclasses import dataclass
 
+DEFAULT_CACHE_TTL = 900  # 15 minutes
+
 
 @dataclass(frozen=True)
 class Config:
@@ -29,7 +31,7 @@ class Config:
     enable_epg: bool = True
 
     # Caching
-    cache_ttl: int = 60
+    cache_ttl: int = DEFAULT_CACHE_TTL
 
 
 def _env(name: str, default: object) -> str:

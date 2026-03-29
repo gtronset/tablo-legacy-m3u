@@ -53,23 +53,53 @@ Tablo Connect or legacy app availability.
 3. It starts an HTTP server that emulates HDHomeRun endpoints
 4. Media clients connect and see it as a standard HDHomeRun tuner
 
-## Requirements
+## Installation
+
+### Docker (recommended)
+
+```bash
+docker run -d \
+  --name tablo-legacy-m3u \
+  -p 5004:5004 \
+  -e AUTODISCOVER_TABLO=true \
+  ghcr.io/gtronset/tablo-legacy-m3u:latest
+```
+
+Or with Docker Compose (see also [docker-compose.yaml]):
+
+```yaml
+services:
+  tablo-legacy-m3u:
+    image: ghcr.io/gtronset/tablo-legacy-m3u:latest
+    ports:
+      - "5004:5004"
+    environment:
+      AUTODISCOVER_TABLO: true
+    restart: unless-stopped
+```
+
+Available tags:
+
+- `latest`: latest release
+- `0.x`: general version
+- `0.x.x`: specific version
+- `edge`: latest from `main` (may be unstable)
+
+[docker-compose.yaml]: docker-compose.yaml
+
+### From source
+
+#### Requirements
 
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/)
 - A legacy Tablo device on your local network
 
-## Quick Start
+#### Running from source
 
 ```bash
 uv sync
 uv run python -m tablo_legacy_m3u
-```
-
-Or with Docker:
-
-```bash
-docker compose up --build
 ```
 
 The server starts on `http://localhost:5004` by default.

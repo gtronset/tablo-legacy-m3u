@@ -1,8 +1,8 @@
 services:
   tablo-legacy-m3u:
-    build: .
+    image: ghcr.io/gtronset/tablo-legacy-m3u:latest
     ports:
-      - "5004:5004"
+      - 5004:5004
     environment:
       TABLO_IP: ""
       AUTODISCOVER_TABLO: true

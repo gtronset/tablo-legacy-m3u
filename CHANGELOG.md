@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog], and this project adheres to [Semantic
 - Add status page at root and djlint linting <https://github.com/gtronset/tablo-legacy-m3u/pull/8>
 - Add XMLTV EPG endpoint <https://github.com/gtronset/tablo-legacy-m3u/pull/9>
 - Add `tvg-id` to EPG <https://github.com/gtronset/tablo-legacy-m3u/pull/10>
+- Add simple cache for multi-batch requests via `cachetools.cachedmethod` <https://github.com/gtronset/tablo-legacy-m3u/pull/11>
 
 ## [0.1.0] - 2026-03-26
 

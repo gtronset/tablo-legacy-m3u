@@ -395,7 +395,7 @@ class TestCaching:
     def test_get_channels_cache_expiry(self) -> None:
         """Expired cache triggers a fresh API call.
 
-        Set cache_ttl=0 to force immediate expiry.
+        Sets `cache_ttl=0` to force immediate expiry.
         """
         tablo = TabloClient(TABLO_IP, cache_ttl=0)
 
@@ -420,6 +420,61 @@ class TestCaching:
         tablo.get_channels()
         tablo.get_channels()
 
+        assert len(responses.calls) == 4  # noqa: PLR2004, Value here is more readable raw.
+
+    @responses.activate
+    def test_get_airings_cache_hit(self) -> None:
+        """Second call returns cached airings without hitting the API again."""
+        tablo = TabloClient(TABLO_IP)
+        channel = make_channel(100, "WABC", 7, 1)
+        airing = make_episode_airing(500, "Show A", channel=channel)
+
+        responses.add(
+            responses.GET,
+            f"{BASE_URL}/guide/airings",
+            json=["/guide/series/episodes/500"],
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/series/episodes/500": airing},
+        )
+        first = tablo.get_airings()
+        second = tablo.get_airings()
+        assert first == second
+        assert len(responses.calls) == 2  # noqa: PLR2004, Value here is more readable raw.
+
+    @responses.activate
+    def test_get_airings_cache_expiry(self) -> None:
+        """Expired cache for airings triggers a fresh API call.
+
+        Sets `cache_ttl=0` to force immediate expiry.
+        """
+        tablo = TabloClient(TABLO_IP, cache_ttl=0)
+        channel = make_channel(100, "WABC", 7, 1)
+        airing = make_episode_airing(500, "Show A", channel=channel)
+        responses.add(
+            responses.GET,
+            f"{BASE_URL}/guide/airings",
+            json=["/guide/series/episodes/500"],
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/series/episodes/500": airing},
+        )
+        responses.add(
+            responses.GET,
+            f"{BASE_URL}/guide/airings",
+            json=["/guide/series/episodes/500"],
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/series/episodes/500": airing},
+        )
+        tablo.get_airings()
+        tablo.get_airings()
         assert len(responses.calls) == 4  # noqa: PLR2004, Value here is more readable raw.
 
     @responses.activate

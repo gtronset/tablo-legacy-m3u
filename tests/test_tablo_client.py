@@ -366,3 +366,93 @@ class TestGetWatchUrl:
 
         with pytest.raises(requests.HTTPError):
             tablo.get_watch_url("/guide/channels/999")
+
+
+class TestCaching:
+    """Tests for TTL cache behavior on get_channels() and get_airings()."""
+
+    @responses.activate
+    def test_get_channels_cache_hit(self) -> None:
+        """Second call returns cached result without hitting the API again."""
+        tablo = TabloClient(TABLO_IP)
+
+        responses.add(
+            responses.GET, f"{BASE_URL}/guide/channels", json=["/guide/channels/100"]
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/channels/100": make_channel(100, "WABC", 7, 1)},
+        )
+
+        first = tablo.get_channels()
+        second = tablo.get_channels()
+
+        assert first is second
+        assert len(responses.calls) == 2  # noqa: PLR2004, Value here is more readable raw.
+
+    @responses.activate
+    def test_get_channels_cache_expiry(self) -> None:
+        """Expired cache triggers a fresh API call.
+
+        Set cache_ttl=0 to force immediate expiry.
+        """
+        tablo = TabloClient(TABLO_IP, cache_ttl=0)
+
+        channel = make_channel(100, "WABC", 7, 1)
+        responses.add(
+            responses.GET, f"{BASE_URL}/guide/channels", json=["/guide/channels/100"]
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/channels/100": channel},
+        )
+        responses.add(
+            responses.GET, f"{BASE_URL}/guide/channels", json=["/guide/channels/100"]
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/channels/100": channel},
+        )
+
+        tablo.get_channels()
+        tablo.get_channels()
+
+        assert len(responses.calls) == 4  # noqa: PLR2004, Value here is more readable raw.
+
+    @responses.activate
+    def test_channels_and_airings_caches_are_independent(self) -> None:
+        """get_channels() and get_airings() don't share cached values."""
+        tablo = TabloClient(TABLO_IP)
+
+        channel = make_channel(100, "WABC", 7, 1)
+        airing = make_episode_airing(500, "Show A", channel=channel)
+
+        responses.add(
+            responses.GET, f"{BASE_URL}/guide/channels", json=["/guide/channels/100"]
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/channels/100": channel},
+        )
+        responses.add(
+            responses.GET,
+            f"{BASE_URL}/guide/airings",
+            json=["/guide/series/episodes/500"],
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/series/episodes/500": airing},
+        )
+
+        channels = tablo.get_channels()
+        airings = tablo.get_airings()
+
+        assert len(channels) == 1
+        assert len(airings) == 1
+        assert "channel" in channels[0]
+        assert "airing_details" in airings[0]

@@ -4,7 +4,7 @@ import os
 
 from dataclasses import dataclass
 
-from tablo_legacy_m3u.tablo_client import DEFAULT_CACHE_TTL
+DEFAULT_CACHE_TTL = 900  # 15 minutes
 
 
 @dataclass(frozen=True)

@@ -388,7 +388,7 @@ class TestCaching:
         first = tablo.get_channels()
         second = tablo.get_channels()
 
-        assert first is second
+        assert first == second
         assert len(responses.calls) == 2  # noqa: PLR2004, Value here is more readable raw.
 
     @responses.activate

@@ -3,13 +3,14 @@
 import logging
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import requests
 
 from cachetools import TTLCache, cachedmethod
 from cachetools.keys import hashkey
 
+from tablo_legacy_m3u.config import DEFAULT_CACHE_TTL
 from tablo_legacy_m3u.tablo_types import (
     Airing,
     BatchChannelResponse,
@@ -19,6 +20,9 @@ from tablo_legacy_m3u.tablo_types import (
     SubscriptionResponse,
     WatchResponse,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Hashable
 
 # Batching parameters for fetching channels and airings
 BATCH_SIZE = 50
@@ -30,7 +34,6 @@ TABLO_DISCOVERY_URL = "https://api.tablotv.com/assocserver/getipinfo/"
 
 REQUEST_TIMEOUT = 10
 
-DEFAULT_CACHE_TTL = 900  # 15 minutes
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +43,8 @@ class TabloClient:
 
     def __init__(self, tablo_ip: str, cache_ttl: int = DEFAULT_CACHE_TTL) -> None:
         """Initialize with a resolved Tablo IP address."""
-        self.base_url = f"http://{tablo_ip}:{TABLO_API_PORT}"
-        self._cache: TTLCache[str, Any] = TTLCache(maxsize=4, ttl=cache_ttl)
+        self.base_url: str = f"http://{tablo_ip}:{TABLO_API_PORT}"
+        self._cache: TTLCache[Hashable, Any] = TTLCache(maxsize=4, ttl=cache_ttl)
 
     def _get(self, path: str) -> Any:
         """Make a GET request to the Tablo API."""

@@ -28,8 +28,9 @@ MAX_CONCURRENT_BATCHES = 5
 TABLO_API_PORT = 8885
 TABLO_DISCOVERY_URL = "https://api.tablotv.com/assocserver/getipinfo/"
 
-# Request timeout (seconds)
 REQUEST_TIMEOUT = 10
+
+DEFAULT_CACHE_TTL = 900  # 15 minutes
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ logger = logging.getLogger(__name__)
 class TabloClient:
     """Client for interacting with a legacy Tablo device."""
 
-    def __init__(self, tablo_ip: str, cache_ttl: int = 60) -> None:
+    def __init__(self, tablo_ip: str, cache_ttl: int = DEFAULT_CACHE_TTL) -> None:
         """Initialize with a resolved Tablo IP address."""
         self.base_url = f"http://{tablo_ip}:{TABLO_API_PORT}"
         self._cache: TTLCache[str, Any] = TTLCache(maxsize=4, ttl=cache_ttl)

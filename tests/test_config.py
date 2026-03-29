@@ -6,7 +6,7 @@ from tablo_legacy_m3u.config import Config, load_config
 
 DEFAULT_HOST: str = "127.0.0.1"
 DEFAULT_PORT: int = 5004
-DEFAULT_CACHE_TTL: int = 60
+DEFAULT_CACHE_TTL: int = 900
 DEFAULT_LOG_LEVEL: str = "DEBUG"
 
 

@@ -1,0 +1,23 @@
+{
+    "//comment": "Event payload for local GitHub Action testing. See: https://nektosact.com/usage/index.html#events",
+    "act": true,
+    "repository": {
+        "full_name": "gtronset/tablo-legacy-m3u"
+    },
+    "release": {
+        "tag_name": "v9.99.999"
+    },
+    "push": {
+        "ref": "refs/tags/v9.99.999"
+    },
+    "pull_request": {
+        "number": 1,
+        "head": {
+            "ref": "feature-branch",
+            "sha": "abc1234"
+        },
+        "base": {
+            "ref": "main"
+        }
+    }
+}

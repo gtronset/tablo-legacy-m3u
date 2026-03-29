@@ -59,6 +59,21 @@ Or let pre-commit handle lint, format, and type checking on each commit:
 prek run
 ```
 
+## Running CI Locally
+
+GitHub Actions workflows can be run locally with [Act]:
+
+```bash
+act -j typecheck
+act -j lint
+act -j test
+```
+
+Act configuration is stored in `.actrc`. See the [Act documentation] for setup instructions.
+
+[Act]: https://github.com/nektos/act
+[Act documentation]: https://github.com/nektos/act
+
 ## Pull Requests
 
 - Branch from `main`

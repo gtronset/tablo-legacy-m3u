@@ -11,5 +11,5 @@ services:
       LOG_LEVEL: INFO
       DEBUG: false
       ENABLE_EPG: true
-      CACHE_TTL: 60
+      CACHE_TTL: 900
     restart: unless-stopped

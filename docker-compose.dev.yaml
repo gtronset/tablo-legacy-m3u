@@ -12,7 +12,7 @@ services:
       LOG_LEVEL: DEBUG
       DEBUG: true
       ENABLE_EPG: true
-      CACHE_TTL: 60
+      CACHE_TTL: 900
     volumes:
       - ./tablo_legacy_m3u:/app/tablo_legacy_m3u
     restart: unless-stopped

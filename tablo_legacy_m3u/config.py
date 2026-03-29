@@ -29,7 +29,7 @@ class Config:
     enable_epg: bool = True
 
     # Caching
-    cache_ttl: int = 60
+    cache_ttl: int = 900  # 15 minutes
 
 
 def _env(name: str, default: object) -> str:

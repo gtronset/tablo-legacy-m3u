@@ -7,6 +7,9 @@ from typing import Any
 
 import requests
 
+from cachetools import TTLCache, cachedmethod
+from cachetools.keys import hashkey
+
 from tablo_legacy_m3u.tablo_types import (
     Airing,
     BatchChannelResponse,
@@ -34,9 +37,10 @@ logger = logging.getLogger(__name__)
 class TabloClient:
     """Client for interacting with a legacy Tablo device."""
 
-    def __init__(self, tablo_ip: str) -> None:
+    def __init__(self, tablo_ip: str, cache_ttl: int = 60) -> None:
         """Initialize with a resolved Tablo IP address."""
         self.base_url = f"http://{tablo_ip}:{TABLO_API_PORT}"
+        self._cache: TTLCache[str, Any] = TTLCache(maxsize=4, ttl=cache_ttl)
 
     def _get(self, path: str) -> Any:
         """Make a GET request to the Tablo API."""
@@ -89,6 +93,7 @@ class TabloClient:
 
         return results
 
+    @cachedmethod(lambda self: self._cache, key=lambda _self: hashkey("channels"))
     def get_channels(self) -> list[Channel]:
         """Fetch all channel details from the Tablo.
 
@@ -152,6 +157,7 @@ class TabloClient:
 
         return data["playlist_url"]
 
+    @cachedmethod(lambda self: self._cache, key=lambda _self: hashkey("airings"))
     def get_airings(self) -> list[Airing]:
         """Fetch all upcoming guide airings from the Tablo.
 

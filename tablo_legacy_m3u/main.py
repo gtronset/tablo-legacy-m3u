@@ -31,7 +31,7 @@ def main() -> None:
 
     logger.info("Using Tablo device at %s", tablo_ip)
 
-    client = TabloClient(tablo_ip)
+    client = TabloClient(tablo_ip, cache_ttl=config.cache_ttl)
     server_info: ServerInfo = client.get_server_info()
 
     has_guide_subscription = client.has_guide_subscription()

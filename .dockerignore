@@ -17,3 +17,5 @@ LICENSE
 .python-version
 .actrc
 .act/
+.act-secrets
+.act-variables

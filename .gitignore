@@ -47,3 +47,7 @@ dmypy.json
 
 # asdf
 .tool-versions
+
+# act
+.act-secrets
+.act-variables

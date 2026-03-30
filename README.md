@@ -120,8 +120,8 @@ All settings are configured via environment variables:
 | `ENABLE_EPG`         | `true`       | Enable EPG generation                                                       |
 | `CACHE_TTL`          | `900`        | Cache TTL in seconds; defaults to 15 minutes                                |
 
-A `.env` file in the project root is also supported, useful when running from source.
-See [.env.example] for available variables.
+A `.env` file in the current working directory is also supported, useful when running
+from source. See [.env.example] for available variables.
 
 [.env.example]: .env.example
 

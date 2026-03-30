@@ -34,6 +34,8 @@ def main() -> None:
         ],
     )
 
+    logger.debug("Loaded config: %s", config)
+
     tablo_ip = discover_tablo_ip(config.autodiscover, config.tablo_ip)
 
     logger.info("Using Tablo device at %s", tablo_ip)

@@ -108,17 +108,17 @@ The server starts on `http://localhost:5004` by default.
 
 All settings are configured via environment variables:
 
-| Variable             | Default     | Description                                    |
-| -------------------- | ----------- | ---------------------------------------------- |
-| `TABLO_IP`           | _(empty)_   | Tablo device IP; leave blank for autodiscovery |
-| `AUTODISCOVER_TABLO` | `true`      | Discover Tablo IP via cloud API                |
-| `HOST`               | `127.0.0.1` | Server bind address                            |
-| `PORT`               | `5004`      | Server port                                    |
-| `LOG_LEVEL`          | `DEBUG`     | Logging level                                  |
-| `DEBUG`              | `true`      | Enable Flask debug mode and reloader           |
-| `DEVICE_NAME`        | _(empty)_   | Override advertised device name (FriendlyName) |
-| `ENABLE_EPG`         | `true`      | Enable EPG generation                          |
-| `CACHE_TTL`          | `900`       | Cache TTL in seconds; defaults to 15 minutes   |
+| Variable             | Default     | Description                                        |
+| -------------------- | ----------- | -------------------------------------------------- |
+| `TABLO_IP`           | _(empty)_   | Tablo device IP; leave blank for autodiscovery     |
+| `AUTODISCOVER_TABLO` | `true`      | Discover Tablo IP via cloud API                    |
+| `HOST`               | `127.0.0.1` | Server bind address                                |
+| `PORT`               | `5004`      | Server port                                        |
+| `LOG_LEVEL`          | `INFO`      | Logging level                                      |
+| `DEBUG`              | `false`     | Enable debug mode (Flask dev server with reloader) |
+| `DEVICE_NAME`        | _(empty)_   | Override advertised device name (FriendlyName)     |
+| `ENABLE_EPG`         | `true`      | Enable EPG generation                              |
+| `CACHE_TTL`          | `900`       | Cache TTL in seconds; defaults to 15 minutes       |
 
 ## Client Setup
 

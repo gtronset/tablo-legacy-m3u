@@ -12,9 +12,9 @@ class Config:
     """Application configuration loaded from environment variables."""
 
     # Development
-    debug: bool = True
+    debug: bool = False
 
-    log_level: str = "DEBUG"
+    log_level: str = "INFO"
 
     # Tablo device
     tablo_ip: str = ""

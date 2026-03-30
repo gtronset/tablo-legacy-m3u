@@ -1,6 +1,7 @@
 """HTTP client for the legacy Tablo device API."""
 
 import logging
+import threading
 
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any
@@ -9,6 +10,8 @@ import requests
 
 from cachetools import TTLCache, cachedmethod
 from cachetools.keys import hashkey
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from tablo_legacy_m3u.config import DEFAULT_CACHE_TTL
 from tablo_legacy_m3u.tablo_types import (
@@ -42,13 +45,41 @@ class TabloClient:
     """Client for interacting with a legacy Tablo device."""
 
     def __init__(self, tablo_ip: str, cache_ttl: int = DEFAULT_CACHE_TTL) -> None:
-        """Initialize with a resolved Tablo IP address."""
+        """Initialize with a resolved Tablo IP address.
+
+        For most API calls, each thread uses its own persistent HTTP session with
+        connection pooling via the internal `_get` and `_post` helpers, which provide
+        automatic retry (with exponential backoff) for transient connection errors and
+        `502`/`503`/`504` responses. Certain specialized calls, such as the watch
+        endpoint used by `get_watch_url`, intentionally bypass this session and use a
+        one-off `requests.post()` without connection pooling or adapter-level retries.
+
+        """
         self.base_url: str = f"http://{tablo_ip}:{TABLO_API_PORT}"
         self._cache: TTLCache[Hashable, Any] = TTLCache(maxsize=4, ttl=cache_ttl)
+        self._cache_lock = threading.Lock()
+        self._local = threading.local()
+        self._retry = Retry(
+            total=2,
+            backoff_factor=0.5,
+            allowed_methods={"GET", "POST"},
+            status_forcelist=[502, 503, 504],
+            raise_on_status=False,
+        )
+
+    @property
+    def _session(self) -> requests.Session:
+        """Return a thread-local session, creating one if needed."""
+        session: requests.Session | None = getattr(self._local, "session", None)
+        if session is None:
+            session = requests.Session()
+            session.mount("http://", HTTPAdapter(max_retries=self._retry))
+            self._local.session = session
+        return session
 
     def _get(self, path: str) -> Any:
         """Make a GET request to the Tablo API."""
-        response = requests.get(f"{self.base_url}{path}", timeout=REQUEST_TIMEOUT)
+        response = self._session.get(f"{self.base_url}{path}", timeout=REQUEST_TIMEOUT)
         logger.debug(
             "GET %s %s (%.3fs)",
             path,
@@ -64,7 +95,7 @@ class TabloClient:
 
     def _post(self, path: str, json: Any = None) -> Any:
         """Make a POST request to the Tablo API."""
-        response = requests.post(
+        response = self._session.post(
             f"{self.base_url}{path}", json=json, timeout=REQUEST_TIMEOUT
         )
         logger.debug(
@@ -97,7 +128,11 @@ class TabloClient:
 
         return results
 
-    @cachedmethod(lambda self: self._cache, key=lambda _self: hashkey("channels"))
+    @cachedmethod(
+        lambda self: self._cache,
+        key=lambda _self: hashkey("channels"),
+        lock=lambda self: self._cache_lock,
+    )
     def get_channels(self) -> list[Channel]:
         """Fetch all channel details from the Tablo.
 
@@ -147,13 +182,23 @@ class TabloClient:
     def get_watch_url(self, channel_path: str) -> str:
         """Start a live stream and return the playlist URL.
 
+        Uses a one-off request (no retry) since starting a stream is not idempotent.
+
         Args:
             channel_path: The channel path (e.g., `/guide/channels/1027125`).
 
         Returns:
             The HLS playlist URL for the live stream.
         """
-        data: WatchResponse = self._post(f"{channel_path}/watch")
+        response = requests.post(
+            f"{self.base_url}{channel_path}/watch", json=None, timeout=REQUEST_TIMEOUT
+        )
+
+        if not response.ok:
+            logger.error("POST %s/watch failed: %s", channel_path, response.text)
+        response.raise_for_status()
+
+        data: WatchResponse = response.json()
 
         logger.debug(
             "Watch response for %s: token=%s...", channel_path, data["token"][:8]
@@ -161,7 +206,11 @@ class TabloClient:
 
         return data["playlist_url"]
 
-    @cachedmethod(lambda self: self._cache, key=lambda _self: hashkey("airings"))
+    @cachedmethod(
+        lambda self: self._cache,
+        key=lambda _self: hashkey("airings"),
+        lock=lambda self: self._cache_lock,
+    )
     def get_airings(self) -> list[Airing]:
         """Fetch all upcoming guide airings from the Tablo.
 

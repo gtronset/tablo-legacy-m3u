@@ -1,6 +1,7 @@
 """Tests for the Tablo API client."""
 
 import json
+import threading
 
 from http import HTTPStatus
 
@@ -14,6 +15,7 @@ from tablo_legacy_m3u.tablo_client import (
     TabloClient,
     discover_tablo_ip,
 )
+from tablo_legacy_m3u.tablo_types import ServerInfo
 from tests.helpers import make_channel, make_episode_airing
 
 TABLO_IP = "192.168.1.100"
@@ -73,26 +75,11 @@ class TestGetServerInfo:
     """Tests for `TabloClient.get_server_info()`."""
 
     @responses.activate
-    def test_returns_server_info(self, tablo: TabloClient) -> None:
-        expected = {
-            "server_id": "SID_ABC123",
-            "name": "My Tablo",
-            "timezone": "America/New_York",
-            "deprecated": "timezone",
-            "version": "2.2.42",
-            "local_address": TABLO_IP,
-            "setup_completed": True,
-            "build_number": 1234,
-            "model": {
-                "wifi": False,
-                "tuners": 4,
-                "type": "quad",
-                "name": "TABLO_QUAD",
-            },
-            "availability": "available",
-            "cache_key": "abc123",
-            "product": "tablo",
-        }
+    def test_returns_server_info(
+        self, tablo: TabloClient, server_info: ServerInfo
+    ) -> None:
+        expected = server_info
+
         responses.add(responses.GET, f"{BASE_URL}/server/info", json=expected)
 
         result = tablo.get_server_info()
@@ -511,3 +498,81 @@ class TestCaching:
         assert len(airings) == 1
         assert "channel" in channels[0]
         assert "airing_details" in airings[0]
+
+
+class TestRetry:
+    """Tests for auto-retry on HTTP 5xx responses (502), no retry for watch endpoint."""
+
+    @responses.activate
+    def test_retries_on_502_and_succeeds(self, server_info: ServerInfo) -> None:
+        """A `502` followed by a success results in a valid response."""
+        tablo = TabloClient(TABLO_IP)
+
+        responses.add(responses.GET, f"{BASE_URL}/server/info", status=502)
+        responses.add(
+            responses.GET,
+            f"{BASE_URL}/server/info",
+            json=server_info,
+        )
+
+        result = tablo.get_server_info()
+
+        assert result["name"] == "Test Tablo"
+        assert len(responses.calls) == 2  # noqa: PLR2004, Value here is more readable raw.
+
+    @responses.activate
+    def test_raises_after_retries_exhausted(self) -> None:
+        """Three consecutive `502`s exhaust retries and raise HTTPError."""
+        tablo = TabloClient(TABLO_IP)
+
+        responses.add(responses.GET, f"{BASE_URL}/server/info", status=502)
+        responses.add(responses.GET, f"{BASE_URL}/server/info", status=502)
+        responses.add(responses.GET, f"{BASE_URL}/server/info", status=502)
+
+        with pytest.raises(requests.HTTPError):
+            tablo.get_server_info()
+
+        assert len(responses.calls) == 3  # noqa: PLR2004, Value here is more readable raw.
+
+    @responses.activate
+    def test_no_retry_on_watch(self) -> None:
+        """Watch endpoint does not retry on failure."""
+        tablo = TabloClient(TABLO_IP)
+
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/guide/channels/100/watch",
+            status=502,
+        )
+
+        with pytest.raises(requests.HTTPError):
+            tablo.get_watch_url("/guide/channels/100")
+
+        assert len(responses.calls) == 1
+
+
+class TestThreadLocalSession:
+    """Tests for thread-local session isolation."""
+
+    def test_same_thread_reuses_session(self) -> None:
+        """Accessing _session twice from the same thread returns the same object."""
+        tablo = TabloClient(TABLO_IP)
+
+        assert tablo._session is tablo._session
+
+    def test_different_threads_get_different_sessions(self) -> None:
+        """Each thread receives its own Session instance."""
+        tablo = TabloClient(TABLO_IP)
+        sessions: dict[str, requests.Session] = {}
+
+        def capture_session(name: str) -> None:
+            sessions[name] = tablo._session
+
+        t1 = threading.Thread(target=capture_session, args=("t1",))
+        t2 = threading.Thread(target=capture_session, args=("t2",))
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+        assert sessions["t1"] is not sessions["t2"]

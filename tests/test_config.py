@@ -7,7 +7,7 @@ from tablo_legacy_m3u.config import Config, load_config
 DEFAULT_HOST: str = "127.0.0.1"
 DEFAULT_PORT: int = 5004
 DEFAULT_CACHE_TTL: int = 900
-DEFAULT_LOG_LEVEL: str = "DEBUG"
+DEFAULT_LOG_LEVEL: str = "INFO"
 
 
 class TestConfigDefaults:
@@ -16,7 +16,7 @@ class TestConfigDefaults:
     def test_default_values(self) -> None:
         config = Config()
 
-        assert config.debug is True
+        assert config.debug is False
         assert config.log_level == DEFAULT_LOG_LEVEL
         assert not config.tablo_ip
         assert config.autodiscover is True
@@ -63,7 +63,7 @@ class TestLoadConfig:
         new_tablo_ip: str = "192.168.1.50"
         new_device_name: str = "Living Room Tablo"
 
-        monkeypatch.setenv("DEBUG", "false")
+        monkeypatch.setenv("DEBUG", "true")
         monkeypatch.setenv("LOG_LEVEL", "warning")
         monkeypatch.setenv("TABLO_IP", new_tablo_ip)
         monkeypatch.setenv("AUTODISCOVER_TABLO", "false")
@@ -75,7 +75,7 @@ class TestLoadConfig:
 
         config = load_config()
 
-        assert config.debug is False
+        assert config.debug is True
         assert config.log_level == "WARNING"
         assert config.tablo_ip == new_tablo_ip
         assert config.autodiscover is False

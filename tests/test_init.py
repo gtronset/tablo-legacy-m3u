@@ -30,7 +30,7 @@ class TestAccessLogging:
         [Config(environment="development")],
         indirect=True,
     )
-    def test_no_access_log_in_debug_mode(
+    def test_no_access_log_in_development_mode(
         self, client: FlaskClient, caplog: pytest.LogCaptureFixture
     ) -> None:
         with caplog.at_level(logging.INFO, logger="tablo_legacy_m3u"):

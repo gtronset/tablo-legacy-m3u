@@ -11,7 +11,7 @@ from tablo_legacy_m3u.main import main
 @patch("tablo_legacy_m3u.main.TabloClient")
 @patch("tablo_legacy_m3u.main.discover_tablo_ip", return_value="10.0.0.1")
 @patch("tablo_legacy_m3u.main.load_config")
-def test_uses_waitress_when_debug_off(
+def test_uses_waitress_when_production(
     mock_config: MagicMock,
     mock_discover: MagicMock,  # noqa: ARG001
     mock_client_cls: MagicMock,
@@ -36,7 +36,7 @@ def test_uses_waitress_when_debug_off(
 @patch("tablo_legacy_m3u.main.TabloClient")
 @patch("tablo_legacy_m3u.main.discover_tablo_ip", return_value="10.0.0.1")
 @patch("tablo_legacy_m3u.main.load_config")
-def test_uses_flask_dev_server_when_debug_on(
+def test_uses_flask_dev_server_when_development(
     mock_config: MagicMock,
     mock_discover: MagicMock,  # noqa: ARG001
     mock_client_cls: MagicMock,

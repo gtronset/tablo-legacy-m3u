@@ -9,6 +9,9 @@ from typing import Literal
 from dotenv import load_dotenv
 
 DEFAULT_CACHE_TTL: int = 900  # 15 minutes
+DEFAULT_CHANNEL_REFRESH_INTERVAL: int = 86400  # 24 hours
+DEFAULT_GUIDE_REFRESH_INTERVAL: int = 3600  # 1 hour
+MINIMUM_REFRESH_INTERVAL: int = 60  # 1 minute
 
 VALID_ENV_VARS: frozenset[str] = frozenset({
     "ENVIRONMENT",
@@ -20,6 +23,8 @@ VALID_ENV_VARS: frozenset[str] = frozenset({
     "DEVICE_NAME",
     "ENABLE_EPG",
     "CACHE_TTL",
+    "CHANNEL_REFRESH_INTERVAL",
+    "GUIDE_REFRESH_INTERVAL",
 })
 VALID_ENVIRONMENTS: frozenset[str] = frozenset({"production", "development"})
 VALID_LOG_LEVELS: frozenset[str] = frozenset({
@@ -60,6 +65,8 @@ class Config:
 
     # Caching
     cache_ttl: int = DEFAULT_CACHE_TTL
+    channel_refresh_interval: int = DEFAULT_CHANNEL_REFRESH_INTERVAL
+    guide_refresh_interval: int = DEFAULT_GUIDE_REFRESH_INTERVAL
 
 
 def _check_var_name(name: str) -> None:
@@ -169,4 +176,14 @@ def load_config() -> Config:
         device_name=_env("DEVICE_NAME", Config.device_name),
         enable_epg=_env_bool("ENABLE_EPG", Config.enable_epg),
         cache_ttl=_env_int("CACHE_TTL", Config.cache_ttl, min_val=1),
+        channel_refresh_interval=_env_int(
+            "CHANNEL_REFRESH_INTERVAL",
+            Config.channel_refresh_interval,
+            min_val=MINIMUM_REFRESH_INTERVAL,
+        ),
+        guide_refresh_interval=_env_int(
+            "GUIDE_REFRESH_INTERVAL",
+            Config.guide_refresh_interval,
+            min_val=MINIMUM_REFRESH_INTERVAL,
+        ),
     )

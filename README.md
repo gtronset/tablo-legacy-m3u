@@ -108,20 +108,22 @@ The server starts on `http://localhost:5004` by default.
 
 All settings are configured via environment variables:
 
-| Variable             | Default      | Description                                                                 |
-| -------------------- | ------------ | --------------------------------------------------------------------------- |
-| `TABLO_IP`           | _(empty)_    | Tablo device IP; leave blank for autodiscovery                              |
-| `AUTODISCOVER_TABLO` | `true`       | Discover Tablo IP via cloud API                                             |
-| `HOST`               | `127.0.0.1`  | Server bind address                                                         |
-| `PORT`               | `5004`       | Server port                                                                 |
-| `LOG_LEVEL`          | `INFO`       | Logging level                                                               |
-| `ENVIRONMENT`        | `production` | `development` for Flask dev server with reloader; `production` for waitress |
-| `DEVICE_NAME`        | _(empty)_    | Override advertised device name (FriendlyName)                              |
-| `ENABLE_EPG`         | `true`       | Enable EPG generation                                                       |
-| `CACHE_TTL`          | `900`        | Cache TTL in seconds; defaults to 15 minutes                                |
+| Variable             | Default      | Description                                                                       |
+| -------------------- | ------------ | --------------------------------------------------------------------------------- |
+| `TABLO_IP`           | _(empty)_    | Tablo device IP; leave blank for autodiscovery. Should be a valid IP or hostname. |
+| `AUTODISCOVER_TABLO` | `true`       | Discover Tablo IP via cloud API (boolean).                                        |
+| `HOST`               | `127.0.0.1`  | Server bind address. Should be a valid IP or hostname.                            |
+| `PORT`               | `5004`       | Server port (1–65535). Defaults to standard HDHomeRun port.                       |
+| `LOG_LEVEL`          | `INFO`       | Logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`).                  |
+| `ENVIRONMENT`        | `production` | `development` for Flask dev server with reloader; `production` for `waitress`.    |
+| `DEVICE_NAME`        | _(empty)_    | Override advertised device name ("FriendlyName").                                 |
+| `ENABLE_EPG`         | `true`       | Enable EPG generation (boolean).                                                  |
+| `CACHE_TTL`          | `900`        | Cache TTL in seconds; defaults to 15 minutes. Must be a positive integer.         |
 
 A `.env` file in the current working directory is also supported, useful when running
 from source. See [.env.example] for available variables.
+
+In Docker environments, `HOST` should almost always be set to `0.0.0.0`.
 
 [.env.example]: .env.example
 

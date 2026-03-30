@@ -10,7 +10,7 @@ services:
       HOST: 0.0.0.0
       PORT: 5004
       LOG_LEVEL: DEBUG
-      DEBUG: true
+      ENVIRONMENT: development
       ENABLE_EPG: true
       CACHE_TTL: 900
     volumes:

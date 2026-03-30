@@ -9,7 +9,7 @@ services:
       HOST: 0.0.0.0
       PORT: 5004
       LOG_LEVEL: INFO
-      DEBUG: false
+      ENVIRONMENT: production
       ENABLE_EPG: true
       CACHE_TTL: 900
     restart: unless-stopped

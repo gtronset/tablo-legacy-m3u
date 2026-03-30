@@ -14,7 +14,7 @@ class TestAccessLogging:
 
     @pytest.mark.parametrize(
         "client",
-        [Config(debug=False)],
+        [Config(environment="production")],
         indirect=True,
     )
     def test_logs_access_in_production_mode(
@@ -27,10 +27,10 @@ class TestAccessLogging:
 
     @pytest.mark.parametrize(
         "client",
-        [Config(debug=True)],
+        [Config(environment="development")],
         indirect=True,
     )
-    def test_no_access_log_in_debug_mode(
+    def test_no_access_log_in_development_mode(
         self, client: FlaskClient, caplog: pytest.LogCaptureFixture
     ) -> None:
         with caplog.at_level(logging.INFO, logger="tablo_legacy_m3u"):

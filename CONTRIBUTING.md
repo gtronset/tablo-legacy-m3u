@@ -30,17 +30,23 @@ docker compose -f docker-compose.dev.yaml up --build
 
 ## Environment Variables
 
-| Variable             | Default     | Description                                        |
-| -------------------- | ----------- | -------------------------------------------------- |
-| `TABLO_IP`           | _(empty)_   | Tablo device IP; leave blank for autodiscovery     |
-| `AUTODISCOVER_TABLO` | `true`      | Discover Tablo IP via cloud API                    |
-| `HOST`               | `127.0.0.1` | Server bind address                                |
-| `PORT`               | `5004`      | Server port                                        |
-| `LOG_LEVEL`          | `INFO`      | Logging level                                      |
-| `DEBUG`              | `false`     | Enable debug mode (Flask dev server with reloader) |
-| `DEVICE_NAME`        | _(empty)_   | Override advertised device name (FriendlyName)     |
-| `ENABLE_EPG`         | `true`      | Enable EPG generation                              |
-| `CACHE_TTL`          | `900`       | Cache TTL in seconds; defaults to 15 minutes       |
+| Variable             | Default      | Description                                                                 |
+| -------------------- | ------------ | --------------------------------------------------------------------------- |
+| `TABLO_IP`           | _(empty)_    | Tablo device IP; leave blank for autodiscovery                              |
+| `AUTODISCOVER_TABLO` | `true`       | Discover Tablo IP via cloud API                                             |
+| `HOST`               | `127.0.0.1`  | Server bind address                                                         |
+| `PORT`               | `5004`       | Server port                                                                 |
+| `LOG_LEVEL`          | `INFO`       | Logging level                                                               |
+| `ENVIRONMENT`        | `production` | `development` for Flask dev server with reloader; `production` for waitress |
+| `DEVICE_NAME`        | _(empty)_    | Override advertised device name (FriendlyName)                              |
+| `ENABLE_EPG`         | `true`       | Enable EPG generation                                                       |
+| `CACHE_TTL`          | `900`        | Cache TTL in seconds; defaults to 15 minutes                                |
+
+Copy `.env.example` to `.env` and adjust for your setup:
+
+```bash
+cp .env.example .env
+```
 
 ## Checks
 

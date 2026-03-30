@@ -1,5 +1,10 @@
 """Tests for application configuration."""
 
+import os
+
+from collections.abc import Generator
+from pathlib import Path
+
 import pytest
 
 from tablo_legacy_m3u.config import Config, load_config
@@ -9,6 +14,36 @@ DEFAULT_PORT: int = 5004
 DEFAULT_CACHE_TTL: int = 900
 DEFAULT_LOG_LEVEL: str = "INFO"
 
+DOTENV_VARS = (
+    "ENVIRONMENT",
+    "TABLO_IP",
+    "AUTODISCOVER_TABLO",
+    "LOG_LEVEL",
+    "HOST",
+    "PORT",
+    "DEVICE_NAME",
+    "ENABLE_EPG",
+    "CACHE_TTL",
+)
+
+
+@pytest.fixture(autouse=True)
+def _isolate_dotenv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Generator[None]:
+    """Prevent project .env from leaking into config tests.
+
+    On cleanup, also remove any keys that load_dotenv() may have injected into
+    `os.environ` that monkeypatch doesn't track.
+    """
+    monkeypatch.chdir(tmp_path)
+
+    for var in DOTENV_VARS:
+        monkeypatch.delenv(var, raising=False)
+
+    yield
+
+    for var in DOTENV_VARS:
+        os.environ.pop(var, None)
+
 
 class TestConfigDefaults:
     """Tests for `Config` dataclass defaults."""
@@ -16,7 +51,8 @@ class TestConfigDefaults:
     def test_default_values(self) -> None:
         config = Config()
 
-        assert config.debug is False
+        assert config.environment == "production"
+        assert config.is_dev is False
         assert config.log_level == DEFAULT_LOG_LEVEL
         assert not config.tablo_ip
         assert config.autodiscover is True
@@ -36,18 +72,8 @@ class TestConfigDefaults:
 class TestLoadConfig:
     """Tests for `load_config()` environment variable loading."""
 
-    def test_defaults_when_no_env_vars(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_defaults_when_no_env_vars(self) -> None:
         """Ensure no value mutations when environment variables are not set."""
-        monkeypatch.delenv("DEBUG", raising=False)
-        monkeypatch.delenv("TABLO_IP", raising=False)
-        monkeypatch.delenv("AUTODISCOVER_TABLO", raising=False)
-        monkeypatch.delenv("LOG_LEVEL", raising=False)
-        monkeypatch.delenv("HOST", raising=False)
-        monkeypatch.delenv("PORT", raising=False)
-        monkeypatch.delenv("DEVICE_NAME", raising=False)
-        monkeypatch.delenv("ENABLE_EPG", raising=False)
-        monkeypatch.delenv("CACHE_TTL", raising=False)
-
         config = load_config()
 
         assert config.log_level == DEFAULT_LOG_LEVEL
@@ -63,7 +89,7 @@ class TestLoadConfig:
         new_tablo_ip: str = "192.168.1.50"
         new_device_name: str = "Living Room Tablo"
 
-        monkeypatch.setenv("DEBUG", "true")
+        monkeypatch.setenv("ENVIRONMENT", "development")
         monkeypatch.setenv("LOG_LEVEL", "warning")
         monkeypatch.setenv("TABLO_IP", new_tablo_ip)
         monkeypatch.setenv("AUTODISCOVER_TABLO", "false")
@@ -75,7 +101,8 @@ class TestLoadConfig:
 
         config = load_config()
 
-        assert config.debug is True
+        assert config.environment == "development"
+        assert config.is_dev is True
         assert config.log_level == "WARNING"
         assert config.tablo_ip == new_tablo_ip
         assert config.autodiscover is False
@@ -91,6 +118,36 @@ class TestLoadConfig:
         config = load_config()
 
         assert config.log_level == "INFO"
+
+    def test_loads_values_from_dotenv_file(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """Values in a .env file are loaded when no env var is set."""
+        monkeypatch.chdir(tmp_path)
+
+        test_ttl: int = 42
+
+        Path(".env").write_text(f"CACHE_TTL={test_ttl}\n", encoding="utf-8")
+
+        config = load_config()
+
+        assert config.cache_ttl == test_ttl
+
+    def test_env_var_takes_precedence_over_dotenv(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """An explicit env var wins over the same key in .env."""
+        monkeypatch.chdir(tmp_path)
+
+        test_ttl: int = 600
+
+        Path(".env").write_text("CACHE_TTL=42\n", encoding="utf-8")
+
+        monkeypatch.setenv("CACHE_TTL", str(test_ttl))
+
+        config = load_config()
+
+        assert config.cache_ttl == test_ttl
 
 
 class TestAutodiscoverLogic:

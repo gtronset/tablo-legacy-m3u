@@ -3,6 +3,9 @@
 import os
 
 from dataclasses import dataclass
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 DEFAULT_CACHE_TTL = 900  # 15 minutes
 
@@ -11,8 +14,12 @@ DEFAULT_CACHE_TTL = 900  # 15 minutes
 class Config:
     """Application configuration loaded from environment variables."""
 
-    # Development
-    debug: bool = False
+    environment: str = "production"
+
+    @property
+    def is_dev(self) -> bool:
+        """Convenience property to check if environment is development."""
+        return self.environment == "development"
 
     log_level: str = "INFO"
 
@@ -40,12 +47,16 @@ def _env(name: str, default: object) -> str:
 
 
 def load_config() -> Config:
-    """Load configuration from environment variables."""
+    """Load configuration from environment variables and `.env` file."""
+    env_file = Path.cwd() / ".env"
+    if env_file.is_file():
+        load_dotenv(env_file)
+
     tablo_ip = _env("TABLO_IP", Config.tablo_ip)
     autodiscover = _env("AUTODISCOVER_TABLO", Config.autodiscover).lower() == "true"
 
     return Config(
-        debug=_env("DEBUG", Config.debug).lower() == "true",
+        environment=_env("ENVIRONMENT", Config.environment).strip().lower(),
         log_level=_env("LOG_LEVEL", Config.log_level).upper(),
         tablo_ip=tablo_ip,
         autodiscover=autodiscover or not tablo_ip,

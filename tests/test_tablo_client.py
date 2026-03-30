@@ -511,3 +511,72 @@ class TestCaching:
         assert len(airings) == 1
         assert "channel" in channels[0]
         assert "airing_details" in airings[0]
+
+
+class TestRetry:
+    """Tests for automatic retry on transient connection errors."""
+
+    @responses.activate
+    def test_retries_on_502_and_succeeds(self) -> None:
+        """A `502` followed by a success results in a valid response."""
+        tablo = TabloClient(TABLO_IP)
+
+        responses.add(responses.GET, f"{BASE_URL}/server/info", status=502)
+        responses.add(
+            responses.GET,
+            f"{BASE_URL}/server/info",
+            json={
+                "server_id": "SID_ABC123",
+                "name": "My Tablo",
+                "timezone": "America/New_York",
+                "deprecated": "timezone",
+                "version": "2.2.42",
+                "local_address": TABLO_IP,
+                "setup_completed": True,
+                "build_number": 1234,
+                "model": {
+                    "wifi": False,
+                    "tuners": 4,
+                    "type": "quad",
+                    "name": "TABLO_QUAD",
+                },
+                "availability": "available",
+                "cache_key": "abc123",
+                "product": "tablo",
+            },
+        )
+
+        result = tablo.get_server_info()
+
+        assert result["name"] == "My Tablo"
+        assert len(responses.calls) == 2  # noqa: PLR2004
+
+    @responses.activate
+    def test_raises_after_retries_exhausted(self) -> None:
+        """Three consecutive `502`s exhaust retries and raise HTTPError."""
+        tablo = TabloClient(TABLO_IP)
+
+        responses.add(responses.GET, f"{BASE_URL}/server/info", status=502)
+        responses.add(responses.GET, f"{BASE_URL}/server/info", status=502)
+        responses.add(responses.GET, f"{BASE_URL}/server/info", status=502)
+
+        with pytest.raises(requests.HTTPError):
+            tablo.get_server_info()
+
+        assert len(responses.calls) == 3  # noqa: PLR2004
+
+    @responses.activate
+    def test_no_retry_on_watch(self) -> None:
+        """Watch endpoint does not retry on failure."""
+        tablo = TabloClient(TABLO_IP)
+
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/guide/channels/100/watch",
+            status=502,
+        )
+
+        with pytest.raises(requests.HTTPError):
+            tablo.get_watch_url("/guide/channels/100")
+
+        assert len(responses.calls) == 1

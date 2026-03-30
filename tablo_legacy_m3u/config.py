@@ -88,7 +88,8 @@ def _env(
     elif case == "upper":
         result = result.upper()
     if choices and result not in choices:
-        msg = f"Invalid value for {name}: {result!r}; expected one of {choices}"
+        choices_str = ", ".join(sorted(choices))
+        msg = f"Invalid value for {name}: {result!r}; expected one of: {choices_str}"
         raise ValueError(msg)
 
     return result
@@ -167,5 +168,5 @@ def load_config() -> Config:
         port=_env_int("PORT", Config.port, min_val=1, max_val=65535),
         device_name=_env("DEVICE_NAME", Config.device_name),
         enable_epg=_env_bool("ENABLE_EPG", Config.enable_epg),
-        cache_ttl=_env_int("CACHE_TTL", Config.cache_ttl, min_val=0),
+        cache_ttl=_env_int("CACHE_TTL", Config.cache_ttl, min_val=1),
     )

@@ -47,9 +47,13 @@ class TabloClient:
     def __init__(self, tablo_ip: str, cache_ttl: int = DEFAULT_CACHE_TTL) -> None:
         """Initialize with a resolved Tablo IP address.
 
-        Each thread receives its own persistent HTTP session with connection pooling and
+        For most API calls, each thread uses its own persistent HTTP session with
+        connection pooling via the internal `_get` and `_post` helpers, which provide
         automatic retry (with exponential backoff) for transient connection errors and
-        `502`/`503`/`504` responses.
+        `502`/`503`/`504` responses. Certain specialized calls, such as the watch
+        endpoint used by `get_watch_url`, intentionally bypass this session and use a
+        one-off `requests.post()` without connection pooling or adapter-level retries.
+
         """
         self.base_url: str = f"http://{tablo_ip}:{TABLO_API_PORT}"
         self._cache: TTLCache[Hashable, Any] = TTLCache(maxsize=4, ttl=cache_ttl)

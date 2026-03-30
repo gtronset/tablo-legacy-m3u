@@ -501,7 +501,7 @@ class TestCaching:
 
 
 class TestRetry:
-    """Tests for automatic retry on transient connection errors."""
+    """Tests for auto-retry on HTTP 5xx responses (502), no retry for watch endpoint."""
 
     @responses.activate
     def test_retries_on_502_and_succeeds(self, server_info: ServerInfo) -> None:

@@ -57,6 +57,7 @@ class TabloClient:
         """
         self.base_url: str = f"http://{tablo_ip}:{TABLO_API_PORT}"
         self._cache: TTLCache[Hashable, Any] = TTLCache(maxsize=4, ttl=cache_ttl)
+        self._cache_lock = threading.Lock()
         self._local = threading.local()
         self._retry = Retry(
             total=2,
@@ -127,7 +128,11 @@ class TabloClient:
 
         return results
 
-    @cachedmethod(lambda self: self._cache, key=lambda _self: hashkey("channels"))
+    @cachedmethod(
+        lambda self: self._cache,
+        key=lambda _self: hashkey("channels"),
+        lock=lambda self: self._cache_lock,
+    )
     def get_channels(self) -> list[Channel]:
         """Fetch all channel details from the Tablo.
 
@@ -201,7 +206,11 @@ class TabloClient:
 
         return data["playlist_url"]
 
-    @cachedmethod(lambda self: self._cache, key=lambda _self: hashkey("airings"))
+    @cachedmethod(
+        lambda self: self._cache,
+        key=lambda _self: hashkey("airings"),
+        lock=lambda self: self._cache_lock,
+    )
     def get_airings(self) -> list[Airing]:
         """Fetch all upcoming guide airings from the Tablo.
 

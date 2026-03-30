@@ -182,7 +182,7 @@ class TabloClient:
             The HLS playlist URL for the live stream.
         """
         response = requests.post(
-            f"{self.base_url}{channel_path}/watch", timeout=REQUEST_TIMEOUT
+            f"{self.base_url}{channel_path}/watch", json=None, timeout=REQUEST_TIMEOUT
         )
 
         if not response.ok:

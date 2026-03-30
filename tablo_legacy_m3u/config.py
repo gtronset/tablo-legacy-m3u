@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 DEFAULT_CACHE_TTL: int = 900  # 15 minutes
 
-CONFIG_ENV_VARS: tuple[str, ...] = (
+CONFIG_ENV_VARS: frozenset[str] = frozenset({
     "ENVIRONMENT",
     "TABLO_IP",
     "AUTODISCOVER_TABLO",
@@ -20,7 +20,7 @@ CONFIG_ENV_VARS: tuple[str, ...] = (
     "DEVICE_NAME",
     "ENABLE_EPG",
     "CACHE_TTL",
-)
+})
 
 
 @dataclass(frozen=True)
@@ -54,13 +54,24 @@ class Config:
     cache_ttl: int = DEFAULT_CACHE_TTL
 
 
+def _check_var_name(name: str) -> None:
+    if name not in CONFIG_ENV_VARS:
+        msg = f"Unknown config env var {name!r}; add it to CONFIG_ENV_VARS"
+        raise ValueError(msg)
+
+
 def _env(
     name: str,
     default: object,
     *,
     case: Literal["lower", "upper"] | None = None,
 ) -> str:
-    """Get an environment variable, falling back to the dataclass default."""
+    """Get a string-like environment variable.
+
+    Validates and falls back to the dataclass default when necessary.
+    """
+    _check_var_name(name)
+
     value = os.environ.get(name, "").strip()
     result = value if value else str(default)
     if case == "lower":
@@ -71,6 +82,12 @@ def _env(
 
 
 def _env_bool(name: str, default: bool) -> bool:
+    """Get a boolean environment variable.
+
+    Validates and falls back to the dataclass default when necessary.
+    """
+    _check_var_name(name)
+
     raw = os.environ.get(name, "").strip().lower()
     if not raw:
         return default
@@ -83,6 +100,12 @@ def _env_bool(name: str, default: bool) -> bool:
 
 
 def _env_int(name: str, default: int) -> int:
+    """Get an integer environment variable.
+
+    Validates and falls back to the dataclass default when necessary.
+    """
+    _check_var_name(name)
+
     raw = os.environ.get(name, "").strip()
     if not raw:
         return default

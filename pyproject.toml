@@ -1,6 +1,6 @@
 [project]
 name = "tablo-legacy-m3u"
-version = "0.1.0"
+version = "1.0.0"
 description = "TabloTV M3U & EPG generator for legacy devices."
 requires-python = ">=3.12"
 dependencies = [

@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog], and this project adheres to [Semantic
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-03-30
+
 ### Added
 
 - Add Initial CI Workflows <https://github.com/gtronset/tablo-legacy-m3u/pull/2>
@@ -39,5 +41,6 @@ The format is based on [Keep a Changelog], and this project adheres to [Semantic
 
 <!-- Release Links -->
 
-[unreleased]: https://github.com/gtronset/tablo-legacy-m3u/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/gtronset/tablo-legacy-m3u/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/gtronset/tablo-legacy-m3u/releases/tag/v1.0.0
 [0.1.0]: https://github.com/gtronset/tablo-legacy-m3u/releases/tag/v0.1.0

@@ -12,6 +12,7 @@ from tablo_legacy_m3u.config import (
     Config,
     _check_var_name,
     _env,
+    _env_bool,
     load_config,
 )
 
@@ -213,30 +214,53 @@ class TestEnv:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setenv("HOST", "")
-        assert _env("HOST", "fallback") == "fallback"
+        assert _env("HOST", default="fallback") == "fallback"
 
     def test_strips_whitespace(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("HOST", "  myhost  ")
-        assert _env("HOST", "default") == "myhost"
+        assert _env("HOST", default="default") == "myhost"
 
     def test_whitespace_only_uses_default(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setenv("HOST", "   ")
-        assert _env("HOST", "fallback") == "fallback"
+        assert _env("HOST", default="fallback") == "fallback"
 
     def test_case_lower(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("ENVIRONMENT", "PRODUCTION")
-        assert _env("ENVIRONMENT", "fallback", case="lower") == "production"
+        assert _env("ENVIRONMENT", default="fallback", case="lower") == "production"
 
     def test_case_upper(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("LOG_LEVEL", "debug")
-        assert _env("LOG_LEVEL", "fallback", case="upper") == "DEBUG"
+        assert _env("LOG_LEVEL", default="fallback", case="upper") == "DEBUG"
 
     def test_case_none_preserves(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("DEVICE_NAME", "My Tablo")
-        assert _env("DEVICE_NAME", "fallback") == "My Tablo"
+        assert _env("DEVICE_NAME", default="fallback") == "My Tablo"
 
     def test_rejects_unknown_var(self) -> None:
         with pytest.raises(ValueError, match="Unknown config env var"):
-            _env("BOGUS", "fallback")
+            _env("BOGUS", default="fallback")
+
+
+class TestEnvBool:
+    """Tests for `_env_bool()` boolean environment variable parsing and validation."""
+
+    @pytest.mark.parametrize("value", ["true", "1", "yes", "TRUE", "Yes"])
+    def test_truthy_values(self, monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+        monkeypatch.setenv("ENABLE_EPG", value)
+        assert _env_bool("ENABLE_EPG", default=False) is True
+
+    @pytest.mark.parametrize("value", ["false", "0", "no", "FALSE", "No"])
+    def test_falsy_values(self, monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+        monkeypatch.setenv("ENABLE_EPG", value)
+        assert _env_bool("ENABLE_EPG", default=True) is False
+
+    def test_empty_uses_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("ENABLE_EPG", raising=False)
+        assert _env_bool("ENABLE_EPG", default=True) is True
+
+    def test_invalid_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("ENABLE_EPG", "maybe")
+        with pytest.raises(ValueError, match="Invalid boolean"):
+            _env_bool("ENABLE_EPG", default=True)

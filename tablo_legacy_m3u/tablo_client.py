@@ -59,6 +59,7 @@ class TabloClient:
             backoff_factor=0.5,
             allowed_methods={"GET", "POST"},
             status_forcelist=[502, 503, 504],
+            raise_on_status=False,
         )
         self._session.mount("http://", HTTPAdapter(max_retries=retry))
 
@@ -163,13 +164,23 @@ class TabloClient:
     def get_watch_url(self, channel_path: str) -> str:
         """Start a live stream and return the playlist URL.
 
+        Uses a one-off request (no retry) since starting a stream is not idempotent.
+
         Args:
             channel_path: The channel path (e.g., `/guide/channels/1027125`).
 
         Returns:
             The HLS playlist URL for the live stream.
         """
-        data: WatchResponse = self._post(f"{channel_path}/watch")
+        response = requests.post(
+            f"{self.base_url}{channel_path}/watch", timeout=REQUEST_TIMEOUT
+        )
+
+        if not response.ok:
+            logger.error("POST %s/watch failed: %s", channel_path, response.text)
+        response.raise_for_status()
+
+        data: WatchResponse = response.json()
 
         logger.debug(
             "Watch response for %s: token=%s...", channel_path, data["token"][:8]

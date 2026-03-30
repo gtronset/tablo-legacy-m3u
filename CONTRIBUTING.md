@@ -36,8 +36,8 @@ docker compose -f docker-compose.dev.yaml up --build
 | `AUTODISCOVER_TABLO` | `true`      | Discover Tablo IP via cloud API                |
 | `HOST`               | `127.0.0.1` | Server bind address                            |
 | `PORT`               | `5004`      | Server port                                    |
-| `LOG_LEVEL`          | `DEBUG`     | Logging level                                  |
-| `DEBUG`              | `true`      | Enable Flask debug mode and reloader           |
+| `LOG_LEVEL`          | `INFO`      | Logging level                                  |
+| `DEBUG`              | `false`     | Enable Flask debug mode and reloader           |
 | `DEVICE_NAME`        | _(empty)_   | Override advertised device name (FriendlyName) |
 | `ENABLE_EPG`         | `true`      | Enable EPG generation                          |
 | `CACHE_TTL`          | `900`       | Cache TTL in seconds; defaults to 15 minutes   |

@@ -1,5 +1,8 @@
 """Tests for application configuration."""
 
+import os
+
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
@@ -11,24 +14,35 @@ DEFAULT_PORT: int = 5004
 DEFAULT_CACHE_TTL: int = 900
 DEFAULT_LOG_LEVEL: str = "INFO"
 
+DOTENV_VARS = (
+    "ENVIRONMENT",
+    "TABLO_IP",
+    "AUTODISCOVER_TABLO",
+    "LOG_LEVEL",
+    "HOST",
+    "PORT",
+    "DEVICE_NAME",
+    "ENABLE_EPG",
+    "CACHE_TTL",
+)
+
 
 @pytest.fixture(autouse=True)
-def _isolate_dotenv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Prevent project .env from leaking into config tests."""
+def _isolate_dotenv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Generator[None]:
+    """Prevent project .env from leaking into config tests.
+
+    On cleanup, also remove any keys that load_dotenv() may have injected into
+    `os.environ` that monkeypatch doesn't track.
+    """
     monkeypatch.chdir(tmp_path)
 
-    for var in (
-        "ENVIRONMENT",
-        "TABLO_IP",
-        "AUTODISCOVER_TABLO",
-        "LOG_LEVEL",
-        "HOST",
-        "PORT",
-        "DEVICE_NAME",
-        "ENABLE_EPG",
-        "CACHE_TTL",
-    ):
+    for var in DOTENV_VARS:
         monkeypatch.delenv(var, raising=False)
+
+    yield
+
+    for var in DOTENV_VARS:
+        os.environ.pop(var, None)
 
 
 class TestConfigDefaults:

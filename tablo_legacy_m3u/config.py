@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 DEFAULT_CACHE_TTL: int = 900  # 15 minutes
 
-CONFIG_ENV_VARS: frozenset[str] = frozenset({
+VALID_ENV_VARS: frozenset[str] = frozenset({
     "ENVIRONMENT",
     "TABLO_IP",
     "AUTODISCOVER_TABLO",
@@ -20,6 +20,14 @@ CONFIG_ENV_VARS: frozenset[str] = frozenset({
     "DEVICE_NAME",
     "ENABLE_EPG",
     "CACHE_TTL",
+})
+VALID_ENVIRONMENTS: frozenset[str] = frozenset({"production", "development"})
+VALID_LOG_LEVELS: frozenset[str] = frozenset({
+    "DEBUG",
+    "INFO",
+    "WARNING",
+    "ERROR",
+    "CRITICAL",
 })
 
 
@@ -55,8 +63,8 @@ class Config:
 
 
 def _check_var_name(name: str) -> None:
-    if name not in CONFIG_ENV_VARS:
-        msg = f"Unknown config env var {name!r}; add it to CONFIG_ENV_VARS"
+    if name not in VALID_ENV_VARS:
+        msg = f"Unknown config env var {name!r}; add it to VALID_ENV_VARS"
         raise ValueError(msg)
 
 
@@ -65,6 +73,7 @@ def _env(
     default: object,
     *,
     case: Literal["lower", "upper"] | None = None,
+    choices: frozenset[str] | None = None,
 ) -> str:
     """Get a string-like environment variable.
 
@@ -75,9 +84,13 @@ def _env(
     value = os.environ.get(name, "").strip()
     result = value if value else str(default)
     if case == "lower":
-        return result.lower()
-    if case == "upper":
-        return result.upper()
+        result = result.lower()
+    elif case == "upper":
+        result = result.upper()
+    if choices and result not in choices:
+        msg = f"Invalid value for {name}: {result!r}; expected one of {choices}"
+        raise ValueError(msg)
+
     return result
 
 
@@ -126,8 +139,12 @@ def load_config() -> Config:
     autodiscover = _env_bool("AUTODISCOVER_TABLO", Config.autodiscover)
 
     return Config(
-        environment=_env("ENVIRONMENT", Config.environment, case="lower"),
-        log_level=_env("LOG_LEVEL", Config.log_level, case="upper"),
+        environment=_env(
+            "ENVIRONMENT", Config.environment, case="lower", choices=VALID_ENVIRONMENTS
+        ),
+        log_level=_env(
+            "LOG_LEVEL", Config.log_level, case="upper", choices=VALID_LOG_LEVELS
+        ),
         tablo_ip=tablo_ip,
         autodiscover=autodiscover or not tablo_ip,
         host=_env("HOST", Config.host),

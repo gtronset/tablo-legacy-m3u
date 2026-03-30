@@ -8,7 +8,9 @@ from pathlib import Path
 import pytest
 
 from tablo_legacy_m3u.config import (
-    CONFIG_ENV_VARS,
+    VALID_ENV_VARS,
+    VALID_ENVIRONMENTS,
+    VALID_LOG_LEVELS,
     Config,
     _check_var_name,
     _env,
@@ -32,12 +34,12 @@ def _isolate_dotenv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Generato
     """
     monkeypatch.chdir(tmp_path)
 
-    for var in CONFIG_ENV_VARS:
+    for var in VALID_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
 
     yield
 
-    for var in CONFIG_ENV_VARS:
+    for var in VALID_ENV_VARS:
         os.environ.pop(var, None)
 
 
@@ -242,6 +244,36 @@ class TestEnv:
     def test_rejects_unknown_var(self) -> None:
         with pytest.raises(ValueError, match="Unknown config env var"):
             _env("BOGUS", default="fallback")
+
+
+class TestEnvChoices:
+    """Tests for `_env()` choices validation."""
+
+    def test_valid_environment(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("ENVIRONMENT", "development")
+
+        environment_env = _env(
+            "ENVIRONMENT", "production", case="lower", choices=VALID_ENVIRONMENTS
+        )
+        assert environment_env == "development"
+
+    def test_invalid_environment_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("ENVIRONMENT", "staging")
+        with pytest.raises(ValueError, match="Invalid value for ENVIRONMENT"):
+            _env("ENVIRONMENT", "production", case="lower", choices=VALID_ENVIRONMENTS)
+
+    def test_valid_log_level(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("LOG_LEVEL", "debug")
+
+        log_level_env = _env(
+            "LOG_LEVEL", "INFO", case="upper", choices=VALID_LOG_LEVELS
+        )
+        assert log_level_env == "DEBUG"
+
+    def test_invalid_log_level_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("LOG_LEVEL", "LOUD")
+        with pytest.raises(ValueError, match="Invalid value for LOG_LEVEL"):
+            _env("LOG_LEVEL", "INFO", case="upper", choices=VALID_LOG_LEVELS)
 
 
 class TestEnvBool:

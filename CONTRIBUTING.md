@@ -42,6 +42,12 @@ docker compose -f docker-compose.dev.yaml up --build
 | `ENABLE_EPG`         | `true`       | Enable EPG generation                                                       |
 | `CACHE_TTL`          | `900`        | Cache TTL in seconds; defaults to 15 minutes                                |
 
+Copy `.env.example` to `.env` and adjust for your setup:
+
+```bash
+cp .env.example .env
+```
+
 ## Checks
 
 Run all checks before submitting a PR:

@@ -39,7 +39,7 @@ def create_app(
 
     register_routes(app)
 
-    if not config.debug:
+    if not config.is_dev:
 
         @app.before_request
         def start_timer() -> None:

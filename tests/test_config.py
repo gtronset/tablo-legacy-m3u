@@ -16,7 +16,8 @@ class TestConfigDefaults:
     def test_default_values(self) -> None:
         config = Config()
 
-        assert config.debug is False
+        assert config.environment == "production"
+        assert config.is_dev is False
         assert config.log_level == DEFAULT_LOG_LEVEL
         assert not config.tablo_ip
         assert config.autodiscover is True
@@ -63,7 +64,7 @@ class TestLoadConfig:
         new_tablo_ip: str = "192.168.1.50"
         new_device_name: str = "Living Room Tablo"
 
-        monkeypatch.setenv("DEBUG", "true")
+        monkeypatch.setenv("ENVIRONMENT", "development")
         monkeypatch.setenv("LOG_LEVEL", "warning")
         monkeypatch.setenv("TABLO_IP", new_tablo_ip)
         monkeypatch.setenv("AUTODISCOVER_TABLO", "false")
@@ -75,7 +76,8 @@ class TestLoadConfig:
 
         config = load_config()
 
-        assert config.debug is True
+        assert config.environment == "development"
+        assert config.is_dev is True
         assert config.log_level == "WARNING"
         assert config.tablo_ip == new_tablo_ip
         assert config.autodiscover is False

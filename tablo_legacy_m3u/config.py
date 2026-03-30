@@ -11,8 +11,12 @@ DEFAULT_CACHE_TTL = 900  # 15 minutes
 class Config:
     """Application configuration loaded from environment variables."""
 
-    # Development
-    debug: bool = False
+    environment: str = "production"
+
+    @property
+    def is_dev(self) -> bool:
+        """Convenience property to check if environment is development."""
+        return self.environment == "development"
 
     log_level: str = "INFO"
 
@@ -45,7 +49,7 @@ def load_config() -> Config:
     autodiscover = _env("AUTODISCOVER_TABLO", Config.autodiscover).lower() == "true"
 
     return Config(
-        debug=_env("DEBUG", Config.debug).lower() == "true",
+        environment=_env("ENVIRONMENT", Config.environment),
         log_level=_env("LOG_LEVEL", Config.log_level).upper(),
         tablo_ip=tablo_ip,
         autodiscover=autodiscover or not tablo_ip,

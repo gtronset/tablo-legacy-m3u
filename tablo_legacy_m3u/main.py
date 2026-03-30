@@ -28,7 +28,7 @@ def main() -> None:
         handlers=[
             RichHandler(
                 omit_repeated_times=False,
-                show_path=config.debug,
+                show_path=config.is_dev,
                 rich_tracebacks=True,
             )
         ],
@@ -55,7 +55,7 @@ def main() -> None:
         enable_epg=enable_epg,
     )
 
-    if config.debug:
+    if config.is_dev:
         app.run(
             host=config.host,
             port=config.port,

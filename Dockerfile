@@ -10,7 +10,7 @@ RUN uv sync --frozen --no-dev
 COPY tablo_legacy_m3u/ tablo_legacy_m3u/
 
 # Production defaults
-ENV DEBUG=false \
+ENV ENVIRONMENT=producition \
     HOST=0.0.0.0 \
     LOG_LEVEL=INFO
 

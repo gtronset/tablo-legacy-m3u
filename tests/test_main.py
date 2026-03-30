@@ -19,7 +19,7 @@ def test_uses_waitress_when_debug_off(
     mock_serve: MagicMock,
 ) -> None:
     """When debug is False, `main()` starts `waitress`."""
-    mock_config.return_value = Config(debug=False, tablo_ip="10.0.0.1")
+    mock_config.return_value = Config(environment="production", tablo_ip="10.0.0.1")
     mock_client_cls.return_value.has_guide_subscription.return_value = True
 
     app = MagicMock()
@@ -44,7 +44,7 @@ def test_uses_flask_dev_server_when_debug_on(
     mock_serve: MagicMock,
 ) -> None:
     """When debug is True, `main()` starts the Flask dev server."""
-    mock_config.return_value = Config(debug=True, tablo_ip="10.0.0.1")
+    mock_config.return_value = Config(environment="development", tablo_ip="10.0.0.1")
     mock_client_cls.return_value.has_guide_subscription.return_value = True
 
     app = MagicMock()

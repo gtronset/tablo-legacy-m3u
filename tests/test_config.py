@@ -1,5 +1,7 @@
 """Tests for application configuration."""
 
+from pathlib import Path
+
 import pytest
 
 from tablo_legacy_m3u.config import Config, load_config
@@ -8,6 +10,25 @@ DEFAULT_HOST: str = "127.0.0.1"
 DEFAULT_PORT: int = 5004
 DEFAULT_CACHE_TTL: int = 900
 DEFAULT_LOG_LEVEL: str = "INFO"
+
+
+@pytest.fixture(autouse=True)
+def _isolate_dotenv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Prevent project .env from leaking into config tests."""
+    monkeypatch.chdir(tmp_path)
+
+    for var in (
+        "ENVIRONMENT",
+        "TABLO_IP",
+        "AUTODISCOVER_TABLO",
+        "LOG_LEVEL",
+        "HOST",
+        "PORT",
+        "DEVICE_NAME",
+        "ENABLE_EPG",
+        "CACHE_TTL",
+    ):
+        monkeypatch.delenv(var, raising=False)
 
 
 class TestConfigDefaults:
@@ -37,18 +58,8 @@ class TestConfigDefaults:
 class TestLoadConfig:
     """Tests for `load_config()` environment variable loading."""
 
-    def test_defaults_when_no_env_vars(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_defaults_when_no_env_vars(self) -> None:
         """Ensure no value mutations when environment variables are not set."""
-        monkeypatch.delenv("DEBUG", raising=False)
-        monkeypatch.delenv("TABLO_IP", raising=False)
-        monkeypatch.delenv("AUTODISCOVER_TABLO", raising=False)
-        monkeypatch.delenv("LOG_LEVEL", raising=False)
-        monkeypatch.delenv("HOST", raising=False)
-        monkeypatch.delenv("PORT", raising=False)
-        monkeypatch.delenv("DEVICE_NAME", raising=False)
-        monkeypatch.delenv("ENABLE_EPG", raising=False)
-        monkeypatch.delenv("CACHE_TTL", raising=False)
-
         config = load_config()
 
         assert config.log_level == DEFAULT_LOG_LEVEL
@@ -93,6 +104,36 @@ class TestLoadConfig:
         config = load_config()
 
         assert config.log_level == "INFO"
+
+    def test_loads_values_from_dotenv_file(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """Values in a .env file are loaded when no env var is set."""
+        monkeypatch.chdir(tmp_path)
+
+        test_ttl: int = 42
+
+        Path(".env").write_text(f"CACHE_TTL={test_ttl}\n", encoding="utf-8")
+
+        config = load_config()
+
+        assert config.cache_ttl == test_ttl
+
+    def test_env_var_takes_precedence_over_dotenv(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """An explicit env var wins over the same key in .env."""
+        monkeypatch.chdir(tmp_path)
+
+        test_ttl: int = 600
+
+        Path(".env").write_text("CACHE_TTL=42\n", encoding="utf-8")
+
+        monkeypatch.setenv("CACHE_TTL", str(test_ttl))
+
+        config = load_config()
+
+        assert config.cache_ttl == test_ttl
 
 
 class TestAutodiscoverLogic:

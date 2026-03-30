@@ -9,6 +9,8 @@ import requests
 
 from cachetools import TTLCache, cachedmethod
 from cachetools.keys import hashkey
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from tablo_legacy_m3u.config import DEFAULT_CACHE_TTL
 from tablo_legacy_m3u.tablo_types import (
@@ -42,13 +44,27 @@ class TabloClient:
     """Client for interacting with a legacy Tablo device."""
 
     def __init__(self, tablo_ip: str, cache_ttl: int = DEFAULT_CACHE_TTL) -> None:
-        """Initialize with a resolved Tablo IP address."""
+        """Initialize with a resolved Tablo IP address.
+
+        Configures a persistent HTTP session with connection pooling and automatic retry
+        (with exponential backoff) for transient connection errors and `502`/`503`/`504`
+        responses.
+        """
         self.base_url: str = f"http://{tablo_ip}:{TABLO_API_PORT}"
         self._cache: TTLCache[Hashable, Any] = TTLCache(maxsize=4, ttl=cache_ttl)
+        self._session = requests.Session()
+
+        retry = Retry(
+            total=2,
+            backoff_factor=0.5,
+            allowed_methods={"GET", "POST"},
+            status_forcelist=[502, 503, 504],
+        )
+        self._session.mount("http://", HTTPAdapter(max_retries=retry))
 
     def _get(self, path: str) -> Any:
         """Make a GET request to the Tablo API."""
-        response = requests.get(f"{self.base_url}{path}", timeout=REQUEST_TIMEOUT)
+        response = self._session.get(f"{self.base_url}{path}", timeout=REQUEST_TIMEOUT)
         logger.debug(
             "GET %s %s (%.3fs)",
             path,
@@ -64,7 +80,7 @@ class TabloClient:
 
     def _post(self, path: str, json: Any = None) -> Any:
         """Make a POST request to the Tablo API."""
-        response = requests.post(
+        response = self._session.post(
             f"{self.base_url}{path}", json=json, timeout=REQUEST_TIMEOUT
         )
         logger.debug(

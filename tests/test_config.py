@@ -7,24 +7,12 @@ from pathlib import Path
 
 import pytest
 
-from tablo_legacy_m3u.config import Config, load_config
+from tablo_legacy_m3u.config import CONFIG_ENV_VARS, Config, load_config
 
 DEFAULT_HOST: str = "127.0.0.1"
 DEFAULT_PORT: int = 5004
 DEFAULT_CACHE_TTL: int = 900
 DEFAULT_LOG_LEVEL: str = "INFO"
-
-DOTENV_VARS = (
-    "ENVIRONMENT",
-    "TABLO_IP",
-    "AUTODISCOVER_TABLO",
-    "LOG_LEVEL",
-    "HOST",
-    "PORT",
-    "DEVICE_NAME",
-    "ENABLE_EPG",
-    "CACHE_TTL",
-)
 
 
 @pytest.fixture(autouse=True)
@@ -36,12 +24,12 @@ def _isolate_dotenv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Generato
     """
     monkeypatch.chdir(tmp_path)
 
-    for var in DOTENV_VARS:
+    for var in CONFIG_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
 
     yield
 
-    for var in DOTENV_VARS:
+    for var in CONFIG_ENV_VARS:
         os.environ.pop(var, None)
 
 

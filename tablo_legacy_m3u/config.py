@@ -4,10 +4,23 @@ import os
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from dotenv import load_dotenv
 
-DEFAULT_CACHE_TTL = 900  # 15 minutes
+DEFAULT_CACHE_TTL: int = 900  # 15 minutes
+
+CONFIG_ENV_VARS: tuple[str, ...] = (
+    "ENVIRONMENT",
+    "TABLO_IP",
+    "AUTODISCOVER_TABLO",
+    "LOG_LEVEL",
+    "HOST",
+    "PORT",
+    "DEVICE_NAME",
+    "ENABLE_EPG",
+    "CACHE_TTL",
+)
 
 
 @dataclass(frozen=True)
@@ -41,9 +54,43 @@ class Config:
     cache_ttl: int = DEFAULT_CACHE_TTL
 
 
-def _env(name: str, default: object) -> str:
+def _env(
+    name: str,
+    default: object,
+    *,
+    case: Literal["lower", "upper"] | None = None,
+) -> str:
     """Get an environment variable, falling back to the dataclass default."""
-    return os.environ.get(name, str(default))
+    value = os.environ.get(name, "").strip()
+    result = value if value else str(default)
+    if case == "lower":
+        return result.lower()
+    if case == "upper":
+        return result.upper()
+    return result
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name, "").strip().lower()
+    if not raw:
+        return default
+    if raw in {"true", "1", "yes"}:
+        return True
+    if raw in {"false", "0", "no"}:
+        return False
+    msg = f"Invalid boolean for {name}: {raw!r}"
+    raise ValueError(msg)
+
+
+def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        msg = f"Invalid integer for {name}: {raw!r}"
+        raise ValueError(msg) from None
 
 
 def load_config() -> Config:
@@ -53,16 +100,16 @@ def load_config() -> Config:
         load_dotenv(env_file)
 
     tablo_ip = _env("TABLO_IP", Config.tablo_ip)
-    autodiscover = _env("AUTODISCOVER_TABLO", Config.autodiscover).lower() == "true"
+    autodiscover = _env_bool("AUTODISCOVER_TABLO", Config.autodiscover)
 
     return Config(
-        environment=_env("ENVIRONMENT", Config.environment).strip().lower(),
-        log_level=_env("LOG_LEVEL", Config.log_level).upper(),
+        environment=_env("ENVIRONMENT", Config.environment, case="lower"),
+        log_level=_env("LOG_LEVEL", Config.log_level, case="upper"),
         tablo_ip=tablo_ip,
         autodiscover=autodiscover or not tablo_ip,
         host=_env("HOST", Config.host),
-        port=int(_env("PORT", Config.port)),
+        port=_env_int("PORT", Config.port),
         device_name=_env("DEVICE_NAME", Config.device_name),
-        enable_epg=_env("ENABLE_EPG", Config.enable_epg).lower() == "true",
-        cache_ttl=int(_env("CACHE_TTL", Config.cache_ttl)),
+        enable_epg=_env_bool("ENABLE_EPG", Config.enable_epg),
+        cache_ttl=_env_int("CACHE_TTL", Config.cache_ttl),
     )

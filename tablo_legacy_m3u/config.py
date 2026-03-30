@@ -3,8 +3,9 @@
 import os
 
 from dataclasses import dataclass
+from pathlib import Path
 
-from dotenv import find_dotenv, load_dotenv
+from dotenv import load_dotenv
 
 DEFAULT_CACHE_TTL = 900  # 15 minutes
 
@@ -47,7 +48,9 @@ def _env(name: str, default: object) -> str:
 
 def load_config() -> Config:
     """Load configuration from environment variables and `.env` file."""
-    load_dotenv(find_dotenv(usecwd=True))
+    env_file = Path.cwd() / ".env"
+    if env_file.is_file():
+        load_dotenv(env_file)
 
     tablo_ip = _env("TABLO_IP", Config.tablo_ip)
     autodiscover = _env("AUTODISCOVER_TABLO", Config.autodiscover).lower() == "true"

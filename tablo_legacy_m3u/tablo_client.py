@@ -1,6 +1,7 @@
 """HTTP client for the legacy Tablo device API."""
 
 import logging
+import threading
 
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any
@@ -46,22 +47,30 @@ class TabloClient:
     def __init__(self, tablo_ip: str, cache_ttl: int = DEFAULT_CACHE_TTL) -> None:
         """Initialize with a resolved Tablo IP address.
 
-        Configures a persistent HTTP session with connection pooling and automatic retry
-        (with exponential backoff) for transient connection errors and `502`/`503`/`504`
-        responses.
+        Each thread receives its own persistent HTTP session with connection pooling and
+        automatic retry (with exponential backoff) for transient connection errors and
+        `502`/`503`/`504` responses.
         """
         self.base_url: str = f"http://{tablo_ip}:{TABLO_API_PORT}"
         self._cache: TTLCache[Hashable, Any] = TTLCache(maxsize=4, ttl=cache_ttl)
-        self._session = requests.Session()
-
-        retry = Retry(
+        self._local = threading.local()
+        self._retry = Retry(
             total=2,
             backoff_factor=0.5,
             allowed_methods={"GET", "POST"},
             status_forcelist=[502, 503, 504],
             raise_on_status=False,
         )
-        self._session.mount("http://", HTTPAdapter(max_retries=retry))
+
+    @property
+    def _session(self) -> requests.Session:
+        """Return a thread-local session, creating one if needed."""
+        session: requests.Session | None = getattr(self._local, "session", None)
+        if session is None:
+            session = requests.Session()
+            session.mount("http://", HTTPAdapter(max_retries=self._retry))
+            self._local.session = session
+        return session
 
     def _get(self, path: str) -> Any:
         """Make a GET request to the Tablo API."""

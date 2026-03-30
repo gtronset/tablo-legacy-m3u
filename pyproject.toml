@@ -89,6 +89,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "S101",    # bandit: ignore use of assert in tests
     "S314",    # bandit: ignore parsing own generated/trusted XML
     "S405",    # bandit: ignore use of xml.etree.ElementTree for parsing own generated/trusted XML
+    "SLF001",  # flake8-self: ignore use of self in test methods
 ]
 
 [tool.ruff.lint.flake8-pytest-style]

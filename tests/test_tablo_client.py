@@ -1,6 +1,7 @@
 """Tests for the Tablo API client."""
 
 import json
+import threading
 
 from http import HTTPStatus
 
@@ -548,3 +549,30 @@ class TestRetry:
             tablo.get_watch_url("/guide/channels/100")
 
         assert len(responses.calls) == 1
+
+
+class TestThreadLocalSession:
+    """Tests for thread-local session isolation."""
+
+    def test_same_thread_reuses_session(self) -> None:
+        """Accessing _session twice from the same thread returns the same object."""
+        tablo = TabloClient(TABLO_IP)
+
+        assert tablo._session is tablo._session
+
+    def test_different_threads_get_different_sessions(self) -> None:
+        """Each thread receives its own Session instance."""
+        tablo = TabloClient(TABLO_IP)
+        sessions: dict[str, requests.Session] = {}
+
+        def capture_session(name: str) -> None:
+            sessions[name] = tablo._session
+
+        t1 = threading.Thread(target=capture_session, args=("t1",))
+        t2 = threading.Thread(target=capture_session, args=("t2",))
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+        assert sessions["t1"] is not sessions["t2"]

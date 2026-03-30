@@ -7,7 +7,12 @@ from pathlib import Path
 
 import pytest
 
-from tablo_legacy_m3u.config import CONFIG_ENV_VARS, Config, load_config
+from tablo_legacy_m3u.config import (
+    CONFIG_ENV_VARS,
+    Config,
+    _check_var_name,
+    load_config,
+)
 
 DEFAULT_HOST: str = "127.0.0.1"
 DEFAULT_PORT: int = 5004
@@ -187,3 +192,14 @@ class TestAutodiscoverLogic:
 
         assert config.autodiscover is True
         assert config.tablo_ip == new_tablo_ip
+
+
+class TestCheckVarName:
+    """Tests for `_check_var_name()` validation of environment variable names."""
+
+    def test_rejects_unknown_var(self) -> None:
+        with pytest.raises(ValueError, match="Unknown config env var"):
+            _check_var_name("NOT_A_REAL_VAR")
+
+    def test_accepts_known_var(self) -> None:
+        _check_var_name("CACHE_TTL")

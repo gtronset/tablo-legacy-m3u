@@ -36,7 +36,7 @@ docker compose -f docker-compose.dev.yaml up --build
 | `AUTODISCOVER_TABLO` | `true`       | Discover Tablo IP via cloud API                                             |
 | `HOST`               | `127.0.0.1`  | Server bind address                                                         |
 | `PORT`               | `5004`       | Server port                                                                 |
-| `LOG_LEVEL`          | `INFO`       | Logging level                                                               |
+| `LOG_LEVEL`          | `INFO`       | Logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`)             |
 | `ENVIRONMENT`        | `production` | `development` for Flask dev server with reloader; `production` for waitress |
 | `DEVICE_NAME`        | _(empty)_    | Override advertised device name (FriendlyName)                              |
 | `ENABLE_EPG`         | `true`       | Enable EPG generation                                                       |

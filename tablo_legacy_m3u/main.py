@@ -5,6 +5,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from rich.logging import RichHandler
+from waitress import serve
 
 from tablo_legacy_m3u import create_app
 from tablo_legacy_m3u.config import load_config
@@ -48,10 +49,14 @@ def main() -> None:
         enable_epg=enable_epg,
     )
 
-    app.run(
-        host=config.host,
-        port=config.port,
-        debug=config.debug,
-        use_reloader=config.debug,
-        exclude_patterns=["**/tests/**"],
-    )
+    if config.debug:
+        app.run(
+            host=config.host,
+            port=config.port,
+            debug=True,
+            use_reloader=True,
+            exclude_patterns=["**/tests/**"],
+        )
+    else:
+        logger.info("Starting waitress on %s:%d", config.host, config.port)
+        serve(app, host=config.host, port=config.port)

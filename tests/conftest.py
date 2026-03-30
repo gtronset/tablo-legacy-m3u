@@ -1,7 +1,13 @@
 """Pytest fixtures for testing."""
 
+from unittest.mock import MagicMock
+
 import pytest
 
+from flask.testing import FlaskClient
+
+from tablo_legacy_m3u import create_app
+from tablo_legacy_m3u.config import Config
 from tablo_legacy_m3u.tablo_types import ServerInfo
 
 
@@ -31,3 +37,28 @@ def server_info(
         "cache_key": "abc123",
         "product": "tablo",
     }
+
+
+@pytest.fixture
+def tablo_client() -> MagicMock:
+    """Mock TabloClient for route tests."""
+    return MagicMock()
+
+
+@pytest.fixture
+def client(
+    request: pytest.FixtureRequest,
+    server_info: ServerInfo,
+    tablo_client: MagicMock,
+) -> FlaskClient:
+    """Flask test client with configurable app config."""
+    config = getattr(request, "param", Config())
+
+    app = create_app(
+        config=config,
+        tablo_client=tablo_client,
+        server_info=server_info,
+        enable_epg=True,
+    )
+
+    return app.test_client()

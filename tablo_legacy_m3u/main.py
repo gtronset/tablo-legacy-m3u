@@ -25,7 +25,13 @@ def main() -> None:
         level=config.log_level,
         format="%(name)s  %(message)s",
         datefmt="[%H:%M:%S]",
-        handlers=[RichHandler(rich_tracebacks=True)],
+        handlers=[
+            RichHandler(
+                omit_repeated_times=False,
+                show_path=config.debug,
+                rich_tracebacks=True,
+            )
+        ],
     )
 
     tablo_ip = discover_tablo_ip(config.autodiscover, config.tablo_ip)

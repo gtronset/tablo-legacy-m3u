@@ -84,11 +84,12 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 ]
 "tests/**" = [
     "D102",    # pydocstyle: ignore missing docstring in test methods
-    "PLC2701", # pylint: ignore private imports in tests
+    "PLC2701", # pylint: ignore private imports
     "PLR6301", # pylint: ignore unused self in test methods
-    "S101",    # bandit: ignore use of assert in tests
+    "S101",    # bandit: ignore use of assert
     "S314",    # bandit: ignore parsing own generated/trusted XML
     "S405",    # bandit: ignore use of xml.etree.ElementTree for parsing own generated/trusted XML
+    "SLF001",  # flake8-self: ignore accessing private/protected members
 ]
 
 [tool.ruff.lint.flake8-pytest-style]

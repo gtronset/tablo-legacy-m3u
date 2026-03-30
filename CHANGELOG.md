@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog], and this project adheres to [Semantic
 - Use connection pool for Tablo Client with retries <https://github.com/gtronset/tablo-legacy-m3u/pull/16>
 - Add `waitress` WSGI server for non-dev environments <https://github.com/gtronset/tablo-legacy-m3u/pull/17>
 - Add access logs to `waitress` <https://github.com/gtronset/tablo-legacy-m3u/pull/18>
+- Convert `DEBUG` ENV to `ENVIRONMENT` and Load `.env` when present <https://github.com/gtronset/tablo-legacy-m3u/pull/19>
 
 ## [0.1.0] - 2026-03-26
 

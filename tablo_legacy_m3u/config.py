@@ -53,7 +53,7 @@ def load_config() -> Config:
     autodiscover = _env("AUTODISCOVER_TABLO", Config.autodiscover).lower() == "true"
 
     return Config(
-        environment=_env("ENVIRONMENT", Config.environment),
+        environment=_env("ENVIRONMENT", Config.environment).strip().lower(),
         log_level=_env("LOG_LEVEL", Config.log_level).upper(),
         tablo_ip=tablo_ip,
         autodiscover=autodiscover or not tablo_ip,

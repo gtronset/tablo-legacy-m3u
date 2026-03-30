@@ -11,6 +11,7 @@ from tablo_legacy_m3u.config import (
     CONFIG_ENV_VARS,
     Config,
     _check_var_name,
+    _env,
     load_config,
 )
 
@@ -203,3 +204,39 @@ class TestCheckVarName:
 
     def test_accepts_known_var(self) -> None:
         _check_var_name("CACHE_TTL")
+
+
+class TestEnv:
+    """Tests for `_env()` environment variable loading and validation."""
+
+    def test_falls_back_to_default_when_empty(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("HOST", "")
+        assert _env("HOST", "fallback") == "fallback"
+
+    def test_strips_whitespace(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("HOST", "  myhost  ")
+        assert _env("HOST", "default") == "myhost"
+
+    def test_whitespace_only_uses_default(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("HOST", "   ")
+        assert _env("HOST", "fallback") == "fallback"
+
+    def test_case_lower(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("ENVIRONMENT", "PRODUCTION")
+        assert _env("ENVIRONMENT", "fallback", case="lower") == "production"
+
+    def test_case_upper(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("LOG_LEVEL", "debug")
+        assert _env("LOG_LEVEL", "fallback", case="upper") == "DEBUG"
+
+    def test_case_none_preserves(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("DEVICE_NAME", "My Tablo")
+        assert _env("DEVICE_NAME", "fallback") == "My Tablo"
+
+    def test_rejects_unknown_var(self) -> None:
+        with pytest.raises(ValueError, match="Unknown config env var"):
+            _env("BOGUS", "fallback")

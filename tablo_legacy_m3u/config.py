@@ -108,11 +108,18 @@ def _env_bool(name: str, default: bool) -> bool:
         return True
     if raw in {"false", "0", "no"}:
         return False
+
     msg = f"Invalid boolean for {name}: {raw!r}"
     raise ValueError(msg)
 
 
-def _env_int(name: str, default: int) -> int:
+def _env_int(
+    name: str,
+    default: int,
+    *,
+    min_val: int | None = None,
+    max_val: int | None = None,
+) -> int:
     """Get an integer environment variable.
 
     Validates and falls back to the dataclass default when necessary.
@@ -123,10 +130,19 @@ def _env_int(name: str, default: int) -> int:
     if not raw:
         return default
     try:
-        return int(raw)
+        result = int(raw)
     except ValueError:
         msg = f"Invalid integer for {name}: {raw!r}"
         raise ValueError(msg) from None
+
+    if min_val is not None and result < min_val:
+        msg = f"Value for {name} too low: {result} (minimum: {min_val})"
+        raise ValueError(msg)
+    if max_val is not None and result > max_val:
+        msg = f"Value for {name} too high: {result} (maximum: {max_val})"
+        raise ValueError(msg)
+
+    return result
 
 
 def load_config() -> Config:
@@ -148,8 +164,8 @@ def load_config() -> Config:
         tablo_ip=tablo_ip,
         autodiscover=autodiscover or not tablo_ip,
         host=_env("HOST", Config.host),
-        port=_env_int("PORT", Config.port),
+        port=_env_int("PORT", Config.port, min_val=1, max_val=65535),
         device_name=_env("DEVICE_NAME", Config.device_name),
         enable_epg=_env_bool("ENABLE_EPG", Config.enable_epg),
-        cache_ttl=_env_int("CACHE_TTL", Config.cache_ttl),
+        cache_ttl=_env_int("CACHE_TTL", Config.cache_ttl, min_val=0),
     )

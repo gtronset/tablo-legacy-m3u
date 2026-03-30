@@ -314,3 +314,30 @@ class TestEnvInt:
         monkeypatch.setenv("PORT", "abc")
         with pytest.raises(ValueError, match="Invalid integer"):
             _env_int("PORT", 5004)
+
+    def test_min_val_accepts_at_boundary(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("PORT", "1")
+        assert _env_int("PORT", 5004, min_val=1) == 1
+
+    def test_min_val_rejects_below(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("PORT", "0")
+        with pytest.raises(ValueError, match="too low"):
+            _env_int("PORT", 5004, min_val=1)
+
+    def test_max_val_accepts_at_boundary(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("PORT", "65535")
+        assert _env_int("PORT", 5004, max_val=65535) == 65535  # noqa: PLR2004, Value here is more readable raw.
+
+    def test_max_val_rejects_above(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("PORT", "65536")
+        with pytest.raises(ValueError, match="too high"):
+            _env_int("PORT", 5004, max_val=65535)
+
+    def test_min_and_max_together(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("PORT", "8080")
+        assert _env_int("PORT", 5004, min_val=1, max_val=65535) == 8080  # noqa: PLR2004, Value here is more readable raw.
+
+    def test_default_skips_range_check(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """When env var is absent, the default is returned without range validation."""
+        monkeypatch.delenv("CACHE_TTL", raising=False)
+        assert _env_int("CACHE_TTL", 900, min_val=0) == 900  # noqa: PLR2004, Value here is more readable raw.

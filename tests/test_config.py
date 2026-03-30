@@ -13,6 +13,7 @@ from tablo_legacy_m3u.config import (
     _check_var_name,
     _env,
     _env_bool,
+    _env_int,
     load_config,
 )
 
@@ -264,3 +265,20 @@ class TestEnvBool:
         monkeypatch.setenv("ENABLE_EPG", "maybe")
         with pytest.raises(ValueError, match="Invalid boolean"):
             _env_bool("ENABLE_EPG", default=True)
+
+
+class TestEnvInt:
+    """Tests for `_env_int()` integer environment variable parsing and validation."""
+
+    def test_valid_int(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("PORT", "8080")
+        assert _env_int("PORT", 5004) == 8080  # noqa: PLR2004, Value here is more readable raw.
+
+    def test_empty_uses_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("PORT", raising=False)
+        assert _env_int("PORT", 5004) == 5004  # noqa: PLR2004, Value here is more readable raw.
+
+    def test_invalid_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("PORT", "abc")
+        with pytest.raises(ValueError, match="Invalid integer"):
+            _env_int("PORT", 5004)

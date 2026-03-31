@@ -1,6 +1,7 @@
 """Main module."""
 
 import logging
+import os
 
 from typing import TYPE_CHECKING
 
@@ -53,20 +54,22 @@ def main() -> None:
 
     schedulers: list[Scheduler] = []
 
-    channel_scheduler = Scheduler(
-        "channels", config.channel_refresh_interval, client.get_channels
-    )
-    channel_scheduler.warm_async()
-    channel_scheduler.start()
-    schedulers.append(channel_scheduler)
-
-    if enable_epg:
-        guide_scheduler = Scheduler(
-            "guide", config.guide_refresh_interval, client.get_airings
+    # In Dev mode, only run schedules in server (child) process
+    if not config.is_dev or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        channel_scheduler = Scheduler(
+            "channels", config.channel_refresh_interval, client.get_channels
         )
-        guide_scheduler.warm_async()
-        guide_scheduler.start()
-        schedulers.append(guide_scheduler)
+        channel_scheduler.warm_async()
+        channel_scheduler.start()
+        schedulers.append(channel_scheduler)
+
+        if enable_epg:
+            guide_scheduler = Scheduler(
+                "guide", config.guide_refresh_interval, client.get_airings
+            )
+            guide_scheduler.warm_async()
+            guide_scheduler.start()
+            schedulers.append(guide_scheduler)
 
     app = create_app(
         config=config,

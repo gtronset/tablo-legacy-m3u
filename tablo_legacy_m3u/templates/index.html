@@ -105,10 +105,30 @@
         <h1 class="border-gradient">tablo-legacy-m3u</h1>
         <h2>Status</h2>
         <dl>
-            <dt>Status</dt>
+            <dt>Server</dt>
+            <dd class="status">✅ Running</dd>
+            {% for scheduler in schedulers %}
+            <dt>{{ scheduler.name | capitalize }}</dt>
             <dd class="status">
-                ✅ Running
+                {% if scheduler.state.value == "ready" %}
+                    ✅ Ready
+                {% elif scheduler.state.value == "warming" %}
+                    ⏳ Warming
+                {% elif scheduler.state.value == "retrying" %}
+                    ⚠️ Retrying
+                {% elif scheduler.state.value == "stopped" %}
+                    🛑 Stopped
+                {% else %}
+                    ⏸️ Idle
+                {% endif %}
             </dd>
+            {% endfor %}
+            {% if not enable_epg %}
+            <dt>Guide</dt>
+            <dd class="status">
+                ⚠️ EPG Disabled
+            </dd>
+            {% endif %}
         </dl>
         <h2>Tablo Device</h2>
         <dl>

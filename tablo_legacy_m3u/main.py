@@ -73,6 +73,7 @@ def main() -> None:
         tablo_client=client,
         server_info=server_info,
         enable_epg=enable_epg,
+        schedulers=schedulers,
     )
 
     try:

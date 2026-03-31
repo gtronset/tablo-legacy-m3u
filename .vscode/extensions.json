@@ -1,0 +1,16 @@
+{
+    "recommendations": [
+        "charliermarsh.ruff",
+        "davidanson.vscode-markdownlint",
+        "docker.docker",
+        "github.vscode-github-actions",
+        "monosans.djlint",
+        "ms-python.mypy-type-checker",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "redhat.vscode-yaml",
+        "samuelcolvin.jinjahtml",
+        "tamasfe.even-better-toml",
+        "valentjn.vscode-ltex"
+    ]
+}

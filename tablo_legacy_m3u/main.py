@@ -9,6 +9,7 @@ from waitress import serve
 
 from tablo_legacy_m3u import create_app
 from tablo_legacy_m3u.config import load_config
+from tablo_legacy_m3u.scheduler import Scheduler
 from tablo_legacy_m3u.tablo_client import TabloClient, discover_tablo_ip
 
 if TYPE_CHECKING:
@@ -50,6 +51,28 @@ def main() -> None:
 
     enable_epg = config.enable_epg and has_guide_subscription
 
+    # Warm caches before accepting requests
+    logger.info("Warming channel cache...")
+    client.get_channels()
+
+    schedulers: list[Scheduler] = []
+
+    channel_scheduler = Scheduler(
+        "channels", config.channel_refresh_interval, client.get_channels
+    )
+    channel_scheduler.start()
+    schedulers.append(channel_scheduler)
+
+    if enable_epg:
+        logger.info("Warming guide cache...")
+        client.get_airings()
+
+        guide_scheduler = Scheduler(
+            "guide", config.guide_refresh_interval, client.get_airings
+        )
+        guide_scheduler.start()
+        schedulers.append(guide_scheduler)
+
     app = create_app(
         config=config,
         tablo_client=client,
@@ -57,14 +80,18 @@ def main() -> None:
         enable_epg=enable_epg,
     )
 
-    if config.is_dev:
-        app.run(
-            host=config.host,
-            port=config.port,
-            debug=True,
-            use_reloader=True,
-            exclude_patterns=["**/tests/**"],
-        )
-    else:
-        logger.info("Starting waitress on %s:%d", config.host, config.port)
-        serve(app, host=config.host, port=config.port)
+    try:
+        if config.is_dev:
+            app.run(
+                host=config.host,
+                port=config.port,
+                debug=True,
+                use_reloader=True,
+                exclude_patterns=["**/tests/**"],
+            )
+        else:
+            logger.info("Starting waitress on %s:%d", config.host, config.port)
+            serve(app, host=config.host, port=config.port)
+    finally:
+        for scheduler in schedulers:
+            scheduler.stop()

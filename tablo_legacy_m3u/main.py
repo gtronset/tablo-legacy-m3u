@@ -51,25 +51,26 @@ def main() -> None:
 
     enable_epg = config.enable_epg and has_guide_subscription
 
-    # Warm caches before accepting requests
-    logger.info("Warming channel cache...")
-    client.get_channels()
-
     schedulers: list[Scheduler] = []
 
     channel_scheduler = Scheduler(
         "channels", config.channel_refresh_interval, client.get_channels
     )
     channel_scheduler.start()
+
+    logger.info("Warming channel cache...")
+    channel_scheduler.warm()
+
     schedulers.append(channel_scheduler)
 
     if enable_epg:
-        logger.info("Warming guide cache...")
-        client.get_airings()
-
         guide_scheduler = Scheduler(
             "guide", config.guide_refresh_interval, client.get_airings
         )
+
+        logger.info("Warming guide cache...")
+        guide_scheduler.warm()
+
         guide_scheduler.start()
         schedulers.append(guide_scheduler)
 

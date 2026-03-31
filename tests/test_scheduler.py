@@ -128,6 +128,21 @@ class TestWarm:
         assert scheduler.state == SchedulerState.RETRYING
 
 
+class TestWarmAsync:
+    """Tests for `warm_async()` background warming."""
+
+    def test_starts_daemon_thread(self, scheduler: Scheduler) -> None:
+        with patch("tablo_legacy_m3u.scheduler.threading.Thread") as mock_thread:
+            scheduler.warm_async()
+
+        mock_thread.assert_called_once_with(
+            target=scheduler.warm,
+            name="warm-test",
+            daemon=True,
+        )
+        mock_thread.return_value.start.assert_called_once()
+
+
 class TestRun:
     """Tests for `_run()` task execution and rescheduling."""
 

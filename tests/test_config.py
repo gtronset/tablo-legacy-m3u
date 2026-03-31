@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from tablo_legacy_m3u.config import (
+    DEFAULT_CACHE_TTL,
     VALID_ENV_VARS,
     VALID_ENVIRONMENTS,
     VALID_LOG_LEVELS,
@@ -21,7 +22,6 @@ from tablo_legacy_m3u.config import (
 
 DEFAULT_HOST: str = "127.0.0.1"
 DEFAULT_PORT: int = 5004
-DEFAULT_CACHE_TTL: int = 172800
 DEFAULT_CHANNEL_REFRESH_INTERVAL: int = 86400
 DEFAULT_GUIDE_REFRESH_INTERVAL: int = 3600
 DEFAULT_LOG_LEVEL: str = "INFO"
@@ -69,6 +69,17 @@ class TestConfigDefaults:
 
         with pytest.raises(AttributeError):
             config.port = 9999  # type: ignore[misc]
+
+    def test_default_cache_ttl_matches_config_default(self) -> None:
+        assert Config().cache_ttl == DEFAULT_CACHE_TTL
+
+    def test_cache_ttl_derived_from_intervals(self) -> None:
+        config = Config(channel_refresh_interval=100, guide_refresh_interval=200)
+        assert config.cache_ttl == 400  # noqa: PLR2004, max(100, 200) * 2
+
+    def test_cache_ttl_uses_longest_interval(self) -> None:
+        config = Config(channel_refresh_interval=500, guide_refresh_interval=200)
+        assert config.cache_ttl == 1000  # noqa: PLR2004, max(500, 200) * 2
 
 
 class TestLoadConfig:

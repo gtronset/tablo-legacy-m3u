@@ -77,11 +77,15 @@ class Scheduler:
 
             try:
                 self._task()
+                if self._stop_event.is_set():  # TOCTOU guard
+                    return
                 self._state = SchedulerState.READY
                 self._last_success = datetime.now(UTC)
                 self._last_error = None
                 return
             except Exception as e:  # noqa: BLE001, Scheduler must survive task failures
+                if self._stop_event.is_set():  # TOCTOU guard
+                    return
                 self._state = SchedulerState.RETRYING
                 self._last_error = str(e)
                 logger.warning(
@@ -156,9 +160,13 @@ class Scheduler:
 
         try:
             self._task()
+            if self._stop_event.is_set():  # TOCTOU guard
+                return
             self._last_success = datetime.now(UTC)
             self._last_error = None
         except Exception as e:
+            if self._stop_event.is_set():  # TOCTOU guard
+                return
             self._last_error = str(e)
             logger.exception("Scheduled task %r failed", self._name)
 

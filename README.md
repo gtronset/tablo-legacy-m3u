@@ -49,7 +49,8 @@ Tablo Connect or legacy app availability.
 ## How It Works
 
 1. On startup, the app discovers your Tablo device (via cloud API or manual IP)
-2. It queries the Tablo for device info, channel data, and guide airings (if subscribed)
+2. It fetches channel data and guide airings (if subscribed), then refreshes them on a
+   configurable interval in the background
 3. It starts an HTTP server that emulates HDHomeRun endpoints
 4. Media clients connect and see it as a standard HDHomeRun tuner
 

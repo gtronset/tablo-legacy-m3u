@@ -12,6 +12,16 @@ repos:
       - id: mixed-line-ending
         args: ["--fix=lf"]
 
+  - repo: https://github.com/djlint/djLint
+    rev: v1.36.4
+    hooks:
+      - id: djlint-reformat-jinja
+        files: "tablo_legacy_m3u/templates/"
+        types_or: [html]
+      - id: djlint-jinja
+        files: "tablo_legacy_m3u/templates/"
+        types_or: [html]
+
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.48.0
     hooks:

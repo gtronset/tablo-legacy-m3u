@@ -21,7 +21,9 @@ from tablo_legacy_m3u.config import (
 
 DEFAULT_HOST: str = "127.0.0.1"
 DEFAULT_PORT: int = 5004
-DEFAULT_CACHE_TTL: int = 900
+DEFAULT_CACHE_TTL: int = 172800
+DEFAULT_CHANNEL_REFRESH_INTERVAL: int = 86400
+DEFAULT_GUIDE_REFRESH_INTERVAL: int = 3600
 DEFAULT_LOG_LEVEL: str = "INFO"
 
 
@@ -59,6 +61,8 @@ class TestConfigDefaults:
         assert not config.device_name
         assert config.enable_epg is True
         assert config.cache_ttl == DEFAULT_CACHE_TTL
+        assert config.channel_refresh_interval == DEFAULT_CHANNEL_REFRESH_INTERVAL
+        assert config.guide_refresh_interval == DEFAULT_GUIDE_REFRESH_INTERVAL
 
     def test_config_is_frozen_and_immutable(self) -> None:
         config = Config()
@@ -83,7 +87,9 @@ class TestLoadConfig:
     def test_env_vars_override_defaults(self, monkeypatch: pytest.MonkeyPatch) -> None:
         new_host: str = "localhost"
         new_port: int = 8080
-        new_cache_ttl: int = 120
+        new_channel_interval: int = 120
+        new_guide_interval: int = 300
+        new_cache_ttl: int = 600
         new_tablo_ip: str = "192.168.1.50"
         new_device_name: str = "Living Room Tablo"
 
@@ -95,7 +101,8 @@ class TestLoadConfig:
         monkeypatch.setenv("PORT", str(new_port))
         monkeypatch.setenv("DEVICE_NAME", new_device_name)
         monkeypatch.setenv("ENABLE_EPG", "false")
-        monkeypatch.setenv("CACHE_TTL", str(new_cache_ttl))
+        monkeypatch.setenv("CHANNEL_REFRESH_INTERVAL", str(new_channel_interval))
+        monkeypatch.setenv("GUIDE_REFRESH_INTERVAL", str(new_guide_interval))
 
         config = load_config()
 
@@ -109,6 +116,8 @@ class TestLoadConfig:
         assert config.device_name == new_device_name
         assert config.enable_epg is False
         assert config.cache_ttl == new_cache_ttl
+        assert config.channel_refresh_interval == new_channel_interval
+        assert config.guide_refresh_interval == new_guide_interval
 
     def test_log_level_uppercased(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("LOG_LEVEL", "info")
@@ -123,13 +132,15 @@ class TestLoadConfig:
         """Values in a .env file are loaded when no env var is set."""
         monkeypatch.chdir(tmp_path)
 
-        test_ttl: int = 42
+        channel_interval: int = 77
 
-        Path(".env").write_text(f"CACHE_TTL={test_ttl}\n", encoding="utf-8")
+        Path(".env").write_text(
+            f"CHANNEL_REFRESH_INTERVAL={channel_interval}\n", encoding="utf-8"
+        )
 
         config = load_config()
 
-        assert config.cache_ttl == test_ttl
+        assert config.channel_refresh_interval == channel_interval
 
     def test_env_var_takes_precedence_over_dotenv(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
@@ -137,15 +148,15 @@ class TestLoadConfig:
         """An explicit env var wins over the same key in .env."""
         monkeypatch.chdir(tmp_path)
 
-        test_ttl: int = 600
+        channel_interval: int = 600
 
-        Path(".env").write_text("CACHE_TTL=42\n", encoding="utf-8")
+        Path(".env").write_text("CHANNEL_REFRESH_INTERVAL=42\n", encoding="utf-8")
 
-        monkeypatch.setenv("CACHE_TTL", str(test_ttl))
+        monkeypatch.setenv("CHANNEL_REFRESH_INTERVAL", str(channel_interval))
 
         config = load_config()
 
-        assert config.cache_ttl == test_ttl
+        assert config.channel_refresh_interval == channel_interval
 
 
 class TestAutodiscoverLogic:
@@ -207,7 +218,7 @@ class TestCheckVarName:
             _check_var_name("NOT_A_REAL_VAR")
 
     def test_accepts_known_var(self) -> None:
-        _check_var_name("CACHE_TTL")
+        _check_var_name("CHANNEL_REFRESH_INTERVAL")  # Should not raise
 
 
 class TestEnv:
@@ -339,5 +350,5 @@ class TestEnvInt:
 
     def test_default_skips_range_check(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """When env var is absent, the default is returned without range validation."""
-        monkeypatch.delenv("CACHE_TTL", raising=False)
-        assert _env_int("CACHE_TTL", 900, min_val=0) == 900  # noqa: PLR2004, Value here is more readable raw.
+        monkeypatch.delenv("CHANNEL_REFRESH_INTERVAL", raising=False)
+        assert _env_int("CHANNEL_REFRESH_INTERVAL", 900, min_val=0) == 900  # noqa: PLR2004, Value here is more readable raw.

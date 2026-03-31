@@ -8,7 +8,6 @@ from typing import Literal
 
 from dotenv import load_dotenv
 
-DEFAULT_CACHE_TTL: int = 900  # 15 minutes
 DEFAULT_CHANNEL_REFRESH_INTERVAL: int = 86400  # 24 hours
 DEFAULT_GUIDE_REFRESH_INTERVAL: int = 3600  # 1 hour
 MINIMUM_REFRESH_INTERVAL: int = 60  # 1 minute
@@ -22,7 +21,6 @@ VALID_ENV_VARS: frozenset[str] = frozenset({
     "PORT",
     "DEVICE_NAME",
     "ENABLE_EPG",
-    "CACHE_TTL",
     "CHANNEL_REFRESH_INTERVAL",
     "GUIDE_REFRESH_INTERVAL",
 })
@@ -64,9 +62,20 @@ class Config:
     enable_epg: bool = True
 
     # Caching
-    cache_ttl: int = DEFAULT_CACHE_TTL
     channel_refresh_interval: int = DEFAULT_CHANNEL_REFRESH_INTERVAL
     guide_refresh_interval: int = DEFAULT_GUIDE_REFRESH_INTERVAL
+
+    @property
+    def cache_ttl(self) -> int:
+        """Convenience property to get the cache TTL."""
+        return _add_cache_buffer(
+            max(self.channel_refresh_interval, self.guide_refresh_interval)
+        )
+
+
+def _add_cache_buffer(interval: int) -> int:
+    """Add a buffer to the refresh interval to determine cache TTL."""
+    return interval * 2
 
 
 def _check_var_name(name: str) -> None:
@@ -175,7 +184,6 @@ def load_config() -> Config:
         port=_env_int("PORT", Config.port, min_val=1, max_val=65535),
         device_name=_env("DEVICE_NAME", Config.device_name),
         enable_epg=_env_bool("ENABLE_EPG", Config.enable_epg),
-        cache_ttl=_env_int("CACHE_TTL", Config.cache_ttl, min_val=1),
         channel_refresh_interval=_env_int(
             "CHANNEL_REFRESH_INTERVAL",
             Config.channel_refresh_interval,
@@ -187,3 +195,6 @@ def load_config() -> Config:
             min_val=MINIMUM_REFRESH_INTERVAL,
         ),
     )
+
+
+DEFAULT_CACHE_TTL: int = Config().cache_ttl

@@ -4,6 +4,7 @@ import logging
 import threading
 
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,9 @@ class Scheduler:
         self._stop_event = threading.Event()
         self._timer: threading.Timer | None = None
         self._state = SchedulerState.IDLE
+        self._last_success: datetime | None = None
+        self._next_run: datetime | None = None
+        self._last_error: str | None = None
 
     @property
     def name(self) -> str:
@@ -49,6 +53,21 @@ class Scheduler:
         """Convenience property to get the scheduler state."""
         return self._state
 
+    @property
+    def last_success(self) -> datetime | None:
+        """Convenience property to get the last successful run time."""
+        return self._last_success
+
+    @property
+    def next_run(self) -> datetime | None:
+        """Convenience property to get the next scheduled run time."""
+        return self._next_run
+
+    @property
+    def last_error(self) -> str | None:
+        """Convenience property to get the last error message."""
+        return self._last_error
+
     def warm(self) -> None:
         """Attempt initial cache warm. Retries with backoff on failure."""
         delay = self.INITIAL_RETRY_DELAY
@@ -59,9 +78,12 @@ class Scheduler:
             try:
                 self._task()
                 self._state = SchedulerState.READY
+                self._last_success = datetime.now(UTC)
+                self._last_error = None
                 return
-            except Exception:  # noqa: BLE001, Scheduler must survive task failures
+            except Exception as e:  # noqa: BLE001, Scheduler must survive task failures
                 self._state = SchedulerState.RETRYING
+                self._last_error = str(e)
                 logger.warning(
                     "Initial %r fetch failed, retrying in %ds",
                     self._name,
@@ -101,6 +123,7 @@ class Scheduler:
             self._timer.cancel()
 
         self._state = SchedulerState.STOPPED
+        self._next_run = None
 
         logger.info("Scheduler %r stopped", self._name)
 
@@ -113,6 +136,7 @@ class Scheduler:
         if self._stop_event.is_set():
             return
 
+        self._next_run = datetime.now(UTC) + timedelta(seconds=self._interval)
         self._timer = threading.Timer(self._interval, self._run)
         self._timer.daemon = True
         self._timer.name = f"scheduler-{self._name}"
@@ -132,7 +156,10 @@ class Scheduler:
 
         try:
             self._task()
-        except Exception:
+            self._last_success = datetime.now(UTC)
+            self._last_error = None
+        except Exception as e:
+            self._last_error = str(e)
             logger.exception("Scheduled task %r failed", self._name)
 
         self._schedule()

@@ -203,3 +203,39 @@ class TestSchedule:
         scheduler._schedule()
 
         mock_timer.assert_not_called()
+
+
+class TestState:
+    """Tests for `SchedulerState` transitions."""
+
+    def test_initial_state_is_idle(self, scheduler: Scheduler) -> None:
+        assert scheduler.state == SchedulerState.IDLE
+
+    def test_state_ready_after_warm(self, scheduler: Scheduler) -> None:
+        scheduler.warm()
+
+        assert scheduler.state == SchedulerState.READY
+
+    def test_state_retrying_after_failure(
+        self, scheduler: Scheduler, scheduler_task: MagicMock
+    ) -> None:
+        scheduler_task.side_effect = RuntimeError("fail")
+
+        with patch.object(scheduler._stop_event, "wait", return_value=True):
+            scheduler.warm()
+
+        assert scheduler.state == SchedulerState.RETRYING
+
+    def test_state_stopped_after_stop(self, scheduler: Scheduler) -> None:
+        scheduler.stop()
+
+        assert scheduler.state == SchedulerState.STOPPED
+
+    def test_stop_overrides_any_state(self, scheduler: Scheduler) -> None:
+        scheduler.warm()
+
+        assert scheduler.state == SchedulerState.READY
+
+        scheduler.stop()
+
+        assert scheduler.state == SchedulerState.STOPPED  # type: ignore[comparison-overlap]

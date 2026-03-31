@@ -125,3 +125,41 @@ class TestWarm:
         task.assert_called_once()
 
         assert scheduler._warmed is False
+
+
+class TestRun:
+    """Tests for `_run()` task execution and rescheduling."""
+
+    def test_calls_task_and_reschedules(
+        self, scheduler: Scheduler, task: MagicMock
+    ) -> None:
+        task.reset_mock()
+
+        with patch("tablo_legacy_m3u.scheduler.threading.Timer") as mock_timer:
+            scheduler._run()
+
+        task.assert_called_once()
+        mock_timer.assert_called_once_with(300, scheduler._run)
+        mock_timer.return_value.start.assert_called_once()
+
+    def test_survives_task_exception(
+        self, scheduler: Scheduler, task: MagicMock
+    ) -> None:
+        """Ensure `_run()` handles task exceptions gracefully / do not raise."""
+        task.side_effect = RuntimeError("boom")
+
+        with patch("tablo_legacy_m3u.scheduler.threading.Timer") as mock_timer:
+            scheduler._run()
+
+        task.assert_called_once()
+        mock_timer.assert_called_once()
+
+    def test_noop_when_stopped(self, scheduler: Scheduler, task: MagicMock) -> None:
+        scheduler.stop()
+        task.reset_mock()
+
+        with patch("tablo_legacy_m3u.scheduler.threading.Timer") as mock_timer:
+            scheduler._run()
+
+        task.assert_not_called()
+        mock_timer.assert_not_called()

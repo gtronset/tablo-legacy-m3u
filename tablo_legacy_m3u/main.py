@@ -56,21 +56,15 @@ def main() -> None:
     channel_scheduler = Scheduler(
         "channels", config.channel_refresh_interval, client.get_channels
     )
+    channel_scheduler.warm_async()
     channel_scheduler.start()
-
-    logger.info("Warming channel cache...")
-    channel_scheduler.warm()
-
     schedulers.append(channel_scheduler)
 
     if enable_epg:
         guide_scheduler = Scheduler(
             "guide", config.guide_refresh_interval, client.get_airings
         )
-
-        logger.info("Warming guide cache...")
-        guide_scheduler.warm()
-
+        guide_scheduler.warm_async()
         guide_scheduler.start()
         schedulers.append(guide_scheduler)
 

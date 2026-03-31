@@ -4,8 +4,19 @@ import logging
 import threading
 
 from collections.abc import Callable
+from enum import StrEnum
 
 logger = logging.getLogger(__name__)
+
+
+class SchedulerState(StrEnum):
+    """Possible states for a Scheduler."""
+
+    IDLE = "idle"
+    WARMING = "warming"
+    RETRYING = "retrying"
+    READY = "ready"
+    STOPPED = "stopped"
 
 
 class Scheduler:
@@ -26,18 +37,31 @@ class Scheduler:
         self._task = task
         self._stop_event = threading.Event()
         self._timer: threading.Timer | None = None
-        self._warmed = False
+        self._state = SchedulerState.IDLE
+
+    @property
+    def name(self) -> str:
+        """Convenience property to get the scheduler name."""
+        return self._name
+
+    @property
+    def state(self) -> SchedulerState:
+        """Convenience property to get the scheduler state."""
+        return self._state
 
     def warm(self) -> None:
         """Attempt initial cache warm. Retries with backoff on failure."""
         delay = self.INITIAL_RETRY_DELAY
 
         while not self._stop_event.is_set():
+            self._state = SchedulerState.WARMING
+
             try:
                 self._task()
-                self._warmed = True
+                self._state = SchedulerState.READY
                 return
             except Exception:  # noqa: BLE001, Scheduler must survive task failures
+                self._state = SchedulerState.RETRYING
                 logger.warning(
                     "Initial %r fetch failed, retrying in %ds",
                     self._name,
@@ -48,10 +72,23 @@ class Scheduler:
 
                 delay = min(delay * 2, self.MAX_RETRY_DELAY)
 
+    def warm_async(self) -> None:
+        """Start cache warming in a background thread."""
+        thread = threading.Thread(
+            target=self.warm,
+            name=f"warm-{self._name}",
+            daemon=True,
+        )
+        thread.start()
+
     def start(self) -> None:
         """Start the scheduler. First run happens after one interval."""
-        if not self._warmed:
-            logger.warning("Scheduler %r starting without warm cache", self._name)
+        if self._state not in {
+            SchedulerState.READY,
+            SchedulerState.WARMING,
+            SchedulerState.RETRYING,
+        }:
+            logger.warning("Scheduler %r starting in %s state", self._name, self._state)
 
         logger.info("Scheduler %r started (every %ds)", self._name, self._interval)
 
@@ -60,9 +97,10 @@ class Scheduler:
     def stop(self) -> None:
         """Stop the scheduler and cancel the pending timer (if applicable)."""
         self._stop_event.set()
-
         if self._timer is not None:
             self._timer.cancel()
+
+        self._state = SchedulerState.STOPPED
 
         logger.info("Scheduler %r stopped", self._name)
 

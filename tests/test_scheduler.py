@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tablo_legacy_m3u.scheduler import Scheduler
+from tablo_legacy_m3u.scheduler import Scheduler, SchedulerState
 
 
 @pytest.fixture
@@ -44,7 +44,7 @@ class TestStart:
         with caplog.at_level(logging.WARNING):
             scheduler.start()
 
-        assert "starting without warm cache" in caplog.text
+        assert "starting in idle state" in caplog.text
 
 
 class TestStop:
@@ -54,6 +54,7 @@ class TestStop:
         scheduler.stop()
 
         assert scheduler._stop_event.is_set()
+        assert scheduler.state == SchedulerState.STOPPED
 
     def test_cancels_pending_timer(
         self, scheduler: Scheduler, mock_timer: MagicMock
@@ -65,10 +66,12 @@ class TestStop:
         scheduler.stop()
 
         mock_timer.return_value.cancel.assert_called_once()
+        assert scheduler.state == SchedulerState.STOPPED
 
     def test_stop_without_timer(self, scheduler: Scheduler) -> None:
         """Stopping before start should not raise."""
         scheduler.stop()
+        assert scheduler.state == SchedulerState.STOPPED
 
 
 class TestWarm:
@@ -80,7 +83,7 @@ class TestWarm:
         scheduler.warm()
 
         scheduler_task.assert_called_once()
-        assert scheduler._warmed is True
+        assert scheduler.state == SchedulerState.READY
 
     def test_retries_on_failure(
         self, scheduler: Scheduler, scheduler_task: MagicMock
@@ -91,7 +94,7 @@ class TestWarm:
             scheduler.warm()
 
         assert scheduler_task.call_count == 2  # noqa: PLR2004, 1 initial call + 1 retry
-        assert scheduler._warmed is True
+        assert scheduler.state == SchedulerState.READY
 
     def test_backoff_caps_at_max_delay(
         self, scheduler: Scheduler, scheduler_task: MagicMock
@@ -122,7 +125,7 @@ class TestWarm:
 
         scheduler_task.assert_called_once()
 
-        assert scheduler._warmed is False
+        assert scheduler.state == SchedulerState.RETRYING
 
 
 class TestRun:

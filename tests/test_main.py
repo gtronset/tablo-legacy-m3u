@@ -21,7 +21,15 @@ def patch_discover() -> Generator[MagicMock]:
 @pytest.fixture
 def mock_scheduler() -> Generator[MagicMock]:
     """Patch `Scheduler` to prevent real scheduling in tests."""
-    with patch("tablo_legacy_m3u.main.Scheduler", autospec=True) as mock:
+    with patch("tablo_legacy_m3u.main.Scheduler") as mock:
+        mock.instances = []
+
+        def make_instance(*args: object, **kwargs: object) -> MagicMock:
+            instance = MagicMock()
+            mock.instances.append(instance)
+            return instance
+
+        mock.side_effect = make_instance
         yield mock
 
 
@@ -141,4 +149,6 @@ def test_schedulers_stopped_on_server_error(
     with pytest.raises(RuntimeError, match="server crashed"):
         main()
 
-    mock_scheduler.return_value.stop.assert_called()
+    assert len(mock_scheduler.instances) == 2  # noqa: PLR2004, one for guide and one for channels
+    for instance in mock_scheduler.instances:
+        instance.stop.assert_called_once()

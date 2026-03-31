@@ -170,3 +170,28 @@ class TestRun:
 
         task.assert_not_called()
         mock_timer.assert_not_called()
+
+
+class TestSchedule:
+    """Tests for `_schedule()` timer creation."""
+
+    def test_creates_daemon_timer(
+        self, scheduler: Scheduler, mock_timer: MagicMock
+    ) -> None:
+        scheduler._schedule()
+
+        mock_timer.assert_called_once_with(300, scheduler._run)
+        timer_instance = mock_timer.return_value
+
+        assert timer_instance.daemon is True
+        assert timer_instance.name == "scheduler-test"
+        timer_instance.start.assert_called_once()
+
+    def test_noop_when_stopped(
+        self, scheduler: Scheduler, mock_timer: MagicMock
+    ) -> None:
+        scheduler.stop()
+
+        scheduler._schedule()
+
+        mock_timer.assert_not_called()

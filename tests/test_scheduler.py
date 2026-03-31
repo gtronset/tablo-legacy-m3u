@@ -239,3 +239,62 @@ class TestState:
         scheduler.stop()
 
         assert scheduler.state == SchedulerState.STOPPED  # type: ignore[comparison-overlap]
+
+
+class TestStatus:
+    """Tests for scheduler status properties."""
+
+    def test_initial_status(self, scheduler: Scheduler) -> None:
+        assert scheduler.last_success is None
+        assert scheduler.next_run is None
+        assert scheduler.last_error is None
+
+    @pytest.mark.usefixtures("mock_timer")
+    def test_warm_success_sets_last_success(self, scheduler: Scheduler) -> None:
+        scheduler.warm()
+
+        assert scheduler.last_success is not None
+        assert scheduler.last_error is None
+
+    def test_warm_failure_sets_last_error(
+        self, scheduler: Scheduler, scheduler_task: MagicMock
+    ) -> None:
+        scheduler_task.side_effect = RuntimeError("fail")
+
+        with patch.object(scheduler._stop_event, "wait", return_value=True):
+            scheduler.warm()
+
+        assert scheduler.last_success is None
+        assert scheduler.last_error == "fail"
+
+    @pytest.mark.usefixtures("mock_timer")
+    def test_run_success_sets_last_success(self, scheduler: Scheduler) -> None:
+        scheduler._run()
+
+        assert scheduler.last_success is not None
+        assert scheduler.last_error is None
+
+    @pytest.mark.usefixtures("mock_timer")
+    def test_run_failure_sets_last_error(
+        self, scheduler: Scheduler, scheduler_task: MagicMock
+    ) -> None:
+        scheduler_task.side_effect = RuntimeError("boom")
+
+        scheduler._run()
+
+        assert scheduler.last_success is None
+        assert scheduler.last_error == "boom"
+
+    @pytest.mark.usefixtures("mock_timer")
+    def test_schedule_sets_next_run(self, scheduler: Scheduler) -> None:
+        scheduler._schedule()
+
+        assert scheduler.next_run is not None
+
+    @pytest.mark.usefixtures("mock_timer")
+    def test_stop_clears_next_run(self, scheduler: Scheduler) -> None:
+        scheduler._schedule()
+        assert scheduler.next_run is not None
+
+        scheduler.stop()
+        assert scheduler.next_run is None

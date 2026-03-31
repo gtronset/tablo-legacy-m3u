@@ -8,6 +8,7 @@ from flask.testing import FlaskClient
 
 from tablo_legacy_m3u import create_app
 from tablo_legacy_m3u.config import Config
+from tablo_legacy_m3u.scheduler import Scheduler
 from tablo_legacy_m3u.tablo_types import ServerInfo
 
 
@@ -46,7 +47,7 @@ def tablo_client() -> MagicMock:
 
 
 @pytest.fixture
-def client(
+def flask_client(
     request: pytest.FixtureRequest,
     server_info: ServerInfo,
     tablo_client: MagicMock,
@@ -62,3 +63,15 @@ def client(
     )
 
     return app.test_client()
+
+
+@pytest.fixture
+def scheduler_task() -> MagicMock:
+    """Mock callable used as the scheduler task."""
+    return MagicMock()
+
+
+@pytest.fixture
+def scheduler(scheduler_task: MagicMock) -> Scheduler:
+    """Scheduler with a 300s interval and mock task."""
+    return Scheduler("test", 300, scheduler_task)

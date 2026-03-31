@@ -1,19 +1,37 @@
 """Tests for the main module."""
 
+from collections.abc import Generator
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from tablo_legacy_m3u.config import Config
 from tablo_legacy_m3u.main import main
 
 
+@pytest.fixture
+def patch_discover() -> Generator[MagicMock]:
+    """Patch `discover_tablo_ip` to prevent real network calls in tests."""
+    with patch(
+        "tablo_legacy_m3u.main.discover_tablo_ip", return_value="10.0.0.1"
+    ) as mock:
+        yield mock
+
+
+@pytest.fixture
+def mock_scheduler() -> Generator[MagicMock]:
+    """Patch `Scheduler` to prevent real scheduling in tests."""
+    with patch("tablo_legacy_m3u.main.Scheduler", autospec=True) as mock:
+        yield mock
+
+
+@pytest.mark.usefixtures("patch_discover", "mock_scheduler")
 @patch("tablo_legacy_m3u.main.serve")
 @patch("tablo_legacy_m3u.main.create_app")
 @patch("tablo_legacy_m3u.main.TabloClient")
-@patch("tablo_legacy_m3u.main.discover_tablo_ip", return_value="10.0.0.1")
 @patch("tablo_legacy_m3u.main.load_config")
 def test_uses_waitress_when_production(
     mock_config: MagicMock,
-    mock_discover: MagicMock,  # noqa: ARG001
     mock_client_cls: MagicMock,
     mock_create_app: MagicMock,
     mock_serve: MagicMock,
@@ -31,14 +49,13 @@ def test_uses_waitress_when_production(
     app.run.assert_not_called()
 
 
+@pytest.mark.usefixtures("patch_discover", "mock_scheduler")
 @patch("tablo_legacy_m3u.main.serve")
 @patch("tablo_legacy_m3u.main.create_app")
 @patch("tablo_legacy_m3u.main.TabloClient")
-@patch("tablo_legacy_m3u.main.discover_tablo_ip", return_value="10.0.0.1")
 @patch("tablo_legacy_m3u.main.load_config")
 def test_uses_flask_dev_server_when_development(
     mock_config: MagicMock,
-    mock_discover: MagicMock,  # noqa: ARG001
     mock_client_cls: MagicMock,
     mock_create_app: MagicMock,
     mock_serve: MagicMock,

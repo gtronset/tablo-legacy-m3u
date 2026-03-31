@@ -11,18 +11,6 @@ from tablo_legacy_m3u.scheduler import Scheduler
 
 
 @pytest.fixture
-def task() -> MagicMock:
-    """Mock callable used as the scheduler task."""
-    return MagicMock()
-
-
-@pytest.fixture
-def scheduler(task: MagicMock) -> Scheduler:
-    """Scheduler with a 300s interval and mock task."""
-    return Scheduler("test", 300, task)
-
-
-@pytest.fixture
 def mock_timer() -> Generator[MagicMock]:
     """Patch threading.Timer to prevent real threads in tests."""
     with patch("tablo_legacy_m3u.scheduler.threading.Timer") as mock:
@@ -87,26 +75,28 @@ class TestWarm:
     """Tests for `warm()` initial cache warming with retry logic."""
 
     def test_calls_task_and_marks_warmed(
-        self, scheduler: Scheduler, task: MagicMock
+        self, scheduler: Scheduler, scheduler_task: MagicMock
     ) -> None:
         scheduler.warm()
 
-        task.assert_called_once()
+        scheduler_task.assert_called_once()
         assert scheduler._warmed is True
 
-    def test_retries_on_failure(self, scheduler: Scheduler, task: MagicMock) -> None:
-        task.side_effect = [RuntimeError("fail"), None]
+    def test_retries_on_failure(
+        self, scheduler: Scheduler, scheduler_task: MagicMock
+    ) -> None:
+        scheduler_task.side_effect = [RuntimeError("fail"), None]
 
         with patch.object(scheduler._stop_event, "wait", return_value=False):
             scheduler.warm()
 
-        assert task.call_count == 2  # noqa: PLR2004, 1 initial call + 1 retry
+        assert scheduler_task.call_count == 2  # noqa: PLR2004, 1 initial call + 1 retry
         assert scheduler._warmed is True
 
     def test_backoff_caps_at_max_delay(
-        self, scheduler: Scheduler, task: MagicMock
+        self, scheduler: Scheduler, scheduler_task: MagicMock
     ) -> None:
-        task.side_effect = [RuntimeError] * 5 + [None]
+        scheduler_task.side_effect = [RuntimeError] * 5 + [None]
         waits: list[float] = []
 
         original_wait = scheduler._stop_event.wait
@@ -123,14 +113,14 @@ class TestWarm:
         assert waits == [60, 120, 240, 480, 900]
 
     def test_exits_when_stopped_during_wait(
-        self, scheduler: Scheduler, task: MagicMock
+        self, scheduler: Scheduler, scheduler_task: MagicMock
     ) -> None:
-        task.side_effect = RuntimeError("fail")
+        scheduler_task.side_effect = RuntimeError("fail")
 
         with patch.object(scheduler._stop_event, "wait", return_value=True):
             scheduler.warm()
 
-        task.assert_called_once()
+        scheduler_task.assert_called_once()
 
         assert scheduler._warmed is False
 
@@ -139,36 +129,36 @@ class TestRun:
     """Tests for `_run()` task execution and rescheduling."""
 
     def test_calls_task_and_reschedules(
-        self, scheduler: Scheduler, task: MagicMock, mock_timer: MagicMock
+        self, scheduler: Scheduler, scheduler_task: MagicMock, mock_timer: MagicMock
     ) -> None:
-        task.reset_mock()
+        scheduler_task.reset_mock()
 
         scheduler._run()
 
-        task.assert_called_once()
+        scheduler_task.assert_called_once()
         mock_timer.assert_called_once_with(300, scheduler._run)
         mock_timer.return_value.start.assert_called_once()
 
     def test_survives_task_exception(
-        self, scheduler: Scheduler, task: MagicMock, mock_timer: MagicMock
+        self, scheduler: Scheduler, scheduler_task: MagicMock, mock_timer: MagicMock
     ) -> None:
         """Ensure `_run()` handles task exceptions gracefully / do not raise."""
-        task.side_effect = RuntimeError("boom")
+        scheduler_task.side_effect = RuntimeError("boom")
 
         scheduler._run()
 
-        task.assert_called_once()
+        scheduler_task.assert_called_once()
         mock_timer.assert_called_once()
 
     def test_noop_when_stopped(
-        self, scheduler: Scheduler, task: MagicMock, mock_timer: MagicMock
+        self, scheduler: Scheduler, scheduler_task: MagicMock, mock_timer: MagicMock
     ) -> None:
         scheduler.stop()
-        task.reset_mock()
+        scheduler_task.reset_mock()
 
         scheduler._run()
 
-        task.assert_not_called()
+        scheduler_task.assert_not_called()
         mock_timer.assert_not_called()
 
 

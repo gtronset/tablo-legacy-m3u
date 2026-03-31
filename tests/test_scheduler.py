@@ -50,3 +50,55 @@ class TestStart:
             scheduler.start()
 
         assert "starting without warm cache" in caplog.text
+
+
+class TestWarm:
+    """Tests for `warm()` initial cache warming with retry logic."""
+
+    def test_calls_task_and_marks_warmed(
+        self, scheduler: Scheduler, task: MagicMock
+    ) -> None:
+        scheduler.warm()
+
+        task.assert_called_once()
+        assert scheduler._warmed is True
+
+    def test_retries_on_failure(self, scheduler: Scheduler, task: MagicMock) -> None:
+        task.side_effect = [RuntimeError("fail"), None]
+
+        with patch.object(scheduler._stop_event, "wait", return_value=False):
+            scheduler.warm()
+
+        assert task.call_count == 2  # noqa: PLR2004, 1 initial call + 1 retry
+        assert scheduler._warmed is True
+
+    def test_backoff_caps_at_max_delay(
+        self, scheduler: Scheduler, task: MagicMock
+    ) -> None:
+        task.side_effect = [RuntimeError] * 5 + [None]
+        waits: list[float] = []
+
+        original_wait = scheduler._stop_event.wait
+
+        def capture_wait(timeout: float) -> bool:
+            waits.append(timeout)
+
+            return original_wait(timeout=0)  # return immediately
+
+        with patch.object(scheduler._stop_event, "wait", side_effect=capture_wait):
+            scheduler.warm()
+
+        # 60 → 120 → 240 → 480 → 900 (capped)
+        assert waits == [60, 120, 240, 480, 900]
+
+    def test_exits_when_stopped_during_wait(
+        self, scheduler: Scheduler, task: MagicMock
+    ) -> None:
+        task.side_effect = RuntimeError("fail")
+
+        with patch.object(scheduler._stop_event, "wait", return_value=True):
+            scheduler.warm()
+
+        task.assert_called_once()
+
+        assert scheduler._warmed is False

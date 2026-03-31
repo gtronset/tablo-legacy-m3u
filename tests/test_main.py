@@ -71,3 +71,74 @@ def test_uses_flask_dev_server_when_development(
 
     app.run.assert_called_once()
     mock_serve.assert_not_called()
+
+
+@pytest.mark.usefixtures("patch_discover")
+@patch("tablo_legacy_m3u.main.serve")
+@patch("tablo_legacy_m3u.main.create_app")
+@patch("tablo_legacy_m3u.main.TabloClient")
+@patch("tablo_legacy_m3u.main.load_config")
+def test_guide_scheduler_skipped_when_no_subscription(
+    mock_config: MagicMock,
+    mock_client_cls: MagicMock,
+    mock_create_app: MagicMock,
+    mock_serve: MagicMock,  # noqa: ARG001
+    mock_scheduler: MagicMock,
+) -> None:
+    """Only channel scheduler is created when guide subscription is absent."""
+    mock_config.return_value = Config(environment="production", tablo_ip="10.0.0.1")
+    mock_client_cls.return_value.has_guide_subscription.return_value = False
+    mock_create_app.return_value = MagicMock()
+
+    main()
+
+    names = [call.args[0] for call in mock_scheduler.call_args_list]
+    assert names == ["channels"]
+
+
+@pytest.mark.usefixtures("patch_discover")
+@patch("tablo_legacy_m3u.main.serve")
+@patch("tablo_legacy_m3u.main.create_app")
+@patch("tablo_legacy_m3u.main.TabloClient")
+@patch("tablo_legacy_m3u.main.load_config")
+def test_guide_scheduler_skipped_when_epg_disabled(
+    mock_config: MagicMock,
+    mock_client_cls: MagicMock,
+    mock_create_app: MagicMock,
+    mock_serve: MagicMock,  # noqa: ARG001
+    mock_scheduler: MagicMock,
+) -> None:
+    """Only channel scheduler is created when EPG is disabled in config."""
+    mock_config.return_value = Config(
+        environment="production", tablo_ip="10.0.0.1", enable_epg=False
+    )
+    mock_client_cls.return_value.has_guide_subscription.return_value = True
+    mock_create_app.return_value = MagicMock()
+
+    main()
+
+    names = [call.args[0] for call in mock_scheduler.call_args_list]
+    assert names == ["channels"]
+
+
+@pytest.mark.usefixtures("patch_discover")
+@patch("tablo_legacy_m3u.main.serve", side_effect=RuntimeError("server crashed"))
+@patch("tablo_legacy_m3u.main.create_app")
+@patch("tablo_legacy_m3u.main.TabloClient")
+@patch("tablo_legacy_m3u.main.load_config")
+def test_schedulers_stopped_on_server_error(
+    mock_config: MagicMock,
+    mock_client_cls: MagicMock,
+    mock_create_app: MagicMock,
+    mock_serve: MagicMock,  # noqa: ARG001
+    mock_scheduler: MagicMock,
+) -> None:
+    """All schedulers are stopped even when the server raises."""
+    mock_config.return_value = Config(environment="production", tablo_ip="10.0.0.1")
+    mock_client_cls.return_value.has_guide_subscription.return_value = True
+    mock_create_app.return_value = MagicMock()
+
+    with pytest.raises(RuntimeError, match="server crashed"):
+        main()
+
+    mock_scheduler.return_value.stop.assert_called()

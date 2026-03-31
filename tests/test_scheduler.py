@@ -52,6 +52,29 @@ class TestStart:
         assert "starting without warm cache" in caplog.text
 
 
+class TestStop:
+    """Tests for `stop()` cancellation and cleanup."""
+
+    def test_sets_stop_event(self, scheduler: Scheduler) -> None:
+        scheduler.stop()
+
+        assert scheduler._stop_event.is_set()
+
+    def test_cancels_pending_timer(self, scheduler: Scheduler) -> None:
+        scheduler.warm()
+
+        with patch("tablo_legacy_m3u.scheduler.threading.Timer") as mock_timer:
+            scheduler.start()
+
+        scheduler.stop()
+
+        mock_timer.return_value.cancel.assert_called_once()
+
+    def test_stop_without_timer(self, scheduler: Scheduler) -> None:
+        """Stopping before start should not raise."""
+        scheduler.stop()
+
+
 class TestWarm:
     """Tests for `warm()` initial cache warming with retry logic."""
 

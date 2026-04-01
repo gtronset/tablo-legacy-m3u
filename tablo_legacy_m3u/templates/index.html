@@ -135,15 +135,21 @@
                     {% endif %}
                     {% if scheduler.last_success %}
                         <br>
-                        <small>Last refresh: <time datetime="{{ scheduler.last_success.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
-                            {{ scheduler.last_success.strftime("%Y-%m-%d %H:%M:%S UTC") }}
-                        </time></small>
+                        <small>Last refresh:
+                            <time
+                                datetime="{{ scheduler.last_success.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
+                                {{ scheduler.last_success.strftime("%Y-%m-%d %H:%M:%S UTC") }}
+                            </time>
+                        </small>
                     {% endif %}
                     {% if scheduler.next_run %}
                         <br>
-                        <small>Next refresh: <time datetime="{{ scheduler.next_run.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
-                            {{ scheduler.next_run.strftime("%Y-%m-%d %H:%M:%S UTC") }}
-                        </time></small>
+                        <small>Next refresh:
+                            <time
+                                datetime="{{ scheduler.next_run.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
+                                {{ scheduler.next_run.strftime("%Y-%m-%d %H:%M:%S UTC") }}
+                            </time>
+                        </small>
                     {% endif %}
                 </dd>
             {% endfor %}

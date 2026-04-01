@@ -54,32 +54,32 @@ def main() -> None:
 
     schedulers: list[Scheduler] = []
 
-    # In Dev mode, only run schedules in server (child) process
-    if not config.is_dev or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-        channel_scheduler = Scheduler(
-            "channels", config.channel_refresh_interval, client.refresh_channels
-        )
-        channel_scheduler.warm_async()
-        channel_scheduler.start()
-        schedulers.append(channel_scheduler)
-
-        if enable_epg:
-            guide_scheduler = Scheduler(
-                "guide", config.guide_refresh_interval, client.refresh_airings
-            )
-            guide_scheduler.warm_async()
-            guide_scheduler.start()
-            schedulers.append(guide_scheduler)
-
-    app = create_app(
-        config=config,
-        tablo_client=client,
-        server_info=server_info,
-        enable_epg=enable_epg,
-        schedulers=schedulers,
-    )
-
     try:
+        # In Dev mode, only run schedules in server (child) process
+        if not config.is_dev or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+            channel_scheduler = Scheduler(
+                "channels", config.channel_refresh_interval, client.refresh_channels
+            )
+            channel_scheduler.warm_async()
+            schedulers.append(channel_scheduler)
+            channel_scheduler.start()
+
+            if enable_epg:
+                guide_scheduler = Scheduler(
+                    "guide", config.guide_refresh_interval, client.refresh_airings
+                )
+                guide_scheduler.warm_async()
+                schedulers.append(guide_scheduler)
+                guide_scheduler.start()
+
+        app = create_app(
+            config=config,
+            tablo_client=client,
+            server_info=server_info,
+            enable_epg=enable_epg,
+            schedulers=schedulers,
+        )
+
         if config.is_dev:
             app.run(
                 host=config.host,

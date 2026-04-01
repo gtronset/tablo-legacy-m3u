@@ -114,6 +114,7 @@ class Scheduler:
 
     def warm_async(self) -> None:
         """Start cache warming in a background thread."""
+        self._set_state(SchedulerState.WARMING)
         thread = threading.Thread(
             target=self.warm,
             name=f"warm-{self._name}",

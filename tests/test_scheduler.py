@@ -133,6 +133,7 @@ class TestWarmAsync:
             daemon=True,
         )
         mock_thread.return_value.start.assert_called_once()
+        assert scheduler.state == SchedulerState.WARMING
 
 
 class TestRun:

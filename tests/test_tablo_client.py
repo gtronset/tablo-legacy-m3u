@@ -499,6 +499,130 @@ class TestCaching:
         assert "channel" in channels[0]
         assert "airing_details" in airings[0]
 
+    @responses.activate
+    def test_refresh_channels_clears_cache(self) -> None:
+        """`refresh_channels()` bypasses cache and makes a fresh API call."""
+        tablo = TabloClient(TABLO_IP)
+        channel = make_channel(100, "WABC", 7, 1)
+
+        responses.add(
+            responses.GET, f"{BASE_URL}/guide/channels", json=["/guide/channels/100"]
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/channels/100": channel},
+        )
+        responses.add(
+            responses.GET, f"{BASE_URL}/guide/channels", json=["/guide/channels/100"]
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/channels/100": channel},
+        )
+
+        tablo.get_channels()
+        tablo.refresh_channels()
+
+        assert len(responses.calls) == 4  # noqa: PLR2004
+
+    @responses.activate
+    def test_refresh_channels_returns_fresh_data(self) -> None:
+        """`refresh_channels()` returns updated data, not stale cache."""
+        tablo = TabloClient(TABLO_IP)
+        old_channel = make_channel(100, "WABC", 7, 1)
+        new_channel = make_channel(100, "WABC-HD", 7, 1)
+
+        responses.add(
+            responses.GET, f"{BASE_URL}/guide/channels", json=["/guide/channels/100"]
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/channels/100": old_channel},
+        )
+        responses.add(
+            responses.GET, f"{BASE_URL}/guide/channels", json=["/guide/channels/100"]
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/channels/100": new_channel},
+        )
+
+        first = tablo.get_channels()
+        refreshed = tablo.refresh_channels()
+
+        assert first[0]["channel"]["call_sign"] == "WABC"
+        assert refreshed[0]["channel"]["call_sign"] == "WABC-HD"
+
+    @responses.activate
+    def test_refresh_airings_clears_cache(self) -> None:
+        """`refresh_airings()` bypasses cache and makes a fresh API call."""
+        tablo = TabloClient(TABLO_IP)
+        airing = make_episode_airing(500, "Show A")
+
+        responses.add(
+            responses.GET,
+            f"{BASE_URL}/guide/airings",
+            json=["/guide/series/episodes/500"],
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/series/episodes/500": airing},
+        )
+        responses.add(
+            responses.GET,
+            f"{BASE_URL}/guide/airings",
+            json=["/guide/series/episodes/500"],
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/series/episodes/500": airing},
+        )
+
+        tablo.get_airings()
+        tablo.refresh_airings()
+
+        assert len(responses.calls) == 4  # noqa: PLR2004
+
+    @responses.activate
+    def test_refresh_airings_returns_fresh_data(self) -> None:
+        """`refresh_airings()` returns updated data, not stale cache."""
+        tablo = TabloClient(TABLO_IP)
+        old_airing = make_episode_airing(500, "Show A")
+        new_airing = make_episode_airing(500, "Show A Updated")
+
+        responses.add(
+            responses.GET,
+            f"{BASE_URL}/guide/airings",
+            json=["/guide/series/episodes/500"],
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/series/episodes/500": old_airing},
+        )
+        responses.add(
+            responses.GET,
+            f"{BASE_URL}/guide/airings",
+            json=["/guide/series/episodes/500"],
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/series/episodes/500": new_airing},
+        )
+
+        first = tablo.get_airings()
+        refreshed = tablo.refresh_airings()
+
+        assert first[0]["airing_details"]["show_title"] == "Show A"
+        assert refreshed[0]["airing_details"]["show_title"] == "Show A Updated"
+
 
 class TestRetry:
     """Tests for auto-retry on HTTP 5xx responses (502), no retry for watch endpoint."""

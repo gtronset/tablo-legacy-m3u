@@ -128,6 +128,14 @@ class TabloClient:
 
         return results
 
+    # TODO(gtronset): Improve with a replace-in-place refresh.
+    # https://github.com/gtronset/tablo-legacy-m3u/pull/22
+    def refresh_channels(self) -> list[Channel]:
+        """Force a fresh fetch of channel data."""
+        with self._cache_lock:
+            self._cache.pop(hashkey("channels"), None)
+        return self.get_channels()
+
     @cachedmethod(
         lambda self: self._cache,
         key=lambda _self: hashkey("channels"),
@@ -205,6 +213,14 @@ class TabloClient:
         )
 
         return data["playlist_url"]
+
+    # TODO(gtronset): Improve with a replace-in-place refresh.
+    # https://github.com/gtronset/tablo-legacy-m3u/pull/22
+    def refresh_airings(self) -> list[Airing]:
+        """Force a fresh fetch of airing data."""
+        with self._cache_lock:
+            self._cache.pop(hashkey("airings"), None)
+        return self.get_airings()
 
     @cachedmethod(
         lambda self: self._cache,

@@ -57,7 +57,7 @@ def main() -> None:
     # In Dev mode, only run schedules in server (child) process
     if not config.is_dev or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         channel_scheduler = Scheduler(
-            "channels", config.channel_refresh_interval, client.get_channels
+            "channels", config.channel_refresh_interval, client.refresh_channels
         )
         channel_scheduler.warm_async()
         channel_scheduler.start()
@@ -65,7 +65,7 @@ def main() -> None:
 
         if enable_epg:
             guide_scheduler = Scheduler(
-                "guide", config.guide_refresh_interval, client.get_airings
+                "guide", config.guide_refresh_interval, client.refresh_airings
             )
             guide_scheduler.warm_async()
             guide_scheduler.start()

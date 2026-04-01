@@ -156,6 +156,10 @@ class Scheduler:
         if self._stop_event.is_set():
             return
 
+        if self._state != SchedulerState.READY:
+            self._schedule()
+            return
+
         logger.info("Running scheduled task %r", self._name)
 
         try:

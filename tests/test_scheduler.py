@@ -149,8 +149,9 @@ class TestRun:
     def test_calls_task_and_reschedules(
         self, scheduler: Scheduler, scheduler_task: MagicMock, mock_timer: MagicMock
     ) -> None:
-        scheduler_task.reset_mock()
 
+        scheduler.warm()
+        scheduler_task.reset_mock()
         scheduler._run()
 
         scheduler_task.assert_called_once()
@@ -161,8 +162,10 @@ class TestRun:
         self, scheduler: Scheduler, scheduler_task: MagicMock, mock_timer: MagicMock
     ) -> None:
         """Ensure `_run()` handles task exceptions gracefully / do not raise."""
-        scheduler_task.side_effect = RuntimeError("boom")
+        scheduler_task.side_effect = [None, RuntimeError("boom")]
 
+        scheduler.warm()
+        scheduler_task.reset_mock()
         scheduler._run()
 
         scheduler_task.assert_called_once()
@@ -178,6 +181,15 @@ class TestRun:
 
         scheduler_task.assert_not_called()
         mock_timer.assert_not_called()
+
+    @pytest.mark.usefixtures("mock_timer")
+    def test_skips_task_when_not_ready(
+        self, scheduler: Scheduler, scheduler_task: MagicMock
+    ) -> None:
+        """_run() reschedules without executing when state is not READY."""
+        scheduler._run()
+
+        scheduler_task.assert_not_called()
 
 
 class TestSchedule:
@@ -269,6 +281,7 @@ class TestStatus:
 
     @pytest.mark.usefixtures("mock_timer")
     def test_run_success_sets_last_success(self, scheduler: Scheduler) -> None:
+        scheduler.warm()
         scheduler._run()
 
         assert scheduler.last_success is not None
@@ -278,11 +291,13 @@ class TestStatus:
     def test_run_failure_sets_last_error(
         self, scheduler: Scheduler, scheduler_task: MagicMock
     ) -> None:
-        scheduler_task.side_effect = RuntimeError("boom")
+        scheduler_task.side_effect = [None, RuntimeError("boom")]
 
+        scheduler.warm()
+        scheduler_task.reset_mock()
         scheduler._run()
 
-        assert scheduler.last_success is None
+        assert scheduler.last_success is not None
         assert scheduler.last_error == "boom"
 
     @pytest.mark.usefixtures("mock_timer")

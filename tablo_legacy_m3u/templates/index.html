@@ -124,6 +124,8 @@
                         ⚠️ Retrying
                     {% elif scheduler.state.value == "stopped" %}
                         🛑 Stopped
+                    {% elif scheduler.state.value == "error" %}
+                        ❌ Error (retrying next run)
                     {% else %}
                         ⏸️ Idle
                     {% endif %}

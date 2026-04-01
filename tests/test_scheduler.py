@@ -170,6 +170,7 @@ class TestRun:
 
         scheduler_task.assert_called_once()
         mock_timer.assert_called_once()
+        assert scheduler.state == SchedulerState.ERROR
 
     def test_noop_when_stopped(
         self, scheduler: Scheduler, scheduler_task: MagicMock, mock_timer: MagicMock
@@ -190,6 +191,19 @@ class TestRun:
         scheduler._run()
 
         scheduler_task.assert_not_called()
+
+    @pytest.mark.usefixtures("mock_timer")
+    def test_recovers_from_error(
+        self, scheduler: Scheduler, scheduler_task: MagicMock
+    ) -> None:
+        """`_run()` transitions ERROR to READY on success."""
+        scheduler.warm()
+        scheduler_task.reset_mock()
+
+        scheduler._state = SchedulerState.ERROR
+        scheduler._run()
+
+        assert scheduler.state == SchedulerState.READY
 
 
 class TestSchedule:
@@ -252,6 +266,17 @@ class TestState:
 
         assert scheduler.state == SchedulerState.STOPPED  # type: ignore[comparison-overlap]
 
+    @pytest.mark.usefixtures("mock_timer")
+    def test_state_error_after_run_failure(
+        self, scheduler: Scheduler, scheduler_task: MagicMock
+    ) -> None:
+        scheduler_task.side_effect = [None, RuntimeError("boom")]
+
+        scheduler.warm()
+        scheduler._run()
+
+        assert scheduler.state == SchedulerState.ERROR
+
 
 class TestStatus:
     """Tests for scheduler status properties."""
@@ -286,6 +311,7 @@ class TestStatus:
 
         assert scheduler.last_success is not None
         assert scheduler.last_error is None
+        assert scheduler.state == SchedulerState.READY
 
     @pytest.mark.usefixtures("mock_timer")
     def test_run_failure_sets_last_error(
@@ -299,6 +325,7 @@ class TestStatus:
 
         assert scheduler.last_success is not None
         assert scheduler.last_error == "boom"
+        assert scheduler.state == SchedulerState.ERROR
 
     @pytest.mark.usefixtures("mock_timer")
     def test_schedule_sets_next_run(self, scheduler: Scheduler) -> None:

@@ -17,6 +17,7 @@ class SchedulerState(StrEnum):
     WARMING = "warming"
     RETRYING = "retrying"
     READY = "ready"
+    ERROR = "error"
     STOPPED = "stopped"
 
 
@@ -169,7 +170,7 @@ class Scheduler:
         if self._stop_event.is_set():
             return
 
-        if self._state != SchedulerState.READY:
+        if self._state not in {SchedulerState.READY, SchedulerState.ERROR}:
             self._schedule()
             return
 
@@ -177,13 +178,15 @@ class Scheduler:
 
         try:
             self._task()
-            if self._stop_event.is_set():  # TOCTOU guard
+            if not self._set_state(SchedulerState.READY):
                 return
+
             self._last_success = datetime.now(UTC)
             self._last_error = None
         except Exception as e:
-            if self._stop_event.is_set():  # TOCTOU guard
+            if not self._set_state(SchedulerState.ERROR):
                 return
+
             self._last_error = str(e)
             logger.exception("Scheduled task %r failed", self._name)
 

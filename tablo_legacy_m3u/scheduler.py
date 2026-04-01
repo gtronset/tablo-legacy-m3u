@@ -68,25 +68,38 @@ class Scheduler:
         """Convenience property to get the last error message."""
         return self._last_error
 
+    def _set_state(self, state: SchedulerState) -> bool:
+        """Update state unless stopped. Returns False if stopped.
+
+        Used to prevent state changes after stopping, even in edge cases where the stop
+        event is set while a task is running or during the warm retry loop.
+        Effectively a TOCTOU guard.
+        """
+        if self._stop_event.is_set():
+            return False
+        self._state = state
+        return True
+
     def warm(self) -> None:
         """Attempt initial cache warm. Retries with backoff on failure."""
         delay = self.INITIAL_RETRY_DELAY
 
         while not self._stop_event.is_set():
-            self._state = SchedulerState.WARMING
+            if not self._set_state(SchedulerState.WARMING):
+                return
 
             try:
                 self._task()
-                if self._stop_event.is_set():  # TOCTOU guard
+
+                if not self._set_state(SchedulerState.READY):
                     return
-                self._state = SchedulerState.READY
+
                 self._last_success = datetime.now(UTC)
                 self._last_error = None
                 return
             except Exception as e:  # noqa: BLE001, Scheduler must survive task failures
-                if self._stop_event.is_set():  # TOCTOU guard
+                if not self._set_state(SchedulerState.RETRYING):
                     return
-                self._state = SchedulerState.RETRYING
                 self._last_error = str(e)
                 logger.warning(
                     "Initial %r fetch failed, retrying in %ds",

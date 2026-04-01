@@ -12,7 +12,8 @@ services:
       LOG_LEVEL: DEBUG
       ENVIRONMENT: development
       ENABLE_EPG: true
-      CACHE_TTL: 900
+      CHANNEL_REFRESH_INTERVAL: 86400
+      GUIDE_REFRESH_INTERVAL: 3600
     volumes:
       - ./tablo_legacy_m3u:/app/tablo_legacy_m3u
     restart: unless-stopped

@@ -12,6 +12,19 @@ repos:
       - id: mixed-line-ending
         args: ["--fix=lf"]
 
+  - repo: https://github.com/djlint/djLint
+    rev: v1.36.4
+    hooks:
+      - id: djlint-jinja
+        name: djlint
+        files: "tablo_legacy_m3u/templates/"
+        types_or: [html]
+      - id: djlint-reformat-jinja
+        name: djlint-format
+        files: "tablo_legacy_m3u/templates/"
+        types_or: [html]
+        stages: [manual]
+
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.48.0
     hooks:
@@ -35,15 +48,15 @@ repos:
     rev: v0.15.7
     hooks:
       - id: ruff
-        name: lint
+        name: ruff-lint
         alias: lint
       - id: ruff
-        name: lint-fix
+        name: ruff-lint-fix
         alias: lint-fix
         args: [--fix]
         stages: [manual]
       - id: ruff-format
-        name: format
+        name: ruff-format
         alias: format
 
   - repo: https://github.com/abravalheri/validate-pyproject

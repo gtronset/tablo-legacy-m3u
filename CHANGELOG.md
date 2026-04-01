@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog], and this project adheres to [Semantic
 
 ## [Unreleased]
 
+### Added
+
+- Add background scheduled refresh for channel and guide data <https://github.com/gtronset/tablo-legacy-m3u/pull/22>
+
 ## [1.0.0] - 2026-03-30
 
 ### Added

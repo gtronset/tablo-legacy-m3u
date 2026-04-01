@@ -15,6 +15,7 @@ from tablo_legacy_m3u.lineup import (
 
 if TYPE_CHECKING:
     from tablo_legacy_m3u.config import Config
+    from tablo_legacy_m3u.scheduler import Scheduler
     from tablo_legacy_m3u.tablo_client import TabloClient
     from tablo_legacy_m3u.tablo_types import Airing, Channel, ServerInfo
 
@@ -48,6 +49,7 @@ def index() -> str:
     """Render the landing page with device info and endpoint links."""
     config: Config = current_app.config["APP_CONFIG"]
     server_info: ServerInfo = current_app.config["TABLO_SERVER_INFO"]
+    schedulers: list[Scheduler] = current_app.config["SCHEDULERS"]
 
     friendly_name = config.device_name or server_info["name"]
     base_url = request.host_url.rstrip("/")
@@ -61,6 +63,7 @@ def index() -> str:
         base_url=base_url,
         version=__version__,
         enable_epg=enable_epg,
+        schedulers=schedulers,
     )
 
 

@@ -11,5 +11,6 @@ services:
       LOG_LEVEL: INFO
       ENVIRONMENT: production
       ENABLE_EPG: true
-      CACHE_TTL: 900
+      CHANNEL_REFRESH_INTERVAL: 86400
+      GUIDE_REFRESH_INTERVAL: 3600
     restart: unless-stopped

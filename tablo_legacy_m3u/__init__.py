@@ -14,6 +14,7 @@ __all__ = ["__version__", "create_app"]
 
 if TYPE_CHECKING:
     from tablo_legacy_m3u.config import Config
+    from tablo_legacy_m3u.scheduler import Scheduler
     from tablo_legacy_m3u.tablo_client import TabloClient
     from tablo_legacy_m3u.tablo_types import ServerInfo
 
@@ -26,6 +27,7 @@ def create_app(
     tablo_client: "TabloClient",
     server_info: "ServerInfo",
     enable_epg: bool,
+    schedulers: "list[Scheduler] | None" = None,
 ) -> Flask:
     """Create and configure the Flask application."""
     app = Flask(__name__)
@@ -35,6 +37,7 @@ def create_app(
         TABLO_CLIENT=tablo_client,
         TABLO_SERVER_INFO=server_info,
         ENABLE_EPG=enable_epg,
+        SCHEDULERS=schedulers or [],
     )
 
     register_routes(app)

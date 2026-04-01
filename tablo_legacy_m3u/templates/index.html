@@ -74,6 +74,10 @@
             .status {
                 font-weight: bold;
             }
+            .status small {
+                font-weight: normal;
+                color: var(--color-secondary);
+            }
             .border-gradient {
                 --angle: 0deg;
 
@@ -105,10 +109,54 @@
         <h1 class="border-gradient">tablo-legacy-m3u</h1>
         <h2>Status</h2>
         <dl>
-            <dt>Status</dt>
+            <dt>Server</dt>
             <dd class="status">
                 ✅ Running
             </dd>
+            {% for scheduler in schedulers %}
+                <dt>{{ scheduler.name | capitalize }}</dt>
+                <dd class="status">
+                    {% if scheduler.state.value == "ready" %}
+                        ✅ Ready
+                    {% elif scheduler.state.value == "warming" %}
+                        ⏳ Warming
+                    {% elif scheduler.state.value == "retrying" %}
+                        ⚠️ Retrying
+                    {% elif scheduler.state.value == "stopped" %}
+                        🛑 Stopped
+                    {% elif scheduler.state.value == "error" %}
+                        ❌ Error (retrying next run)
+                    {% else %}
+                        ⏸️ Idle
+                    {% endif %}
+                    {% if scheduler.last_error %}
+                        <br>
+                        <small>Error: {{ scheduler.last_error }}</small>
+                    {% endif %}
+                    {% if scheduler.last_success %}
+                        <br>
+                        <small>Last refresh:
+                            <time datetime="{{ scheduler.last_success.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
+                                {{ scheduler.last_success.strftime("%Y-%m-%d %H:%M:%S UTC") }}
+                            </time>
+                        </small>
+                    {% endif %}
+                    {% if scheduler.next_run %}
+                        <br>
+                        <small>Next refresh:
+                            <time datetime="{{ scheduler.next_run.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
+                                {{ scheduler.next_run.strftime("%Y-%m-%d %H:%M:%S UTC") }}
+                            </time>
+                        </small>
+                    {% endif %}
+                </dd>
+            {% endfor %}
+            {% if not enable_epg %}
+                <dt>Guide</dt>
+                <dd class="status">
+                    ⚠️ EPG Disabled
+                </dd>
+            {% endif %}
         </dl>
         <h2>Tablo Device</h2>
         <dl>

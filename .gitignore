@@ -40,7 +40,8 @@ dmypy.json
 .ruff_cache/
 
 # Visual Studio Code
-.vscode/
+.vscode/*
+!.vscode/extensions.json
 
 # PyPI configuration file
 .pypirc

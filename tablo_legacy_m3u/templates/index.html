@@ -136,8 +136,7 @@
                     {% if scheduler.last_success %}
                         <br>
                         <small>Last refresh:
-                            <time
-                                datetime="{{ scheduler.last_success.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
+                            <time datetime="{{ scheduler.last_success.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
                                 {{ scheduler.last_success.strftime("%Y-%m-%d %H:%M:%S UTC") }}
                             </time>
                         </small>
@@ -145,8 +144,7 @@
                     {% if scheduler.next_run %}
                         <br>
                         <small>Next refresh:
-                            <time
-                                datetime="{{ scheduler.next_run.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
+                            <time datetime="{{ scheduler.next_run.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
                                 {{ scheduler.next_run.strftime("%Y-%m-%d %H:%M:%S UTC") }}
                             </time>
                         </small>

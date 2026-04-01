@@ -5,6 +5,7 @@ import os
 
 from typing import TYPE_CHECKING
 
+from flask import Flask
 from rich.logging import RichHandler
 from waitress import serve
 
@@ -38,6 +39,17 @@ def main() -> None:
 
     logger.debug("Loaded config: %s", config)
 
+    # In dev mode, run the parent reloader and start the server in the child process
+    if config.is_dev and os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        Flask(__name__).run(
+            host=config.host,
+            port=config.port,
+            debug=True,
+            use_reloader=True,
+            exclude_patterns=["**/tests/**"],
+        )
+        return
+
     tablo_ip = discover_tablo_ip(config.autodiscover, config.tablo_ip)
 
     logger.info("Using Tablo device at %s", tablo_ip)
@@ -55,22 +67,20 @@ def main() -> None:
     schedulers: list[Scheduler] = []
 
     try:
-        # In Dev mode, only run schedules in server (child) process
-        if not config.is_dev or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-            channel_scheduler = Scheduler(
-                "channels", config.channel_refresh_interval, client.refresh_channels
-            )
-            channel_scheduler.warm_async()
-            schedulers.append(channel_scheduler)
-            channel_scheduler.start()
+        channel_scheduler = Scheduler(
+            "channels", config.channel_refresh_interval, client.refresh_channels
+        )
+        channel_scheduler.warm_async()
+        schedulers.append(channel_scheduler)
+        channel_scheduler.start()
 
-            if enable_epg:
-                guide_scheduler = Scheduler(
-                    "guide", config.guide_refresh_interval, client.refresh_airings
-                )
-                guide_scheduler.warm_async()
-                schedulers.append(guide_scheduler)
-                guide_scheduler.start()
+        if enable_epg:
+            guide_scheduler = Scheduler(
+                "guide", config.guide_refresh_interval, client.refresh_airings
+            )
+            guide_scheduler.warm_async()
+            schedulers.append(guide_scheduler)
+            guide_scheduler.start()
 
         app = create_app(
             config=config,

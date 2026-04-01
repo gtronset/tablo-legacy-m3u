@@ -1,5 +1,7 @@
 """Tests for the main module."""
 
+import os
+
 from collections.abc import Generator
 from unittest.mock import MagicMock, patch
 
@@ -58,11 +60,12 @@ def test_uses_waitress_when_production(
 
 
 @pytest.mark.usefixtures("patch_discover", "mock_scheduler")
+@patch.dict(os.environ, {"WERKZEUG_RUN_MAIN": "true"})
 @patch("tablo_legacy_m3u.main.serve")
 @patch("tablo_legacy_m3u.main.create_app")
 @patch("tablo_legacy_m3u.main.TabloClient")
 @patch("tablo_legacy_m3u.main.load_config")
-def test_uses_flask_dev_server_when_development(
+def test_dev_child_uses_flask_dev_server(
     mock_config: MagicMock,
     mock_client_cls: MagicMock,
     mock_create_app: MagicMock,
@@ -79,6 +82,25 @@ def test_uses_flask_dev_server_when_development(
 
     app.run.assert_called_once()
     mock_serve.assert_not_called()
+
+
+@patch("tablo_legacy_m3u.main.Flask")
+@patch("tablo_legacy_m3u.main.load_config")
+def test_dev_parent_returns_early(
+    mock_config: MagicMock,
+    mock_flask: MagicMock,
+    patch_discover: MagicMock,
+    mock_scheduler: MagicMock,
+) -> None:
+    """Reloader parent skips Tablo init and scheduler creation."""
+    mock_config.return_value = Config(environment="development", tablo_ip="10.0.0.1")
+
+    main()
+
+    mock_flask.assert_called_once()
+    mock_flask.return_value.run.assert_called_once()
+    patch_discover.assert_not_called()
+    mock_scheduler.assert_not_called()
 
 
 @pytest.mark.usefixtures("patch_discover")

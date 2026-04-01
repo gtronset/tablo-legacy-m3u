@@ -128,7 +128,11 @@ class Scheduler:
             SchedulerState.WARMING,
             SchedulerState.RETRYING,
         }:
-            logger.warning("Scheduler %r starting in %s state", self._name, self._state)
+            msg = (
+                f"Scheduler {self._name!r} must be warmed"
+                f" before starting (state: {self._state})"
+            )
+            raise RuntimeError(msg)
 
         logger.info("Scheduler %r started (every %ds)", self._name, self._interval)
 

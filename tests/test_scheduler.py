@@ -1,7 +1,5 @@
 """Tests for the background task scheduler."""
 
-import logging
-
 from collections.abc import Generator
 from unittest.mock import MagicMock, patch
 
@@ -36,15 +34,9 @@ class TestStart:
         timer_instance.start.assert_called_once()
 
     @pytest.mark.usefixtures("mock_timer")
-    def test_logs_warning_when_not_warmed(
-        self,
-        scheduler: Scheduler,
-        caplog: pytest.LogCaptureFixture,
-    ) -> None:
-        with caplog.at_level(logging.WARNING):
+    def test_raises_when_not_warmed(self, scheduler: Scheduler) -> None:
+        with pytest.raises(RuntimeError, match="must be warmed before starting"):
             scheduler.start()
-
-        assert "starting in idle state" in caplog.text
 
 
 class TestStop:

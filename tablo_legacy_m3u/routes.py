@@ -35,12 +35,7 @@ def register_routes(app: Flask) -> None:
     """Register all route handlers on the Flask app."""
     app.add_url_rule("/", view_func=index)
 
-    app.add_url_rule(
-        "/favicon.ico",
-        view_func=lambda: send_from_directory(
-            app.static_folder or "static", "favicon.ico"
-        ),
-    )
+    app.add_url_rule("/favicon.ico", view_func=favicon)
 
     app.add_url_rule("/discover.json", view_func=discover)
     app.add_url_rule("/device.xml", view_func=device_xml)
@@ -79,6 +74,11 @@ def index() -> str:
         enable_epg=enable_epg,
         schedulers=schedulers,
     )
+
+
+def favicon() -> Response:
+    """Serve the favicon."""
+    return send_from_directory(current_app.static_folder or "static", "favicon.ico")
 
 
 def discover() -> dict[str, str | int]:

@@ -61,6 +61,17 @@ class TestIndex:
         assert "/xmltv.xml" in body
 
 
+class TestFavicon:
+    """Tests for GET `/favicon.ico`."""
+
+    def test_returns_icon(self, flask_client: FlaskClient) -> None:
+        resp = flask_client.get("/favicon.ico")
+
+        assert resp.status_code == HTTPStatus.OK
+        assert "image/" in resp.content_type
+        assert len(resp.data) > 0
+
+
 class TestDiscoverJson:
     """Tests for GET `/discover.json`."""
 

@@ -2,7 +2,14 @@
 
 from typing import TYPE_CHECKING
 
-from flask import Flask, Response, current_app, render_template, request
+from flask import (
+    Flask,
+    Response,
+    current_app,
+    render_template,
+    request,
+    send_from_directory,
+)
 
 from tablo_legacy_m3u._version import __version__
 from tablo_legacy_m3u.discover import device_info, generate_device_xml
@@ -27,6 +34,13 @@ UTF8_CHARSET = "utf-8"
 def register_routes(app: Flask) -> None:
     """Register all route handlers on the Flask app."""
     app.add_url_rule("/", view_func=index)
+
+    app.add_url_rule(
+        "/favicon.ico",
+        view_func=lambda: send_from_directory(
+            app.static_folder or "static", "favicon.ico"
+        ),
+    )
 
     app.add_url_rule("/discover.json", view_func=discover)
     app.add_url_rule("/device.xml", view_func=device_xml)

@@ -19,8 +19,11 @@ from tablo_legacy_m3u.tablo_types import (
     BatchChannelResponse,
     Channel,
     DiscoveryResponse,
+    GuideStatus,
+    HarddriveInfo,
     ServerInfo,
     SubscriptionResponse,
+    TunerStatus,
     WatchResponse,
 )
 
@@ -196,6 +199,21 @@ class TabloClient:
         )
 
         return server_info
+
+    def get_tuners(self) -> list[TunerStatus]:
+        """Fetch tuner status from `/server/tuners`."""
+        tuners: list[TunerStatus] = self._get("/server/tuners")
+        return tuners
+
+    def get_harddrives(self) -> list[HarddriveInfo]:
+        """Fetch storage device info from `/server/harddrives`."""
+        harddrives: list[HarddriveInfo] = self._get("/server/harddrives")
+        return harddrives
+
+    def get_guide_status(self) -> GuideStatus:
+        """Fetch guide data status from `/guide/status`."""
+        guide_status: GuideStatus = self._get("/guide/status")
+        return guide_status
 
     def has_guide_subscription(self) -> bool:
         """Check if the Tablo has an active guide data subscription."""

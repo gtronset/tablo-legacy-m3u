@@ -100,6 +100,103 @@ class TestGetServerInfo:
             tablo.get_server_info()
 
 
+class TestGetTuners:
+    """Tests for `TabloClient.get_tuners()`."""
+
+    @responses.activate
+    def test_returns_tuner_list(self, tablo: TabloClient) -> None:
+        tuners_list = [
+            {
+                "in_use": False,
+                "channel": None,
+                "recording": None,
+                "channel_identifier": None,
+            },
+            {
+                "in_use": True,
+                "channel": "/guide/channels/100",
+                "recording": None,
+                "channel_identifier": "7.1",
+            },
+        ]
+
+        responses.add(
+            responses.GET,
+            f"{BASE_URL}/server/tuners",
+            json=tuners_list,
+        )
+        result = tablo.get_tuners()
+
+        assert len(result) == len(tuners_list)
+        assert result[1]["in_use"] is True
+
+    @responses.activate
+    def test_raises_on_http_error(self, tablo: TabloClient) -> None:
+        responses.add(responses.GET, f"{BASE_URL}/server/tuners", status=500)
+        with pytest.raises(requests.HTTPError):
+            tablo.get_tuners()
+
+
+class TestGetHarddrives:
+    """Tests for `TabloClient.get_harddrives()`."""
+
+    @responses.activate
+    def test_returns_harddrive_list(self, tablo: TabloClient) -> None:
+        harddrives_list = [
+            {
+                "name": "Seagate 1TB",
+                "connected": True,
+                "format_state": "authorized",
+                "busy_state": "ready",
+                "kind": "external",
+                "size": 984373075968,
+                "usage": 102127366144,
+                "free": 882245709824,
+                "error": None,
+            }
+        ]
+        responses.add(
+            responses.GET,
+            f"{BASE_URL}/server/harddrives",
+            json=harddrives_list,
+        )
+        result = tablo.get_harddrives()
+
+        assert len(result) == len(harddrives_list)
+        assert result[0]["connected"] is True
+
+    @responses.activate
+    def test_raises_on_http_error(self, tablo: TabloClient) -> None:
+        responses.add(responses.GET, f"{BASE_URL}/server/harddrives", status=500)
+        with pytest.raises(requests.HTTPError):
+            tablo.get_harddrives()
+
+
+class TestGetGuideStatus:
+    """Tests for `TabloClient.get_guide_status()`."""
+
+    @responses.activate
+    def test_returns_guide_status(self, tablo: TabloClient) -> None:
+        responses.add(
+            responses.GET,
+            f"{BASE_URL}/guide/status",
+            json={
+                "guide_seeded": True,
+                "last_update": "2026-04-03T10:56:50Z",
+                "limit": "2026-04-17T04:30Z",
+                "download_progress": None,
+            },
+        )
+        result = tablo.get_guide_status()
+        assert result["guide_seeded"] is True
+
+    @responses.activate
+    def test_raises_on_http_error(self, tablo: TabloClient) -> None:
+        responses.add(responses.GET, f"{BASE_URL}/guide/status", status=500)
+        with pytest.raises(requests.HTTPError):
+            tablo.get_guide_status()
+
+
 class TestHasGuideSubscription:
     """Tests for `TabloClient.has_guide_subscription()`."""
 

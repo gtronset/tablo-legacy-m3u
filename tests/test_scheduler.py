@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from tablo_legacy_m3u.scheduler import Scheduler, SchedulerState
+from tablo_legacy_m3u.tablo_client import TabloServerBusyError
 
 
 @pytest.fixture
@@ -118,6 +119,49 @@ class TestWarm:
         scheduler_task.assert_called_once()
 
         assert scheduler.state == SchedulerState.RETRYING
+
+    def test_uses_server_retry_hint(
+        self, scheduler: Scheduler, scheduler_task: MagicMock
+    ) -> None:
+        """`warm()` uses `TabloServerBusyError.retry_in` instead of backoff.
+
+        The end result static values of retry wait time, depending on the server hint,
+        rather than escalating backoff delays.
+        """
+        busy = TabloServerBusyError(MagicMock(), 5000)
+        scheduler_task.side_effect = [busy, None]
+
+        waits: list[float] = []
+        original_wait = scheduler._stop_event.wait
+
+        def capture_wait(timeout: float) -> bool:
+            waits.append(timeout)
+            return original_wait(timeout=0)
+
+        with patch.object(scheduler._stop_event, "wait", side_effect=capture_wait):
+            scheduler.warm()
+
+        assert waits == [5.0]
+        assert scheduler.state == SchedulerState.READY
+
+    def test_server_busy_does_not_escalate_backoff(
+        self, scheduler: Scheduler, scheduler_task: MagicMock
+    ) -> None:
+        """Repeated server_busy uses server hint each time, not exponential backoff."""
+        busy = TabloServerBusyError(MagicMock(), 10000)
+        scheduler_task.side_effect = [busy, busy, None]
+
+        waits: list[float] = []
+        original_wait = scheduler._stop_event.wait
+
+        def capture_wait(timeout: float) -> bool:
+            waits.append(timeout)
+            return original_wait(timeout=0)
+
+        with patch.object(scheduler._stop_event, "wait", side_effect=capture_wait):
+            scheduler.warm()
+
+        assert waits == [10.0, 10.0]
 
 
 class TestWarmAsync:

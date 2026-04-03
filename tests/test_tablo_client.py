@@ -13,6 +13,7 @@ from tablo_legacy_m3u.tablo_client import (
     BATCH_SIZE,
     TABLO_DISCOVERY_URL,
     TabloClient,
+    TabloServerBusyError,
     discover_tablo_ip,
 )
 from tablo_legacy_m3u.tablo_types import ServerInfo
@@ -700,3 +701,58 @@ class TestThreadLocalSession:
         t2.join()
 
         assert sessions["t1"] is not sessions["t2"]
+
+
+class TestServerBusy:
+    """Tests for TabloServerBusyError parsing in _get()."""
+
+    @responses.activate
+    def test_raises_on_server_busy(self, tablo: TabloClient) -> None:
+        """_get() raises TabloServerBusyError when Tablo returns server_busy."""
+        responses.add(
+            responses.GET,
+            f"{BASE_URL}/server/info",
+            json={
+                "error": {
+                    "code": "unavailable",
+                    "details": {"reason": "server_busy", "retry_in": 15000},
+                }
+            },
+            status=503,
+        )
+
+        with pytest.raises(TabloServerBusyError) as exc_info:
+            tablo.get_server_info()
+
+        assert exc_info.value.retry_in == pytest.approx(15.0)
+
+    @responses.activate
+    def test_regular_503_raises_http_error(self, tablo: TabloClient) -> None:
+        """Non-server_busy 503 raises standard HTTPError."""
+        responses.add(
+            responses.GET,
+            f"{BASE_URL}/server/info",
+            body="Service Unavailable",
+            status=503,
+        )
+
+        with pytest.raises(requests.HTTPError):
+            tablo.get_server_info()
+
+    @responses.activate
+    def test_server_busy_is_http_error(self, tablo: TabloClient) -> None:
+        """TabloServerBusyError is a subclass of HTTPError."""
+        responses.add(
+            responses.GET,
+            f"{BASE_URL}/server/info",
+            json={
+                "error": {
+                    "code": "unavailable",
+                    "details": {"reason": "server_busy", "retry_in": 15000},
+                }
+            },
+            status=503,
+        )
+
+        with pytest.raises(requests.HTTPError):
+            tablo.get_server_info()

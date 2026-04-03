@@ -658,7 +658,7 @@ class TestRetry:
         with pytest.raises(requests.HTTPError):
             tablo.get_server_info()
 
-        assert len(responses.calls) == 3  # noqa: PLR2004, Value here is more readable raw.
+        assert len(responses.calls) == RETRY_COUNT + 1
 
     @responses.activate
     def test_no_retry_on_watch(self) -> None:

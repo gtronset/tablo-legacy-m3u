@@ -76,7 +76,7 @@ class TabloClient:
             total=RETRY_COUNT,
             backoff_factor=0.5,
             allowed_methods={"GET", "POST"},
-            status_forcelist=[502, 503, 504],
+            status_forcelist=[502, 504],
             raise_on_status=False,
         )
 

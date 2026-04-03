@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog], and this project adheres to [Semantic
 
 - Add background scheduled refresh for channel and guide data <https://github.com/gtronset/tablo-legacy-m3u/pull/22>
 - Add dedicated/fallback `favicon.ico` <https://github.com/gtronset/tablo-legacy-m3u/pull/23>
+- Handle Tablo server_busy responses with retry hints <https://github.com/gtronset/tablo-legacy-m3u/pull/25>
 
 ## [1.0.0] - 2026-03-30
 

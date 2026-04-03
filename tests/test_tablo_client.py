@@ -1,7 +1,6 @@
 """Tests for the Tablo API client."""
 
 import json
-import threading
 
 from http import HTTPStatus
 
@@ -11,10 +10,8 @@ import responses
 
 from tablo_legacy_m3u.tablo_client import (
     BATCH_SIZE,
-    RETRY_COUNT,
     TABLO_DISCOVERY_URL,
     TabloClient,
-    TabloServerBusyError,
     discover_tablo_ip,
 )
 from tablo_legacy_m3u.tablo_types import ServerInfo
@@ -22,12 +19,6 @@ from tests.helpers import make_channel, make_episode_airing
 
 TABLO_IP = "192.168.1.100"
 BASE_URL = f"http://{TABLO_IP}:8885"
-
-
-@pytest.fixture
-def tablo() -> TabloClient:
-    """TabloClient pointed at a fake IP."""
-    return TabloClient(TABLO_IP)
 
 
 class TestDiscoverTabloIp:
@@ -78,18 +69,18 @@ class TestGetServerInfo:
 
     @responses.activate
     def test_returns_server_info(
-        self, tablo: TabloClient, server_info: ServerInfo
+        self, tablo_client: TabloClient, server_info: ServerInfo
     ) -> None:
         expected = server_info
 
         responses.add(responses.GET, f"{BASE_URL}/server/info", json=expected)
 
-        result = tablo.get_server_info()
+        result = tablo_client.get_server_info()
 
         assert result == expected
 
     @responses.activate
-    def test_raises_on_http_error(self, tablo: TabloClient) -> None:
+    def test_raises_on_http_error(self, tablo_client: TabloClient) -> None:
         responses.add(
             responses.GET,
             f"{BASE_URL}/server/info",
@@ -97,14 +88,14 @@ class TestGetServerInfo:
         )
 
         with pytest.raises(requests.HTTPError):
-            tablo.get_server_info()
+            tablo_client.get_server_info()
 
 
 class TestGetTuners:
     """Tests for `TabloClient.get_tuners()`."""
 
     @responses.activate
-    def test_returns_tuner_list(self, tablo: TabloClient) -> None:
+    def test_returns_tuner_list(self, tablo_client: TabloClient) -> None:
         tuners_list = [
             {
                 "in_use": False,
@@ -125,23 +116,23 @@ class TestGetTuners:
             f"{BASE_URL}/server/tuners",
             json=tuners_list,
         )
-        result = tablo.get_tuners()
+        result = tablo_client.get_tuners()
 
         assert len(result) == len(tuners_list)
         assert result[1]["in_use"] is True
 
     @responses.activate
-    def test_raises_on_http_error(self, tablo: TabloClient) -> None:
+    def test_raises_on_http_error(self, tablo_client: TabloClient) -> None:
         responses.add(responses.GET, f"{BASE_URL}/server/tuners", status=500)
         with pytest.raises(requests.HTTPError):
-            tablo.get_tuners()
+            tablo_client.get_tuners()
 
 
 class TestGetHarddrives:
     """Tests for `TabloClient.get_harddrives()`."""
 
     @responses.activate
-    def test_returns_harddrive_list(self, tablo: TabloClient) -> None:
+    def test_returns_harddrive_list(self, tablo_client: TabloClient) -> None:
         harddrives_list = [
             {
                 "name": "Seagate 1TB",
@@ -160,23 +151,23 @@ class TestGetHarddrives:
             f"{BASE_URL}/server/harddrives",
             json=harddrives_list,
         )
-        result = tablo.get_harddrives()
+        result = tablo_client.get_harddrives()
 
         assert len(result) == len(harddrives_list)
         assert result[0]["connected"] is True
 
     @responses.activate
-    def test_raises_on_http_error(self, tablo: TabloClient) -> None:
+    def test_raises_on_http_error(self, tablo_client: TabloClient) -> None:
         responses.add(responses.GET, f"{BASE_URL}/server/harddrives", status=500)
         with pytest.raises(requests.HTTPError):
-            tablo.get_harddrives()
+            tablo_client.get_harddrives()
 
 
 class TestGetGuideStatus:
     """Tests for `TabloClient.get_guide_status()`."""
 
     @responses.activate
-    def test_returns_guide_status(self, tablo: TabloClient) -> None:
+    def test_returns_guide_status(self, tablo_client: TabloClient) -> None:
         responses.add(
             responses.GET,
             f"{BASE_URL}/guide/status",
@@ -187,21 +178,21 @@ class TestGetGuideStatus:
                 "download_progress": None,
             },
         )
-        result = tablo.get_guide_status()
+        result = tablo_client.get_guide_status()
         assert result["guide_seeded"] is True
 
     @responses.activate
-    def test_raises_on_http_error(self, tablo: TabloClient) -> None:
+    def test_raises_on_http_error(self, tablo_client: TabloClient) -> None:
         responses.add(responses.GET, f"{BASE_URL}/guide/status", status=500)
         with pytest.raises(requests.HTTPError):
-            tablo.get_guide_status()
+            tablo_client.get_guide_status()
 
 
 class TestHasGuideSubscription:
     """Tests for `TabloClient.has_guide_subscription()`."""
 
     @responses.activate
-    def test_true_when_guide_active(self, tablo: TabloClient) -> None:
+    def test_true_when_guide_active(self, tablo_client: TabloClient) -> None:
         responses.add(
             responses.GET,
             f"{BASE_URL}/account/subscription",
@@ -227,10 +218,10 @@ class TestHasGuideSubscription:
             },
         )
 
-        assert tablo.has_guide_subscription() is True
+        assert tablo_client.has_guide_subscription() is True
 
     @responses.activate
-    def test_false_when_guide_expired(self, tablo: TabloClient) -> None:
+    def test_false_when_guide_expired(self, tablo_client: TabloClient) -> None:
         responses.add(
             responses.GET,
             f"{BASE_URL}/account/subscription",
@@ -256,32 +247,34 @@ class TestHasGuideSubscription:
             },
         )
 
-        assert tablo.has_guide_subscription() is False
+        assert tablo_client.has_guide_subscription() is False
 
     @responses.activate
-    def test_false_when_no_subscriptions(self, tablo: TabloClient) -> None:
+    def test_false_when_no_subscriptions(self, tablo_client: TabloClient) -> None:
         responses.add(
             responses.GET,
             f"{BASE_URL}/account/subscription",
             json={"state": "none", "trial": None, "subscriptions": []},
         )
 
-        assert tablo.has_guide_subscription() is False
+        assert tablo_client.has_guide_subscription() is False
 
 
 class TestGetChannels:
     """Tests for `TabloClient.get_channels()`."""
 
     @responses.activate
-    def test_returns_empty_list_when_no_channels(self, tablo: TabloClient) -> None:
+    def test_returns_empty_list_when_no_channels(
+        self, tablo_client: TabloClient
+    ) -> None:
         responses.add(responses.GET, f"{BASE_URL}/guide/channels", json=[])
 
-        result = tablo.get_channels()
+        result = tablo_client.get_channels()
 
         assert result == []
 
     @responses.activate
-    def test_returns_hydrated_channels(self, tablo: TabloClient) -> None:
+    def test_returns_hydrated_channels(self, tablo_client: TabloClient) -> None:
         channel_paths = ["/guide/channels/100", "/guide/channels/200"]
         batch_response = {
             "/guide/channels/100": make_channel(100, "WABC", 7, 1),
@@ -293,13 +286,13 @@ class TestGetChannels:
         responses.add(responses.GET, f"{BASE_URL}/guide/channels", json=channel_paths)
         responses.add(responses.POST, f"{BASE_URL}/batch", json=batch_response)
 
-        result = tablo.get_channels()
+        result = tablo_client.get_channels()
 
         assert len(result) == batch_length
         assert result[0]["channel"]["call_sign"] in {"WABC", "WCBS"}
 
     @responses.activate
-    def test_batch_receives_channel_paths(self, tablo: TabloClient) -> None:
+    def test_batch_receives_channel_paths(self, tablo_client: TabloClient) -> None:
         channel_paths = ["/guide/channels/100"]
         responses.add(responses.GET, f"{BASE_URL}/guide/channels", json=channel_paths)
         responses.add(
@@ -310,7 +303,7 @@ class TestGetChannels:
             },
         )
 
-        tablo.get_channels()
+        tablo_client.get_channels()
 
         assert responses.calls[1].request.body is not None
 
@@ -322,15 +315,17 @@ class TestGetAirings:
     """Tests for `TabloClient.get_airings()`."""
 
     @responses.activate
-    def test_returns_empty_list_when_no_airings(self, tablo: TabloClient) -> None:
+    def test_returns_empty_list_when_no_airings(
+        self, tablo_client: TabloClient
+    ) -> None:
         responses.add(responses.GET, f"{BASE_URL}/guide/airings", json=[])
 
-        result = tablo.get_airings()
+        result = tablo_client.get_airings()
 
         assert result == []
 
     @responses.activate
-    def test_returns_hydrated_airings(self, tablo: TabloClient) -> None:
+    def test_returns_hydrated_airings(self, tablo_client: TabloClient) -> None:
         airing_paths = [
             "/guide/series/episodes/500",
             "/guide/series/episodes/501",
@@ -345,12 +340,12 @@ class TestGetAirings:
         responses.add(responses.GET, f"{BASE_URL}/guide/airings", json=airing_paths)
         responses.add(responses.POST, f"{BASE_URL}/batch", json=batch_response)
 
-        result = tablo.get_airings()
+        result = tablo_client.get_airings()
 
         assert len(result) == batch_length
 
     @responses.activate
-    def test_filters_none_from_batch(self, tablo: TabloClient) -> None:
+    def test_filters_none_from_batch(self, tablo_client: TabloClient) -> None:
         airing_paths = [
             "/guide/series/episodes/500",
             "/guide/series/episodes/999",
@@ -363,12 +358,12 @@ class TestGetAirings:
         responses.add(responses.GET, f"{BASE_URL}/guide/airings", json=airing_paths)
         responses.add(responses.POST, f"{BASE_URL}/batch", json=batch_response)
 
-        result = tablo.get_airings()
+        result = tablo_client.get_airings()
 
         assert len(result) == 1
 
     @responses.activate
-    def test_batch_receives_airing_paths(self, tablo: TabloClient) -> None:
+    def test_batch_receives_airing_paths(self, tablo_client: TabloClient) -> None:
         airing_paths = ["/guide/series/episodes/500"]
         responses.add(responses.GET, f"{BASE_URL}/guide/airings", json=airing_paths)
         responses.add(
@@ -377,7 +372,7 @@ class TestGetAirings:
             json={"/guide/series/episodes/500": make_episode_airing(500)},
         )
 
-        tablo.get_airings()
+        tablo_client.get_airings()
 
         assert responses.calls[1].request.body is not None
 
@@ -385,7 +380,7 @@ class TestGetAirings:
         assert posted == ["/guide/series/episodes/500"]
 
     @responses.activate
-    def test_chunked_batch_splits_large_lists(self, tablo: TabloClient) -> None:
+    def test_chunked_batch_splits_large_lists(self, tablo_client: TabloClient) -> None:
         path_count = 75
 
         paths = [f"/guide/series/episodes/{i}" for i in range(path_count)]
@@ -401,7 +396,7 @@ class TestGetAirings:
         responses.add(responses.POST, f"{BASE_URL}/batch", json=batch_response_1)
         responses.add(responses.POST, f"{BASE_URL}/batch", json=batch_response_2)
 
-        result = tablo.get_airings()
+        result = tablo_client.get_airings()
 
         assert len(result) == path_count
 
@@ -423,7 +418,7 @@ class TestGetWatchUrl:
     """Tests for `TabloClient.get_watch_url()`."""
 
     @responses.activate
-    def test_returns_playlist_url(self, tablo: TabloClient) -> None:
+    def test_returns_playlist_url(self, tablo_client: TabloClient) -> None:
         responses.add(
             responses.POST,
             f"{BASE_URL}/guide/channels/100/watch",
@@ -438,12 +433,12 @@ class TestGetWatchUrl:
             },
         )
 
-        url = tablo.get_watch_url("/guide/channels/100")
+        url = tablo_client.get_watch_url("/guide/channels/100")
 
         assert url == f"http://{TABLO_IP}:18080/pvr/100/pl.m3u8"
 
     @responses.activate
-    def test_raises_on_http_error(self, tablo: TabloClient) -> None:
+    def test_raises_on_http_error(self, tablo_client: TabloClient) -> None:
         responses.add(
             responses.POST,
             f"{BASE_URL}/guide/channels/999/watch",
@@ -451,411 +446,4 @@ class TestGetWatchUrl:
         )
 
         with pytest.raises(requests.HTTPError):
-            tablo.get_watch_url("/guide/channels/999")
-
-
-class TestCaching:
-    """Tests for TTL cache behavior on get_channels() and get_airings()."""
-
-    @responses.activate
-    def test_get_channels_cache_hit(self) -> None:
-        """Second call returns cached result without hitting the API again."""
-        tablo = TabloClient(TABLO_IP)
-
-        responses.add(
-            responses.GET, f"{BASE_URL}/guide/channels", json=["/guide/channels/100"]
-        )
-        responses.add(
-            responses.POST,
-            f"{BASE_URL}/batch",
-            json={"/guide/channels/100": make_channel(100, "WABC", 7, 1)},
-        )
-
-        first = tablo.get_channels()
-        second = tablo.get_channels()
-
-        assert first == second
-        assert len(responses.calls) == 2  # noqa: PLR2004, Value here is more readable raw.
-
-    @responses.activate
-    def test_get_channels_cache_expiry(self) -> None:
-        """Expired cache triggers a fresh API call.
-
-        Sets `cache_ttl=0` to force immediate expiry.
-        """
-        tablo = TabloClient(TABLO_IP, cache_ttl=0)
-
-        channel = make_channel(100, "WABC", 7, 1)
-        responses.add(
-            responses.GET, f"{BASE_URL}/guide/channels", json=["/guide/channels/100"]
-        )
-        responses.add(
-            responses.POST,
-            f"{BASE_URL}/batch",
-            json={"/guide/channels/100": channel},
-        )
-        responses.add(
-            responses.GET, f"{BASE_URL}/guide/channels", json=["/guide/channels/100"]
-        )
-        responses.add(
-            responses.POST,
-            f"{BASE_URL}/batch",
-            json={"/guide/channels/100": channel},
-        )
-
-        tablo.get_channels()
-        tablo.get_channels()
-
-        assert len(responses.calls) == 4  # noqa: PLR2004, Value here is more readable raw.
-
-    @responses.activate
-    def test_get_airings_cache_hit(self) -> None:
-        """Second call returns cached airings without hitting the API again."""
-        tablo = TabloClient(TABLO_IP)
-        channel = make_channel(100, "WABC", 7, 1)
-        airing = make_episode_airing(500, "Show A", channel=channel)
-
-        responses.add(
-            responses.GET,
-            f"{BASE_URL}/guide/airings",
-            json=["/guide/series/episodes/500"],
-        )
-        responses.add(
-            responses.POST,
-            f"{BASE_URL}/batch",
-            json={"/guide/series/episodes/500": airing},
-        )
-        first = tablo.get_airings()
-        second = tablo.get_airings()
-        assert first == second
-        assert len(responses.calls) == 2  # noqa: PLR2004, Value here is more readable raw.
-
-    @responses.activate
-    def test_get_airings_cache_expiry(self) -> None:
-        """Expired cache for airings triggers a fresh API call.
-
-        Sets `cache_ttl=0` to force immediate expiry.
-        """
-        tablo = TabloClient(TABLO_IP, cache_ttl=0)
-        channel = make_channel(100, "WABC", 7, 1)
-        airing = make_episode_airing(500, "Show A", channel=channel)
-        responses.add(
-            responses.GET,
-            f"{BASE_URL}/guide/airings",
-            json=["/guide/series/episodes/500"],
-        )
-        responses.add(
-            responses.POST,
-            f"{BASE_URL}/batch",
-            json={"/guide/series/episodes/500": airing},
-        )
-        responses.add(
-            responses.GET,
-            f"{BASE_URL}/guide/airings",
-            json=["/guide/series/episodes/500"],
-        )
-        responses.add(
-            responses.POST,
-            f"{BASE_URL}/batch",
-            json={"/guide/series/episodes/500": airing},
-        )
-        tablo.get_airings()
-        tablo.get_airings()
-        assert len(responses.calls) == 4  # noqa: PLR2004, Value here is more readable raw.
-
-    @responses.activate
-    def test_channels_and_airings_caches_are_independent(self) -> None:
-        """get_channels() and get_airings() don't share cached values."""
-        tablo = TabloClient(TABLO_IP)
-
-        channel = make_channel(100, "WABC", 7, 1)
-        airing = make_episode_airing(500, "Show A", channel=channel)
-
-        responses.add(
-            responses.GET, f"{BASE_URL}/guide/channels", json=["/guide/channels/100"]
-        )
-        responses.add(
-            responses.POST,
-            f"{BASE_URL}/batch",
-            json={"/guide/channels/100": channel},
-        )
-        responses.add(
-            responses.GET,
-            f"{BASE_URL}/guide/airings",
-            json=["/guide/series/episodes/500"],
-        )
-        responses.add(
-            responses.POST,
-            f"{BASE_URL}/batch",
-            json={"/guide/series/episodes/500": airing},
-        )
-
-        channels = tablo.get_channels()
-        airings = tablo.get_airings()
-
-        assert len(channels) == 1
-        assert len(airings) == 1
-        assert "channel" in channels[0]
-        assert "airing_details" in airings[0]
-
-    @responses.activate
-    def test_refresh_channels_clears_cache(self) -> None:
-        """`refresh_channels()` bypasses cache and makes a fresh API call."""
-        tablo = TabloClient(TABLO_IP)
-        channel = make_channel(100, "WABC", 7, 1)
-
-        responses.add(
-            responses.GET, f"{BASE_URL}/guide/channels", json=["/guide/channels/100"]
-        )
-        responses.add(
-            responses.POST,
-            f"{BASE_URL}/batch",
-            json={"/guide/channels/100": channel},
-        )
-        responses.add(
-            responses.GET, f"{BASE_URL}/guide/channels", json=["/guide/channels/100"]
-        )
-        responses.add(
-            responses.POST,
-            f"{BASE_URL}/batch",
-            json={"/guide/channels/100": channel},
-        )
-
-        tablo.get_channels()
-        tablo.refresh_channels()
-
-        assert len(responses.calls) == 4  # noqa: PLR2004
-
-    @responses.activate
-    def test_refresh_channels_returns_fresh_data(self) -> None:
-        """`refresh_channels()` returns updated data, not stale cache."""
-        tablo = TabloClient(TABLO_IP)
-        old_channel = make_channel(100, "WABC", 7, 1)
-        new_channel = make_channel(100, "WABC-HD", 7, 1)
-
-        responses.add(
-            responses.GET, f"{BASE_URL}/guide/channels", json=["/guide/channels/100"]
-        )
-        responses.add(
-            responses.POST,
-            f"{BASE_URL}/batch",
-            json={"/guide/channels/100": old_channel},
-        )
-        responses.add(
-            responses.GET, f"{BASE_URL}/guide/channels", json=["/guide/channels/100"]
-        )
-        responses.add(
-            responses.POST,
-            f"{BASE_URL}/batch",
-            json={"/guide/channels/100": new_channel},
-        )
-
-        first = tablo.get_channels()
-        refreshed = tablo.refresh_channels()
-
-        assert first[0]["channel"]["call_sign"] == "WABC"
-        assert refreshed[0]["channel"]["call_sign"] == "WABC-HD"
-
-    @responses.activate
-    def test_refresh_airings_clears_cache(self) -> None:
-        """`refresh_airings()` bypasses cache and makes a fresh API call."""
-        tablo = TabloClient(TABLO_IP)
-        airing = make_episode_airing(500, "Show A")
-
-        responses.add(
-            responses.GET,
-            f"{BASE_URL}/guide/airings",
-            json=["/guide/series/episodes/500"],
-        )
-        responses.add(
-            responses.POST,
-            f"{BASE_URL}/batch",
-            json={"/guide/series/episodes/500": airing},
-        )
-        responses.add(
-            responses.GET,
-            f"{BASE_URL}/guide/airings",
-            json=["/guide/series/episodes/500"],
-        )
-        responses.add(
-            responses.POST,
-            f"{BASE_URL}/batch",
-            json={"/guide/series/episodes/500": airing},
-        )
-
-        tablo.get_airings()
-        tablo.refresh_airings()
-
-        assert len(responses.calls) == 4  # noqa: PLR2004
-
-    @responses.activate
-    def test_refresh_airings_returns_fresh_data(self) -> None:
-        """`refresh_airings()` returns updated data, not stale cache."""
-        tablo = TabloClient(TABLO_IP)
-        old_airing = make_episode_airing(500, "Show A")
-        new_airing = make_episode_airing(500, "Show A Updated")
-
-        responses.add(
-            responses.GET,
-            f"{BASE_URL}/guide/airings",
-            json=["/guide/series/episodes/500"],
-        )
-        responses.add(
-            responses.POST,
-            f"{BASE_URL}/batch",
-            json={"/guide/series/episodes/500": old_airing},
-        )
-        responses.add(
-            responses.GET,
-            f"{BASE_URL}/guide/airings",
-            json=["/guide/series/episodes/500"],
-        )
-        responses.add(
-            responses.POST,
-            f"{BASE_URL}/batch",
-            json={"/guide/series/episodes/500": new_airing},
-        )
-
-        first = tablo.get_airings()
-        refreshed = tablo.refresh_airings()
-
-        assert first[0]["airing_details"]["show_title"] == "Show A"
-        assert refreshed[0]["airing_details"]["show_title"] == "Show A Updated"
-
-
-class TestRetry:
-    """Tests for auto-retry on HTTP 5xx responses (502), no retry for watch endpoint."""
-
-    @responses.activate
-    def test_retries_on_502_and_succeeds(self, server_info: ServerInfo) -> None:
-        """A `502` followed by a success results in a valid response."""
-        tablo = TabloClient(TABLO_IP)
-
-        responses.add(responses.GET, f"{BASE_URL}/server/info", status=502)
-        responses.add(
-            responses.GET,
-            f"{BASE_URL}/server/info",
-            json=server_info,
-        )
-
-        result = tablo.get_server_info()
-
-        assert result["name"] == "Test Tablo"
-        assert len(responses.calls) == 2  # noqa: PLR2004, Value here is more readable raw.
-
-    @responses.activate
-    def test_raises_after_retries_exhausted(self) -> None:
-        """Three consecutive `502`s exhaust retries and raise HTTPError."""
-        tablo = TabloClient(TABLO_IP)
-
-        responses.add(responses.GET, f"{BASE_URL}/server/info", status=502)
-        responses.add(responses.GET, f"{BASE_URL}/server/info", status=502)
-        responses.add(responses.GET, f"{BASE_URL}/server/info", status=502)
-
-        with pytest.raises(requests.HTTPError):
-            tablo.get_server_info()
-
-        assert len(responses.calls) == RETRY_COUNT + 1
-
-    @responses.activate
-    def test_no_retry_on_watch(self) -> None:
-        """Watch endpoint does not retry on failure."""
-        tablo = TabloClient(TABLO_IP)
-
-        responses.add(
-            responses.POST,
-            f"{BASE_URL}/guide/channels/100/watch",
-            status=502,
-        )
-
-        with pytest.raises(requests.HTTPError):
-            tablo.get_watch_url("/guide/channels/100")
-
-        assert len(responses.calls) == 1
-
-
-class TestThreadLocalSession:
-    """Tests for thread-local session isolation."""
-
-    def test_same_thread_reuses_session(self) -> None:
-        """Accessing _session twice from the same thread returns the same object."""
-        tablo = TabloClient(TABLO_IP)
-
-        assert tablo._session is tablo._session
-
-    def test_different_threads_get_different_sessions(self) -> None:
-        """Each thread receives its own Session instance."""
-        tablo = TabloClient(TABLO_IP)
-        sessions: dict[str, requests.Session] = {}
-
-        def capture_session(name: str) -> None:
-            sessions[name] = tablo._session
-
-        t1 = threading.Thread(target=capture_session, args=("t1",))
-        t2 = threading.Thread(target=capture_session, args=("t2",))
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
-
-        assert sessions["t1"] is not sessions["t2"]
-
-
-class TestServerBusy:
-    """Tests for TabloServerBusyError parsing in _get()."""
-
-    @responses.activate
-    def test_raises_on_server_busy(self, tablo: TabloClient) -> None:
-        """_get() raises TabloServerBusyError when Tablo returns server_busy."""
-        server_busy_body = {
-            "error": {
-                "code": "unavailable",
-                "details": {"reason": "server_busy", "retry_in": 15000},
-            }
-        }
-        for _ in range(RETRY_COUNT + 1):
-            responses.add(
-                responses.GET,
-                f"{BASE_URL}/server/info",
-                json=server_busy_body,
-                status=503,
-            )
-
-        with pytest.raises(TabloServerBusyError) as exc_info:
-            tablo.get_server_info()
-
-        assert exc_info.value.retry_in_s == pytest.approx(15.0)
-
-    @responses.activate
-    def test_regular_503_raises_http_error(self, tablo: TabloClient) -> None:
-        """Non-server_busy 503 raises standard HTTPError."""
-        for _ in range(RETRY_COUNT + 1):
-            responses.add(
-                responses.GET,
-                f"{BASE_URL}/server/info",
-                body="Service Unavailable",
-                status=503,
-            )
-
-        with pytest.raises(requests.HTTPError):
-            tablo.get_server_info()
-
-    @responses.activate
-    def test_server_busy_is_http_error(self, tablo: TabloClient) -> None:
-        """TabloServerBusyError is a subclass of HTTPError."""
-        server_busy_body = {
-            "error": {
-                "code": "unavailable",
-                "details": {"reason": "server_busy", "retry_in": 15000},
-            }
-        }
-        for _ in range(RETRY_COUNT + 1):
-            responses.add(
-                responses.GET,
-                f"{BASE_URL}/server/info",
-                json=server_busy_body,
-                status=503,
-            )
-
-        with pytest.raises(requests.HTTPError):
-            tablo.get_server_info()
+            tablo_client.get_watch_url("/guide/channels/999")

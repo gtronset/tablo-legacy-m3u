@@ -1,5 +1,6 @@
 """Tests for the main module."""
 
+import logging
 import os
 
 from collections.abc import Generator
@@ -8,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from tablo_legacy_m3u.config import Config
-from tablo_legacy_m3u.main import main
+from tablo_legacy_m3u.main import _run_startup_probe, main
 from tablo_legacy_m3u.tablo_client import TabloServerBusyError
 
 
@@ -226,3 +227,29 @@ def test_raises_after_max_retries(
         main()
 
     assert client.get_server_info.call_count == 5  # noqa: PLR2004, Value here is more readable raw.
+
+
+@patch("tablo_legacy_m3u.main.time")
+def test_run_startup_probe_retries_on_busy(mock_time: MagicMock) -> None:
+    """_run_startup_probe retries using the server's retry hint."""
+    busy = TabloServerBusyError(MagicMock(), 10000)
+    fn = MagicMock(side_effect=[busy, "ok"])
+
+    result = _run_startup_probe(fn, logger=logging.getLogger("test"))
+
+    assert result == "ok"
+    assert fn.call_count == 2  # noqa: PLR2004, Value here is more readable raw.
+    mock_time.sleep.assert_called_once_with(10.0)
+
+
+@patch("tablo_legacy_m3u.main.time")
+def test_run_startup_probe_raises_after_max_attempts(mock_time: MagicMock) -> None:
+    """_run_startup_probe raises RuntimeError after exhausting attempts."""
+    busy = TabloServerBusyError(MagicMock(), 5000)
+    fn = MagicMock(side_effect=busy)
+
+    with pytest.raises(RuntimeError, match="Tablo unavailable after 3 attempts"):
+        _run_startup_probe(fn, logger=logging.getLogger("test"), max_attempts=3)
+
+    assert fn.call_count == 3  # noqa: PLR2004, Value here is more readable raw.
+    assert mock_time.sleep.call_count == 3  # noqa: PLR2004, Value here is more readable raw.

@@ -4,6 +4,7 @@ import logging
 import os
 import time
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from flask import Flask
@@ -23,9 +24,29 @@ if TYPE_CHECKING:
     from tablo_legacy_m3u.config import Config
 
 
+def _run_startup_probe[T](
+    fn: Callable[[], T],
+    *,
+    logger: logging.Logger,
+    max_attempts: int = 5,
+) -> T:
+    """Retry a callable on TabloServerBusyError, using the server's retry hint."""
+    for _attempt in range(max_attempts):
+        try:
+            return fn()
+        except TabloServerBusyError as e:
+            logger.warning(
+                "Tablo busy during startup, retrying in %ds", int(e.retry_in)
+            )
+            time.sleep(e.retry_in)
+
+    msg = f"Tablo unavailable after {max_attempts} attempts"
+    raise RuntimeError(msg)
+
+
 # TODO(gtronset): Refactor to have async-init / deferred Tablo / "connecting" status
 # https://github.com/gtronset/tablo-legacy-m3u/pull/25
-def main() -> None:  # noqa: PLR0912, this function will be refactored in the future to reduce complexity
+def main() -> None:
     """Start the application."""
     config: Config = load_config()
 
@@ -62,27 +83,11 @@ def main() -> None:  # noqa: PLR0912, this function will be refactored in the fu
 
     client = TabloClient(tablo_ip, cache_ttl=config.cache_ttl)
 
-    for _attempt in range(5):
-        try:
-            server_info = client.get_server_info()
-            break
-        except TabloServerBusyError as e:
-            logger.warning("Tablo busy during startup, retrying in %ds", e.retry_in)
-            time.sleep(e.retry_in)
-    else:
-        msg = "Tablo unavailable after 5 attempts"
-        raise RuntimeError(msg)
+    server_info = _run_startup_probe(client.get_server_info, logger=logger)
 
-    for _attempt in range(5):
-        try:
-            has_guide_subscription = client.has_guide_subscription()
-            break
-        except TabloServerBusyError as e:
-            logger.warning("Tablo busy during startup, retrying in %ds", e.retry_in)
-            time.sleep(e.retry_in)
-    else:
-        msg = "Tablo unavailable after 5 attempts"
-        raise RuntimeError(msg)
+    has_guide_subscription = _run_startup_probe(
+        client.has_guide_subscription, logger=logger
+    )
 
     if config.enable_epg and not has_guide_subscription:
         logger.warning("EPG enabled but no active guide subscription. EPG disabled.")

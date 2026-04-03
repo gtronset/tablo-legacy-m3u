@@ -107,7 +107,7 @@ class Scheduler:
                 logger.warning(
                     "Initial %r fetch: server busy, retrying in %ds",
                     self._name,
-                    e.retry_in,
+                    int(e.retry_in),
                 )
                 if self._stop_event.wait(timeout=e.retry_in):
                     return

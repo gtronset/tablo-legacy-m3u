@@ -105,9 +105,12 @@ class TabloClient:
                 body = response.json()
                 details = body.get("error", {}).get("details", {})
                 if details.get("reason") == "server_busy" and "retry_in" in details:
-                    raise TabloServerBusyError(response, details["retry_in"])
-            except (ValueError, KeyError):
-                pass
+                    raise TabloServerBusyError(response, int(details["retry_in"]))
+            except TabloServerBusyError:
+                raise
+            except Exception:  # noqa: BLE001, Malformed body falls through to raise_for_status
+                logger.debug("Could not parse server_busy details from %s", path)
+
             response.raise_for_status()
 
         return response.json()

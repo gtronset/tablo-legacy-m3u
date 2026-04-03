@@ -74,6 +74,10 @@ class TabloClient:
         self.base_url: str = f"http://{tablo_ip}:{TABLO_API_PORT}"
         self._cache: TTLCache[Hashable, Any] = TTLCache(maxsize=4, ttl=cache_ttl)
         self._cache_lock = threading.Lock()
+        self._fetch_locks: dict[str, threading.Lock] = {
+            "channels": threading.Lock(),
+            "airings": threading.Lock(),
+        }
         self._local = threading.local()
         self._retry = Retry(
             total=RETRY_COUNT,
@@ -154,21 +158,18 @@ class TabloClient:
 
         return results
 
-    # TODO(gtronset): Improve with a replace-in-place refresh.
-    # https://github.com/gtronset/tablo-legacy-m3u/pull/22
     def refresh_channels(self) -> list[Channel]:
-        """Force a fresh fetch of channel data."""
-        with self._cache_lock:
-            self._cache.pop(hashkey("channels"), None)
-        return self.get_channels()
+        """Fetch fresh channel data and write directly into cache."""
+        with self._fetch_locks["channels"]:
+            channels = self._fetch_channels()
 
-    @cachedmethod(
-        lambda self: self._cache,
-        key=lambda _self: hashkey("channels"),
-        lock=lambda self: self._cache_lock,
-    )
-    def get_channels(self) -> list[Channel]:
-        """Fetch all channel details from the Tablo.
+            with self._cache_lock:
+                self._cache[hashkey("channels")] = channels
+
+            return channels
+
+    def _fetch_channels(self) -> list[Channel]:
+        """Fetch channel data from the Tablo API.
 
         First GETs the channel path list, then hydrates via POST `/batch`.
         """
@@ -185,6 +186,34 @@ class TabloClient:
         logger.debug("Hydrated %d channels", len(channels))
 
         return channels
+
+    # @cachedmethod(
+    #     lambda self: self._cache,
+    #     key=lambda _self: hashkey("channels"),
+    #     lock=lambda self: self._cache_lock,
+    # )
+    def get_channels(self) -> list[Channel]:
+        """Return cached channels, fetching with coalescing if needed."""
+        key = hashkey("channels")
+
+        with self._cache_lock:
+            cached: list[Channel] | None = self._cache.get(key)
+
+        if cached is not None:
+            return cached
+
+        with self._fetch_locks["channels"]:
+            with self._cache_lock:
+                rechecked: list[Channel] | None = self._cache.get(key)
+
+            if rechecked is not None:
+                return rechecked
+
+            channels = self._fetch_channels()
+            with self._cache_lock:
+                self._cache[key] = channels
+
+            return channels
 
     def get_server_info(self) -> ServerInfo:
         """Fetch device info from `/server/info`."""

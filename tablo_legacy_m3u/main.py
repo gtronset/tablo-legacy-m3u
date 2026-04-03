@@ -31,14 +31,15 @@ def _run_startup_probe[T](
     max_attempts: int = 5,
 ) -> T:
     """Retry a callable on TabloServerBusyError, using the server's retry hint."""
-    for _attempt in range(max_attempts):
+    for attempt in range(max_attempts):
         try:
             return fn()
         except TabloServerBusyError as e:
-            logger.warning(
-                "Tablo busy during startup, retrying in %ds", int(e.retry_in)
-            )
-            time.sleep(e.retry_in)
+            if attempt < max_attempts - 1:
+                logger.warning(
+                    "Tablo busy during startup, retrying in %ds", int(e.retry_in_s)
+                )
+                time.sleep(e.retry_in_s)
 
     msg = f"Tablo unavailable after {max_attempts} attempts"
     raise RuntimeError(msg)

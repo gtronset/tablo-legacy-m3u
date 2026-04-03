@@ -107,9 +107,9 @@ class Scheduler:
                 logger.warning(
                     "Initial %r fetch: server busy, retrying in %ds",
                     self._name,
-                    int(e.retry_in),
+                    int(e.retry_in_s),
                 )
-                if self._stop_event.wait(timeout=e.retry_in):
+                if self._stop_event.wait(timeout=e.retry_in_s):
                     return
             except Exception as e:  # noqa: BLE001, Scheduler must survive task failures
                 if not self._set_state(SchedulerState.RETRYING):

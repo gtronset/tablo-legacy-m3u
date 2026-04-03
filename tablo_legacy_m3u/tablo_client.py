@@ -36,6 +36,7 @@ TABLO_API_PORT = 8885
 TABLO_DISCOVERY_URL = "https://api.tablotv.com/assocserver/getipinfo/"
 
 REQUEST_TIMEOUT = 10
+RETRY_COUNT = 2
 
 
 logger = logging.getLogger(__name__)
@@ -46,9 +47,9 @@ class TabloServerBusyError(requests.HTTPError):
 
     def __init__(self, response: requests.Response, retry_in_ms: int) -> None:
         """Initialize with the response and retry delay."""
-        self.retry_in: float = retry_in_ms / 1000
+        self.retry_in_s: float = retry_in_ms / 1000
         super().__init__(
-            f"Server busy, retry in {self.retry_in:.0f}s",
+            f"Server busy, retry in {self.retry_in_s:.0f}s",
             response=response,
         )
 

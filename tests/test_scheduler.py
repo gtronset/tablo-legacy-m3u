@@ -123,7 +123,7 @@ class TestWarm:
     def test_uses_server_retry_hint(
         self, scheduler: Scheduler, scheduler_task: MagicMock
     ) -> None:
-        """`warm()` uses `TabloServerBusyError.retry_in` instead of backoff.
+        """`warm()` uses `TabloServerBusyError.retry_in_s` instead of backoff.
 
         The end result static values of retry wait time, depending on the server hint,
         rather than escalating backoff delays.

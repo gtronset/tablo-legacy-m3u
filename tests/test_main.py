@@ -252,4 +252,4 @@ def test_run_startup_probe_raises_after_max_attempts(mock_time: MagicMock) -> No
         _run_startup_probe(fn, logger=logging.getLogger("test"), max_attempts=3)
 
     assert fn.call_count == 3  # noqa: PLR2004, Value here is more readable raw.
-    assert mock_time.sleep.call_count == 3  # noqa: PLR2004, Value here is more readable raw.
+    assert mock_time.sleep.call_count == 2  # noqa: PLR2004, Value here is more readable raw.

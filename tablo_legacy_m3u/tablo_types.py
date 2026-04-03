@@ -62,6 +62,38 @@ class ServerInfo(TypedDict):
     product: str
 
 
+class TunerStatus(TypedDict):
+    """A single tuner from `/server/tuners`."""
+
+    in_use: bool
+    channel: str | None
+    recording: str | None
+    channel_identifier: str | None
+
+
+class HarddriveInfo(TypedDict):
+    """A storage device from `/server/harddrives`."""
+
+    name: str
+    connected: bool
+    format_state: str
+    busy_state: str
+    kind: str
+    size: int
+    usage: int
+    free: int
+    error: str | None
+
+
+class GuideStatus(TypedDict):
+    """Guide data status from `/guide/status`."""
+
+    guide_seeded: bool
+    last_update: str
+    limit: str
+    download_progress: int | None
+
+
 class Subscription(TypedDict):
     """A single subscription entry from `/account/subscription`."""
 

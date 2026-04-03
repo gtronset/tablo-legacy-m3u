@@ -1,5 +1,6 @@
 """Tests for the main module."""
 
+import logging
 import os
 
 from collections.abc import Generator
@@ -8,7 +9,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from tablo_legacy_m3u.config import Config
-from tablo_legacy_m3u.main import main
+from tablo_legacy_m3u.main import _run_startup_probe, main
+from tablo_legacy_m3u.tablo_client import TabloServerBusyError
 
 
 @pytest.fixture
@@ -174,3 +176,80 @@ def test_schedulers_stopped_on_server_error(
     assert len(mock_scheduler.instances) == 2  # noqa: PLR2004, one for guide and one for channels
     for instance in mock_scheduler.instances:
         instance.stop.assert_called_once()
+
+
+@pytest.mark.usefixtures("patch_discover", "mock_scheduler")
+@patch("tablo_legacy_m3u.main.time")
+@patch("tablo_legacy_m3u.main.serve")
+@patch("tablo_legacy_m3u.main.create_app")
+@patch("tablo_legacy_m3u.main.TabloClient")
+@patch("tablo_legacy_m3u.main.load_config")
+def test_retries_on_tablo_server_busy(
+    mock_config: MagicMock,
+    mock_client_cls: MagicMock,
+    mock_create_app: MagicMock,
+    mock_serve: MagicMock,  # noqa: ARG001
+    mock_time: MagicMock,
+) -> None:
+    """Startup retries get_server_info when Tablo returns server_busy."""
+    mock_config.return_value = Config(environment="production", tablo_ip="10.0.0.1")
+
+    busy = TabloServerBusyError(MagicMock(), 15000)
+    client = mock_client_cls.return_value
+    client.get_server_info.side_effect = [busy, busy, MagicMock()]
+    client.has_guide_subscription.return_value = True
+    mock_create_app.return_value = MagicMock()
+
+    main()
+
+    assert client.get_server_info.call_count == 3  # noqa: PLR2004, Value here is more readable raw.
+    assert mock_time.sleep.call_count == 2  # noqa: PLR2004, Value here is more readable raw.
+    mock_time.sleep.assert_called_with(15.0)
+
+
+@pytest.mark.usefixtures("patch_discover", "mock_scheduler")
+@patch("tablo_legacy_m3u.main.time")
+@patch("tablo_legacy_m3u.main.TabloClient")
+@patch("tablo_legacy_m3u.main.load_config")
+def test_raises_after_max_retries(
+    mock_config: MagicMock,
+    mock_client_cls: MagicMock,
+    mock_time: MagicMock,  # noqa: ARG001
+) -> None:
+    """Startup raises RuntimeError after 5 failed attempts."""
+    mock_config.return_value = Config(environment="production", tablo_ip="10.0.0.1")
+
+    busy = TabloServerBusyError(MagicMock(), 15000)
+    client = mock_client_cls.return_value
+    client.get_server_info.side_effect = busy  # always busy
+
+    with pytest.raises(RuntimeError, match="Tablo unavailable after 5 attempts"):
+        main()
+
+    assert client.get_server_info.call_count == 5  # noqa: PLR2004, Value here is more readable raw.
+
+
+@patch("tablo_legacy_m3u.main.time")
+def test_run_startup_probe_retries_on_busy(mock_time: MagicMock) -> None:
+    """_run_startup_probe retries using the server's retry hint."""
+    busy = TabloServerBusyError(MagicMock(), 10000)
+    fn = MagicMock(side_effect=[busy, "ok"])
+
+    result = _run_startup_probe(fn, logger=logging.getLogger("test"))
+
+    assert result == "ok"
+    assert fn.call_count == 2  # noqa: PLR2004, Value here is more readable raw.
+    mock_time.sleep.assert_called_once_with(10.0)
+
+
+@patch("tablo_legacy_m3u.main.time")
+def test_run_startup_probe_raises_after_max_attempts(mock_time: MagicMock) -> None:
+    """_run_startup_probe raises RuntimeError after exhausting attempts."""
+    busy = TabloServerBusyError(MagicMock(), 5000)
+    fn = MagicMock(side_effect=busy)
+
+    with pytest.raises(RuntimeError, match="Tablo unavailable after 3 attempts"):
+        _run_startup_probe(fn, logger=logging.getLogger("test"), max_attempts=3)
+
+    assert fn.call_count == 3  # noqa: PLR2004, Value here is more readable raw.
+    assert mock_time.sleep.call_count == 2  # noqa: PLR2004, Value here is more readable raw.

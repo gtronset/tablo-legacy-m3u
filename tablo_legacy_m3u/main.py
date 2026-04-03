@@ -2,7 +2,9 @@
 
 import logging
 import os
+import time
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from flask import Flask
@@ -12,13 +14,39 @@ from waitress import serve
 from tablo_legacy_m3u import create_app
 from tablo_legacy_m3u.config import load_config
 from tablo_legacy_m3u.scheduler import Scheduler
-from tablo_legacy_m3u.tablo_client import TabloClient, discover_tablo_ip
+from tablo_legacy_m3u.tablo_client import (
+    TabloClient,
+    TabloServerBusyError,
+    discover_tablo_ip,
+)
 
 if TYPE_CHECKING:
     from tablo_legacy_m3u.config import Config
-    from tablo_legacy_m3u.tablo_types import ServerInfo
 
 
+def _run_startup_probe[T](
+    fn: Callable[[], T],
+    *,
+    logger: logging.Logger,
+    max_attempts: int = 5,
+) -> T:
+    """Retry a callable on TabloServerBusyError, using the server's retry hint."""
+    for attempt in range(max_attempts):
+        try:
+            return fn()
+        except TabloServerBusyError as e:
+            if attempt < max_attempts - 1:
+                logger.warning(
+                    "Tablo busy during startup, retrying in %ds", int(e.retry_in_s)
+                )
+                time.sleep(e.retry_in_s)
+
+    msg = f"Tablo unavailable after {max_attempts} attempts"
+    raise RuntimeError(msg)
+
+
+# TODO(gtronset): Refactor to have async-init / deferred Tablo / "connecting" status
+# https://github.com/gtronset/tablo-legacy-m3u/pull/25
 def main() -> None:
     """Start the application."""
     config: Config = load_config()
@@ -55,9 +83,12 @@ def main() -> None:
     logger.info("Using Tablo device at %s", tablo_ip)
 
     client = TabloClient(tablo_ip, cache_ttl=config.cache_ttl)
-    server_info: ServerInfo = client.get_server_info()
 
-    has_guide_subscription = client.has_guide_subscription()
+    server_info = _run_startup_probe(client.get_server_info, logger=logger)
+
+    has_guide_subscription = _run_startup_probe(
+        client.has_guide_subscription, logger=logger
+    )
 
     if config.enable_epg and not has_guide_subscription:
         logger.warning("EPG enabled but no active guide subscription. EPG disabled.")

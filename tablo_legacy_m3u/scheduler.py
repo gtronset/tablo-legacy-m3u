@@ -7,6 +7,8 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 
+from tablo_legacy_m3u.tablo_client import TabloServerBusyError
+
 logger = logging.getLogger(__name__)
 
 
@@ -81,7 +83,7 @@ class Scheduler:
         self._state = state
         return True
 
-    def warm(self) -> None:
+    def warm(self) -> None:  # noqa: PLR0911
         """Attempt initial cache warm. Retries with backoff on failure."""
         delay = self.INITIAL_RETRY_DELAY
 
@@ -98,6 +100,17 @@ class Scheduler:
                 self._last_success = datetime.now(UTC)
                 self._last_error = None
                 return
+            except TabloServerBusyError as e:
+                if not self._set_state(SchedulerState.RETRYING):
+                    return
+                self._last_error = str(e)
+                logger.warning(
+                    "Initial %r fetch: server busy, retrying in %ds",
+                    self._name,
+                    int(e.retry_in_s),
+                )
+                if self._stop_event.wait(timeout=e.retry_in_s):
+                    return
             except Exception as e:  # noqa: BLE001, Scheduler must survive task failures
                 if not self._set_state(SchedulerState.RETRYING):
                     return

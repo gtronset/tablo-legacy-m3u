@@ -36,9 +36,22 @@ TABLO_API_PORT = 8885
 TABLO_DISCOVERY_URL = "https://api.tablotv.com/assocserver/getipinfo/"
 
 REQUEST_TIMEOUT = 10
+RETRY_COUNT = 2
 
 
 logger = logging.getLogger(__name__)
+
+
+class TabloServerBusyError(requests.HTTPError):
+    """Tablo returned server_busy with a retry hint."""
+
+    def __init__(self, response: requests.Response, retry_in_ms: int) -> None:
+        """Initialize with the response and retry delay."""
+        self.retry_in_s: float = retry_in_ms / 1000
+        super().__init__(
+            f"Server busy, retry in {self.retry_in_s:.0f}s",
+            response=response,
+        )
 
 
 class TabloClient:
@@ -60,10 +73,10 @@ class TabloClient:
         self._cache_lock = threading.Lock()
         self._local = threading.local()
         self._retry = Retry(
-            total=2,
+            total=RETRY_COUNT,
             backoff_factor=0.5,
             allowed_methods={"GET", "POST"},
-            status_forcelist=[502, 503, 504],
+            status_forcelist=[502, 504],
             raise_on_status=False,
         )
 
@@ -88,8 +101,18 @@ class TabloClient:
         )
 
         if not response.ok:
+            try:
+                body = response.json()
+                details = body.get("error", {}).get("details", {})
+                if details.get("reason") == "server_busy" and "retry_in" in details:
+                    raise TabloServerBusyError(response, int(details["retry_in"]))
+            except TabloServerBusyError:
+                raise
+            except Exception:  # noqa: BLE001, Malformed body falls through to raise_for_status
+                logger.debug("Could not parse server_busy details from %s", path)
+
             logger.error("GET %s failed: %s", path, response.text)
-        response.raise_for_status()
+            response.raise_for_status()
 
         return response.json()
 

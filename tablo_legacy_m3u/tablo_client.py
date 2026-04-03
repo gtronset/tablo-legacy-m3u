@@ -41,6 +41,18 @@ REQUEST_TIMEOUT = 10
 logger = logging.getLogger(__name__)
 
 
+class TabloServerBusyError(requests.HTTPError):
+    """Tablo returned server_busy with a retry hint."""
+
+    def __init__(self, response: requests.Response, retry_in_ms: int) -> None:
+        """Initialize with the response and retry delay."""
+        self.retry_in: float = retry_in_ms / 1000
+        super().__init__(
+            f"Server busy, retry in {self.retry_in:.0f}s",
+            response=response,
+        )
+
+
 class TabloClient:
     """Client for interacting with a legacy Tablo device."""
 
@@ -89,7 +101,14 @@ class TabloClient:
 
         if not response.ok:
             logger.error("GET %s failed: %s", path, response.text)
-        response.raise_for_status()
+            try:
+                body = response.json()
+                details = body.get("error", {}).get("details", {})
+                if details.get("reason") == "server_busy" and "retry_in" in details:
+                    raise TabloServerBusyError(response, details["retry_in"])
+            except (ValueError, KeyError):
+                pass
+            response.raise_for_status()
 
         return response.json()
 

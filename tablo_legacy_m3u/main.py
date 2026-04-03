@@ -2,6 +2,7 @@
 
 import logging
 import os
+import time
 
 from typing import TYPE_CHECKING
 
@@ -12,14 +13,19 @@ from waitress import serve
 from tablo_legacy_m3u import create_app
 from tablo_legacy_m3u.config import load_config
 from tablo_legacy_m3u.scheduler import Scheduler
-from tablo_legacy_m3u.tablo_client import TabloClient, discover_tablo_ip
+from tablo_legacy_m3u.tablo_client import (
+    TabloClient,
+    TabloServerBusyError,
+    discover_tablo_ip,
+)
 
 if TYPE_CHECKING:
     from tablo_legacy_m3u.config import Config
-    from tablo_legacy_m3u.tablo_types import ServerInfo
 
 
-def main() -> None:
+# TODO(gtronset): Refactor to have async-init / deferred Tablo / "connecting" status
+# https://github.com/gtronset/tablo-legacy-m3u/pull/25
+def main() -> None:  # noqa: PLR0912, this function will be refactored in the future to reduce complexity
     """Start the application."""
     config: Config = load_config()
 
@@ -55,9 +61,28 @@ def main() -> None:
     logger.info("Using Tablo device at %s", tablo_ip)
 
     client = TabloClient(tablo_ip, cache_ttl=config.cache_ttl)
-    server_info: ServerInfo = client.get_server_info()
 
-    has_guide_subscription = client.has_guide_subscription()
+    for _attempt in range(5):
+        try:
+            server_info = client.get_server_info()
+            break
+        except TabloServerBusyError as e:
+            logger.warning("Tablo busy during startup, retrying in %ds", e.retry_in)
+            time.sleep(e.retry_in)
+    else:
+        msg = "Tablo unavailable after 5 attempts"
+        raise RuntimeError(msg)
+
+    for _attempt in range(5):
+        try:
+            has_guide_subscription = client.has_guide_subscription()
+            break
+        except TabloServerBusyError as e:
+            logger.warning("Tablo busy during startup, retrying in %ds", e.retry_in)
+            time.sleep(e.retry_in)
+    else:
+        msg = "Tablo unavailable after 5 attempts"
+        raise RuntimeError(msg)
 
     if config.enable_epg and not has_guide_subscription:
         logger.warning("EPG enabled but no active guide subscription. EPG disabled.")

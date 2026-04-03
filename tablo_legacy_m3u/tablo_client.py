@@ -73,7 +73,7 @@ class TabloClient:
         self._cache_lock = threading.Lock()
         self._local = threading.local()
         self._retry = Retry(
-            total=2,
+            total=RETRY_COUNT,
             backoff_factor=0.5,
             allowed_methods={"GET", "POST"},
             status_forcelist=[502, 503, 504],
@@ -101,7 +101,6 @@ class TabloClient:
         )
 
         if not response.ok:
-            logger.error("GET %s failed: %s", path, response.text)
             try:
                 body = response.json()
                 details = body.get("error", {}).get("details", {})
@@ -112,6 +111,7 @@ class TabloClient:
             except Exception:  # noqa: BLE001, Malformed body falls through to raise_for_status
                 logger.debug("Could not parse server_busy details from %s", path)
 
+            logger.error("GET %s failed: %s", path, response.text)
             response.raise_for_status()
 
         return response.json()

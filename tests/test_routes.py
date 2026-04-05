@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 from flask.testing import FlaskClient
 
 from tablo_legacy_m3u import create_app
+from tablo_legacy_m3u.app_state import AppState, InitPhase
 from tablo_legacy_m3u.config import Config
 from tablo_legacy_m3u.tablo_types import ServerInfo
 from tests.helpers import make_channel, make_episode_airing
@@ -40,12 +41,13 @@ class TestIndex:
     def test_shows_epg_disabled_when_epg_not_enabled(
         self, server_info: ServerInfo, tablo_client_mock: MagicMock
     ) -> None:
-        app = create_app(
-            config=Config(),
-            tablo_client=tablo_client_mock,
-            server_info=server_info,
-            enable_epg=False,
-        )
+        app_state = AppState()
+        app_state.tablo_client = tablo_client_mock
+        app_state.device_status.server_info = server_info
+        app_state.enable_epg = False
+        app_state.set_phase(InitPhase.READY)
+
+        app = create_app(config=Config(), app_state=app_state)
 
         resp = app.test_client().get("/")
 
@@ -337,12 +339,13 @@ class TestXmltvXml:
     def test_returns_404_when_epg_disabled(
         self, server_info: ServerInfo, tablo_client_mock: MagicMock
     ) -> None:
-        app = create_app(
-            config=Config(),
-            tablo_client=tablo_client_mock,
-            server_info=server_info,
-            enable_epg=False,
-        )
+        app_state = AppState()
+        app_state.tablo_client = tablo_client_mock
+        app_state.device_status.server_info = server_info
+        app_state.enable_epg = False
+        app_state.set_phase(InitPhase.READY)
+
+        app = create_app(config=Config(), app_state=app_state)
 
         resp = app.test_client().get("/xmltv.xml")
 

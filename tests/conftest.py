@@ -7,6 +7,7 @@ import pytest
 from flask.testing import FlaskClient
 
 from tablo_legacy_m3u import create_app
+from tablo_legacy_m3u.app_state import AppState, InitPhase
 from tablo_legacy_m3u.config import Config
 from tablo_legacy_m3u.scheduler import Scheduler
 from tablo_legacy_m3u.tablo_client import TabloClient
@@ -64,12 +65,13 @@ def flask_client(
     """Flask test client with configurable app config."""
     config = getattr(request, "param", Config())
 
-    app = create_app(
-        config=config,
-        tablo_client=tablo_client_mock,
-        server_info=server_info,
-        enable_epg=True,
-    )
+    app_state = AppState()
+    app_state.tablo_client = tablo_client_mock
+    app_state.device_status.server_info = server_info
+    app_state.enable_epg = True
+    app_state.set_phase(InitPhase.READY)
+
+    app = create_app(config=config, app_state=app_state)
 
     return app.test_client()
 

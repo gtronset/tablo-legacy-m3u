@@ -85,7 +85,7 @@ class TestHealth:
         assert resp.status_code == HTTPStatus.OK
         assert resp.get_json() == {"status": "ready"}
 
-    def test_returns_503_when_discovering(self) -> None:
+    def test_returns_discovering_when_not_ready(self) -> None:
         app_state = AppState()  # defaults to DISCOVERING, ready not set
 
         app = create_app(config=Config(), app_state=app_state)
@@ -94,7 +94,7 @@ class TestHealth:
         assert resp.status_code == HTTPStatus.OK
         assert resp.get_json() == {"status": "discovering"}
 
-    def test_returns_503_when_error(self) -> None:
+    def test_returns_error_when_failed(self) -> None:
         app_state = AppState()
         app_state.set_phase(InitPhase.ERROR)
 

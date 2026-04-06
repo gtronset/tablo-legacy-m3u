@@ -88,6 +88,10 @@ def _init_tablo(config: Config, app_state: AppState, logger: logging.Logger) -> 
     except Exception as exception:
         logger.exception("Tablo initialization failed")
         app_state.error = str(exception)
+
+        for scheduler in app_state.schedulers:
+            scheduler.stop()
+
         app_state.set_phase(InitPhase.ERROR)
 
 

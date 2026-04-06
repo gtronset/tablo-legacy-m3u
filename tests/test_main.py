@@ -4,6 +4,7 @@ import logging
 import os
 
 from collections.abc import Callable
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -304,6 +305,30 @@ class TestInitTablo:
         assert app_state.phase == InitPhase.ERROR
         assert app_state.error is not None
         assert "no device" in app_state.error
+
+    @patch("tablo_legacy_m3u.main.Scheduler")
+    @patch("tablo_legacy_m3u.main.TabloClient")
+    @patch("tablo_legacy_m3u.main.discover_tablo_ip", return_value=TABLO_IP)
+    def test_stops_schedulers_on_warming_error(
+        self,
+        mock_discover: MagicMock,
+        mock_client_cls: MagicMock,
+        mock_sched: MagicMock,
+        init_tablo: InitTabloFn,
+    ) -> None:
+        """Schedulers are stopped if init fails during WARMING phase."""
+        mock_client_cls.return_value.has_guide_subscription.return_value = True
+
+        mock_sched.side_effect = [MagicMock(), Exception("Guide scheduler failed")]
+
+        app_state = init_tablo()
+
+        assert app_state.phase == InitPhase.ERROR
+        assert len(app_state.schedulers) == 1
+        cast("MagicMock", app_state.schedulers[0]).stop.assert_called_once()
+
+        assert app_state.error is not None
+        assert "Guide scheduler failed" in app_state.error
 
 
 class TestStartupProbe:

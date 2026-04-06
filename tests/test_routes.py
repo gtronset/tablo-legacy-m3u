@@ -91,7 +91,7 @@ class TestHealth:
         app = create_app(config=Config(), app_state=app_state)
         resp = app.test_client().get("/health")
 
-        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+        assert resp.status_code == HTTPStatus.OK
         assert resp.get_json() == {"status": "discovering"}
 
     def test_returns_503_when_error(self) -> None:
@@ -101,7 +101,7 @@ class TestHealth:
         app = create_app(config=Config(), app_state=app_state)
         resp = app.test_client().get("/health")
 
-        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+        assert resp.status_code == HTTPStatus.OK
         assert resp.get_json() == {"status": "error"}
 
 

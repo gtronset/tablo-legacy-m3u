@@ -111,9 +111,7 @@ def health() -> tuple[dict[str, str], int]:
     """Return the health status of the application."""
     app_state: AppState = current_app.config["APP_STATE"]
 
-    status_code = 200 if app_state.ready.is_set() else 503
-
-    return {"status": app_state.phase}, status_code
+    return {"status": app_state.phase}, 200
 
 
 def discover() -> dict[str, str | int]:

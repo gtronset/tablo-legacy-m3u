@@ -482,3 +482,15 @@ class TestRequireClient:
     def test_watch_returns_503(self, client_no_tablo: FlaskClient) -> None:
         resp = client_no_tablo.get("/watch/100")
         assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+
+class TestIndexNotReady:
+    """The index page works even before init completes."""
+
+    def test_returns_200_when_not_ready(self) -> None:
+        app_state = AppState()
+        app = create_app(config=Config(), app_state=app_state)
+
+        resp = app.test_client().get("/")
+
+        assert resp.status_code == HTTPStatus.OK

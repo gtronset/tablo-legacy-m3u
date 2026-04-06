@@ -159,6 +159,7 @@
             {% endif %}
         </dl>
         <h2>Tablo Device</h2>
+        {% if server_info %}
         <dl>
             <dt>Name</dt>
             <dd>
@@ -181,6 +182,9 @@
                 {{ server_info.model.tuners }}
             </dd>
         </dl>
+        {% else %}
+        <p>Connecting to Tablo device...</p>
+        {% endif %}
         <h2>Endpoints</h2>
         <dl>
             <dt>M3U Playlist</dt>

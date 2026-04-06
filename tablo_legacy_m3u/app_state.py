@@ -45,12 +45,13 @@ class AppState:
     """Container for application initialization state.
 
     Concurrency:
-    - `phase` and `ready` are strictly thread-safe.
-    - `tablo_client`, `enable_epg`, and `schedulers` are populated sequentially by the
-      background init thread and should only be read by other threads after
-      `ready.is_set()` returns True.
-    - `device_status` is updated by the background probe and read by web threads;
-      Python's GIL ensures these reference assignments are atomic.
+    - `phase` transitions are strictly thread-safe.
+    - `tablo_client`, `enable_epg`, and `schedulers` are sequentially populated by the
+      background init thread. They are safe to read at any time (relying on initial
+      defaults and Python's GIL for atomic reference updates), but will only reflect
+      their fully populated state once `ready.is_set()` is True.
+    - `device_status` is updated by the background probe and safely read by web
+      threads via atomic reference assignments.
     """
 
     def __init__(self) -> None:

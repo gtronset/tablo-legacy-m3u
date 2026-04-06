@@ -3,6 +3,8 @@
 from http import HTTPStatus
 from unittest.mock import MagicMock
 
+import pytest
+
 from flask.testing import FlaskClient
 
 from tablo_legacy_m3u import create_app
@@ -419,3 +421,64 @@ class TestWatch:
         flask_client.get("/watch/12345")
 
         tablo_client_mock.get_watch_url.assert_called_once_with("/guide/channels/12345")
+
+
+class TestRequireReady:
+    """Routes behind `_require_ready()` return 503 when not yet initialized."""
+
+    @pytest.fixture
+    def not_ready_client(self) -> FlaskClient:
+        app_state = AppState()
+        app = create_app(config=Config(), app_state=app_state)
+        return app.test_client()
+
+    def test_discover_json_returns_503(self, not_ready_client: FlaskClient) -> None:
+        resp = not_ready_client.get("/discover.json")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+    def test_device_xml_returns_503(self, not_ready_client: FlaskClient) -> None:
+        resp = not_ready_client.get("/device.xml")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+    def test_lineup_m3u_returns_503(self, not_ready_client: FlaskClient) -> None:
+        resp = not_ready_client.get("/lineup.m3u")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+    def test_lineup_json_returns_503(self, not_ready_client: FlaskClient) -> None:
+        resp = not_ready_client.get("/lineup.json")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+    def test_lineup_xml_returns_503(self, not_ready_client: FlaskClient) -> None:
+        resp = not_ready_client.get("/lineup.xml")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+    def test_xmltv_xml_returns_503(self, not_ready_client: FlaskClient) -> None:
+        resp = not_ready_client.get("/xmltv.xml")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+    def test_watch_returns_503(self, not_ready_client: FlaskClient) -> None:
+        resp = not_ready_client.get("/watch/100")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+
+class TestRequireClient:
+    """Routes behind `_require_client()` return 503 when tablo_client is None."""
+
+    @pytest.fixture
+    def client_no_tablo(self) -> FlaskClient:
+        app_state = AppState()
+        app_state.set_phase(InitPhase.READY)  # ready but no tablo_client
+        app = create_app(config=Config(), app_state=app_state)
+        return app.test_client()
+
+    def test_lineup_m3u_returns_503(self, client_no_tablo: FlaskClient) -> None:
+        resp = client_no_tablo.get("/lineup.m3u")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+    def test_lineup_json_returns_503(self, client_no_tablo: FlaskClient) -> None:
+        resp = client_no_tablo.get("/lineup.json")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+    def test_watch_returns_503(self, client_no_tablo: FlaskClient) -> None:
+        resp = client_no_tablo.get("/watch/100")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE

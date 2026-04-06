@@ -74,6 +74,35 @@ class TestFavicon:
         assert len(resp.data) > 0
 
 
+class TestHealth:
+    """Tests for GET `/health`."""
+
+    def test_returns_ready_when_initialized(self, flask_client: FlaskClient) -> None:
+        resp = flask_client.get("/health")
+
+        assert resp.status_code == HTTPStatus.OK
+        assert resp.get_json() == {"status": "ready"}
+
+    def test_returns_503_when_discovering(self) -> None:
+        app_state = AppState()  # defaults to DISCOVERING, ready not set
+
+        app = create_app(config=Config(), app_state=app_state)
+        resp = app.test_client().get("/health")
+
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+        assert resp.get_json() == {"status": "discovering"}
+
+    def test_returns_503_when_error(self) -> None:
+        app_state = AppState()
+        app_state.set_phase(InitPhase.ERROR)
+
+        app = create_app(config=Config(), app_state=app_state)
+        resp = app.test_client().get("/health")
+
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+        assert resp.get_json() == {"status": "error"}
+
+
 class TestDiscoverJson:
     """Tests for GET `/discover.json`."""
 

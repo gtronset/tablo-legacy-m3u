@@ -2,26 +2,24 @@
 
 import logging
 import os
+import threading
 import time
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING
 
 from flask import Flask
 from rich.logging import RichHandler
 from waitress import serve
 
 from tablo_legacy_m3u import create_app
-from tablo_legacy_m3u.config import load_config
+from tablo_legacy_m3u.app_state import AppState, InitPhase
+from tablo_legacy_m3u.config import Config, load_config
 from tablo_legacy_m3u.scheduler import Scheduler
 from tablo_legacy_m3u.tablo_client import (
     TabloClient,
     TabloServerBusyError,
     discover_tablo_ip,
 )
-
-if TYPE_CHECKING:
-    from tablo_legacy_m3u.config import Config
 
 
 def _run_startup_probe[T](
@@ -45,8 +43,58 @@ def _run_startup_probe[T](
     raise RuntimeError(msg)
 
 
-# TODO(gtronset): Refactor to have async-init / deferred Tablo / "connecting" status
-# https://github.com/gtronset/tablo-legacy-m3u/pull/25
+def _init_tablo(config: Config, app_state: AppState, logger: logging.Logger) -> None:
+    """Background Tablo initialization."""
+    try:
+        # Phase: `DISCOVERING`
+        app_state.set_phase(InitPhase.DISCOVERING)
+        tablo_ip = discover_tablo_ip(config.autodiscover, config.tablo_ip)
+        logger.info("Using Tablo device at %s", tablo_ip)
+
+        # Phase: `CONNECTING`
+        app_state.set_phase(InitPhase.CONNECTING)
+        client = TabloClient(tablo_ip, cache_ttl=config.cache_ttl)
+        app_state.tablo_client = client
+
+        server_info = _run_startup_probe(client.get_server_info, logger=logger)
+        app_state.device_status.server_info = server_info
+
+        has_guide = _run_startup_probe(client.has_guide_subscription, logger=logger)
+        if config.enable_epg and not has_guide:
+            logger.warning(
+                "EPG enabled but no active guide subscription. EPG disabled."
+            )
+        app_state.enable_epg = config.enable_epg and has_guide
+
+        # Phase: `WARMING`
+        app_state.set_phase(InitPhase.WARMING)
+        channel_scheduler = Scheduler(
+            "channels", config.channel_refresh_interval, client.refresh_channels
+        )
+        channel_scheduler.warm_async()
+        app_state.schedulers.append(channel_scheduler)
+        channel_scheduler.start()
+
+        if app_state.enable_epg:
+            guide_scheduler = Scheduler(
+                "guide", config.guide_refresh_interval, client.refresh_airings
+            )
+            guide_scheduler.warm_async()
+            app_state.schedulers.append(guide_scheduler)
+            guide_scheduler.start()
+
+        # Phase: `READY`
+        app_state.set_phase(InitPhase.READY)
+    except Exception as exception:
+        logger.exception("Tablo initialization failed")
+        app_state.error = str(exception)
+
+        for scheduler in app_state.schedulers:
+            scheduler.stop()
+
+        app_state.set_phase(InitPhase.ERROR)
+
+
 def main() -> None:
     """Start the application."""
     config: Config = load_config()
@@ -78,49 +126,18 @@ def main() -> None:
         )
         return
 
-    tablo_ip = discover_tablo_ip(config.autodiscover, config.tablo_ip)
+    app_state = AppState()
+    app = create_app(config=config, app_state=app_state)
 
-    logger.info("Using Tablo device at %s", tablo_ip)
-
-    client = TabloClient(tablo_ip, cache_ttl=config.cache_ttl)
-
-    server_info = _run_startup_probe(client.get_server_info, logger=logger)
-
-    has_guide_subscription = _run_startup_probe(
-        client.has_guide_subscription, logger=logger
+    init_thread = threading.Thread(
+        target=_init_tablo,
+        args=(config, app_state, logger),
+        name="init-tablo",
+        daemon=True,
     )
-
-    if config.enable_epg and not has_guide_subscription:
-        logger.warning("EPG enabled but no active guide subscription. EPG disabled.")
-
-    enable_epg = config.enable_epg and has_guide_subscription
-
-    schedulers: list[Scheduler] = []
+    init_thread.start()
 
     try:
-        channel_scheduler = Scheduler(
-            "channels", config.channel_refresh_interval, client.refresh_channels
-        )
-        channel_scheduler.warm_async()
-        schedulers.append(channel_scheduler)
-        channel_scheduler.start()
-
-        if enable_epg:
-            guide_scheduler = Scheduler(
-                "guide", config.guide_refresh_interval, client.refresh_airings
-            )
-            guide_scheduler.warm_async()
-            schedulers.append(guide_scheduler)
-            guide_scheduler.start()
-
-        app = create_app(
-            config=config,
-            tablo_client=client,
-            server_info=server_info,
-            enable_epg=enable_epg,
-            schedulers=schedulers,
-        )
-
         if config.is_dev:
             app.run(
                 host=config.host,
@@ -133,5 +150,5 @@ def main() -> None:
             logger.info("Starting waitress on %s:%d", config.host, config.port)
             serve(app, host=config.host, port=config.port)
     finally:
-        for scheduler in schedulers:
+        for scheduler in app_state.schedulers:
             scheduler.stop()

@@ -159,28 +159,32 @@
             {% endif %}
         </dl>
         <h2>Tablo Device</h2>
-        <dl>
-            <dt>Name</dt>
-            <dd>
-                {{ friendly_name }}
-            </dd>
-            <dt>IP Address</dt>
-            <dd>
-                {{ server_info.local_address }}
-            </dd>
-            <dt>Model</dt>
-            <dd>
-                {{ server_info.model.name }}
-            </dd>
-            <dt>Firmware</dt>
-            <dd>
-                {{ server_info.version }}
-            </dd>
-            <dt>Tuners</dt>
-            <dd>
-                {{ server_info.model.tuners }}
-            </dd>
-        </dl>
+        {% if server_info %}
+            <dl>
+                <dt>Name</dt>
+                <dd>
+                    {{ friendly_name }}
+                </dd>
+                <dt>IP Address</dt>
+                <dd>
+                    {{ server_info.local_address }}
+                </dd>
+                <dt>Model</dt>
+                <dd>
+                    {{ server_info.model.name }}
+                </dd>
+                <dt>Firmware</dt>
+                <dd>
+                    {{ server_info.version }}
+                </dd>
+                <dt>Tuners</dt>
+                <dd>
+                    {{ server_info.model.tuners }}
+                </dd>
+            </dl>
+        {% else %}
+            <p>Connecting to Tablo device...</p>
+        {% endif %}
         <h2>Endpoints</h2>
         <dl>
             <dt>M3U Playlist</dt>

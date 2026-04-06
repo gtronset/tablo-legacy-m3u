@@ -94,6 +94,9 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "S405",    # bandit: ignore use of xml.etree.ElementTree for parsing own generated/trusted XML
     "SLF001",  # flake8-self: ignore accessing private/protected members
 ]
+"tests/test_main.py" = [
+    "ARG002", # flake8-unused-arguments: ignore unused pytest fixtures
+]
 
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false

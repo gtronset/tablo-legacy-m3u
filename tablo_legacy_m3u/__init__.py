@@ -13,10 +13,8 @@ from tablo_legacy_m3u.routes import register_routes
 __all__ = ["__version__", "create_app"]
 
 if TYPE_CHECKING:
+    from tablo_legacy_m3u.app_state import AppState
     from tablo_legacy_m3u.config import Config
-    from tablo_legacy_m3u.scheduler import Scheduler
-    from tablo_legacy_m3u.tablo_client import TabloClient
-    from tablo_legacy_m3u.tablo_types import ServerInfo
 
 logger = logging.getLogger(__name__)
 
@@ -24,20 +22,14 @@ logger = logging.getLogger(__name__)
 def create_app(
     *,
     config: "Config",
-    tablo_client: "TabloClient",
-    server_info: "ServerInfo",
-    enable_epg: bool,
-    schedulers: "list[Scheduler] | None" = None,
+    app_state: "AppState",
 ) -> Flask:
     """Create and configure the Flask application."""
     app = Flask(__name__)
 
     app.config.from_mapping(
         APP_CONFIG=config,
-        TABLO_CLIENT=tablo_client,
-        TABLO_SERVER_INFO=server_info,
-        ENABLE_EPG=enable_epg,
-        SCHEDULERS=schedulers or [],
+        APP_STATE=app_state,
     )
 
     register_routes(app)

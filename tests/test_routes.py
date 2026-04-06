@@ -3,9 +3,12 @@
 from http import HTTPStatus
 from unittest.mock import MagicMock
 
+import pytest
+
 from flask.testing import FlaskClient
 
 from tablo_legacy_m3u import create_app
+from tablo_legacy_m3u.app_state import AppState, InitPhase
 from tablo_legacy_m3u.config import Config
 from tablo_legacy_m3u.tablo_types import ServerInfo
 from tests.helpers import make_channel, make_episode_airing
@@ -38,14 +41,15 @@ class TestIndex:
         assert "/discover.json" in body
 
     def test_shows_epg_disabled_when_epg_not_enabled(
-        self, server_info: ServerInfo, tablo_client: MagicMock
+        self, server_info: ServerInfo, tablo_client_mock: MagicMock
     ) -> None:
-        app = create_app(
-            config=Config(),
-            tablo_client=tablo_client,
-            server_info=server_info,
-            enable_epg=False,
-        )
+        app_state = AppState()
+        app_state.tablo_client = tablo_client_mock
+        app_state.device_status.server_info = server_info
+        app_state.enable_epg = False
+        app_state.set_phase(InitPhase.READY)
+
+        app = create_app(config=Config(), app_state=app_state)
 
         resp = app.test_client().get("/")
 
@@ -70,6 +74,35 @@ class TestFavicon:
         assert resp.status_code == HTTPStatus.OK
         assert "image/" in resp.content_type
         assert len(resp.data) > 0
+
+
+class TestHealth:
+    """Tests for GET `/health`."""
+
+    def test_returns_ready_when_initialized(self, flask_client: FlaskClient) -> None:
+        resp = flask_client.get("/health")
+
+        assert resp.status_code == HTTPStatus.OK
+        assert resp.get_json() == {"status": "ready"}
+
+    def test_returns_discovering_when_not_ready(self) -> None:
+        app_state = AppState()  # defaults to DISCOVERING, ready not set
+
+        app = create_app(config=Config(), app_state=app_state)
+        resp = app.test_client().get("/health")
+
+        assert resp.status_code == HTTPStatus.OK
+        assert resp.get_json() == {"status": "discovering"}
+
+    def test_returns_error_when_failed(self) -> None:
+        app_state = AppState()
+        app_state.set_phase(InitPhase.ERROR)
+
+        app = create_app(config=Config(), app_state=app_state)
+        resp = app.test_client().get("/health")
+
+        assert resp.status_code == HTTPStatus.OK
+        assert resp.get_json() == {"status": "error"}
 
 
 class TestDiscoverJson:
@@ -141,9 +174,9 @@ class TestLineupM3u:
     """Tests for GET `/lineup.m3u`."""
 
     def test_returns_m3u_content_type(
-        self, flask_client: FlaskClient, tablo_client: MagicMock
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
     ) -> None:
-        tablo_client.get_channels.return_value = []
+        tablo_client_mock.get_channels.return_value = []
 
         resp = flask_client.get("/lineup.m3u")
 
@@ -151,18 +184,18 @@ class TestLineupM3u:
         assert "application/x-mpegurl" in resp.content_type
 
     def test_empty_playlist_when_no_channels(
-        self, flask_client: FlaskClient, tablo_client: MagicMock
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
     ) -> None:
-        tablo_client.get_channels.return_value = []
+        tablo_client_mock.get_channels.return_value = []
 
         resp = flask_client.get("/lineup.m3u")
 
         assert resp.data.decode() == "#EXTM3U\n"
 
     def test_playlist_contains_channel_entries(
-        self, flask_client: FlaskClient, tablo_client: MagicMock
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
     ) -> None:
-        tablo_client.get_channels.return_value = [
+        tablo_client_mock.get_channels.return_value = [
             make_channel(100, "WABC", 7, 1),
         ]
 
@@ -180,9 +213,9 @@ class TestLineupM3u8:
     """Tests for GET `/lineup.m3u8`."""
 
     def test_returns_same_content_as_m3u(
-        self, flask_client: FlaskClient, tablo_client: MagicMock
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
     ) -> None:
-        tablo_client.get_channels.return_value = [
+        tablo_client_mock.get_channels.return_value = [
             make_channel(100, "WABC", 7, 1),
         ]
 
@@ -197,9 +230,9 @@ class TestLineupXml:
     """Tests for GET `/lineup.xml`."""
 
     def test_returns_xml_content_type(
-        self, flask_client: FlaskClient, tablo_client: MagicMock
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
     ) -> None:
-        tablo_client.get_channels.return_value = []
+        tablo_client_mock.get_channels.return_value = []
 
         resp = flask_client.get("/lineup.xml")
 
@@ -207,9 +240,9 @@ class TestLineupXml:
         assert "application/xml" in resp.content_type
 
     def test_empty_lineup(
-        self, flask_client: FlaskClient, tablo_client: MagicMock
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
     ) -> None:
-        tablo_client.get_channels.return_value = []
+        tablo_client_mock.get_channels.return_value = []
 
         resp = flask_client.get("/lineup.xml")
 
@@ -218,9 +251,9 @@ class TestLineupXml:
         assert "<Lineup" in body
 
     def test_contains_channel_entries(
-        self, flask_client: FlaskClient, tablo_client: MagicMock
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
     ) -> None:
-        tablo_client.get_channels.return_value = [
+        tablo_client_mock.get_channels.return_value = [
             make_channel(100, "WABC", 7, 1),
         ]
 
@@ -237,9 +270,9 @@ class TestLineupJson:
     """Tests for GET `/lineup.json`."""
 
     def test_returns_json_array(
-        self, flask_client: FlaskClient, tablo_client: MagicMock
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
     ) -> None:
-        tablo_client.get_channels.return_value = [
+        tablo_client_mock.get_channels.return_value = [
             make_channel(100, "WABC", 7, 1),
         ]
 
@@ -253,9 +286,9 @@ class TestLineupJson:
         assert len(data) == 1
 
     def test_entry_has_required_fields(
-        self, flask_client: FlaskClient, tablo_client: MagicMock
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
     ) -> None:
-        tablo_client.get_channels.return_value = [
+        tablo_client_mock.get_channels.return_value = [
             make_channel(100, "WABC", 7, 1),
         ]
 
@@ -268,9 +301,9 @@ class TestLineupJson:
         assert entry["URL"].endswith("/watch/100")
 
     def test_empty_array_when_no_channels(
-        self, flask_client: FlaskClient, tablo_client: MagicMock
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
     ) -> None:
-        tablo_client.get_channels.return_value = []
+        tablo_client_mock.get_channels.return_value = []
 
         resp = flask_client.get("/lineup.json")
 
@@ -281,10 +314,10 @@ class TestXmltvXml:
     """Tests for GET `/xmltv.xml`."""
 
     def test_returns_xml_content_type(
-        self, flask_client: FlaskClient, tablo_client: MagicMock
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
     ) -> None:
-        tablo_client.get_channels.return_value = []
-        tablo_client.get_airings.return_value = []
+        tablo_client_mock.get_channels.return_value = []
+        tablo_client_mock.get_airings.return_value = []
 
         resp = flask_client.get("/xmltv.xml")
 
@@ -292,10 +325,10 @@ class TestXmltvXml:
         assert "application/xml" in resp.content_type
 
     def test_contains_xml_declaration(
-        self, flask_client: FlaskClient, tablo_client: MagicMock
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
     ) -> None:
-        tablo_client.get_channels.return_value = []
-        tablo_client.get_airings.return_value = []
+        tablo_client_mock.get_channels.return_value = []
+        tablo_client_mock.get_airings.return_value = []
 
         resp = flask_client.get("/xmltv.xml")
 
@@ -304,12 +337,12 @@ class TestXmltvXml:
         assert body.startswith("<?xml version='1.0' encoding='utf-8'?>")
 
     def test_contains_channel_element(
-        self, flask_client: FlaskClient, tablo_client: MagicMock
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
     ) -> None:
-        tablo_client.get_channels.return_value = [
+        tablo_client_mock.get_channels.return_value = [
             make_channel(100, "WABC", 7, 1),
         ]
-        tablo_client.get_airings.return_value = []
+        tablo_client_mock.get_airings.return_value = []
 
         resp = flask_client.get("/xmltv.xml")
 
@@ -319,11 +352,11 @@ class TestXmltvXml:
         assert "<display-name>WABC</display-name>" in body
 
     def test_contains_programme_element(
-        self, flask_client: FlaskClient, tablo_client: MagicMock
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
     ) -> None:
         channel = make_channel(100, "WABC", 7, 1)
-        tablo_client.get_channels.return_value = [channel]
-        tablo_client.get_airings.return_value = [
+        tablo_client_mock.get_channels.return_value = [channel]
+        tablo_client_mock.get_airings.return_value = [
             make_episode_airing(500, "Test Show", channel),
         ]
 
@@ -335,14 +368,15 @@ class TestXmltvXml:
         assert "<title>Test Show</title>" in body
 
     def test_returns_404_when_epg_disabled(
-        self, server_info: ServerInfo, tablo_client: MagicMock
+        self, server_info: ServerInfo, tablo_client_mock: MagicMock
     ) -> None:
-        app = create_app(
-            config=Config(),
-            tablo_client=tablo_client,
-            server_info=server_info,
-            enable_epg=False,
-        )
+        app_state = AppState()
+        app_state.tablo_client = tablo_client_mock
+        app_state.device_status.server_info = server_info
+        app_state.enable_epg = False
+        app_state.set_phase(InitPhase.READY)
+
+        app = create_app(config=Config(), app_state=app_state)
 
         resp = app.test_client().get("/xmltv.xml")
 
@@ -368,9 +402,9 @@ class TestWatch:
     """Tests for GET `/watch/<channel_id>`."""
 
     def test_redirects_to_playlist_url(
-        self, flask_client: FlaskClient, tablo_client: MagicMock
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
     ) -> None:
-        tablo_client.get_watch_url.return_value = (
+        tablo_client_mock.get_watch_url.return_value = (
             f"http://{TABLO_IP}:18080/pvr/100/pl.m3u8"
         )
 
@@ -380,10 +414,83 @@ class TestWatch:
         assert resp.headers["Location"] == f"http://{TABLO_IP}:18080/pvr/100/pl.m3u8"
 
     def test_calls_get_watch_url_with_channel_path(
-        self, flask_client: FlaskClient, tablo_client: MagicMock
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
     ) -> None:
-        tablo_client.get_watch_url.return_value = "http://example.com/stream.m3u8"
+        tablo_client_mock.get_watch_url.return_value = "http://example.com/stream.m3u8"
 
         flask_client.get("/watch/12345")
 
-        tablo_client.get_watch_url.assert_called_once_with("/guide/channels/12345")
+        tablo_client_mock.get_watch_url.assert_called_once_with("/guide/channels/12345")
+
+
+class TestRequireReady:
+    """Routes behind `_require_ready()` return 503 when not yet initialized."""
+
+    @pytest.fixture
+    def not_ready_client(self) -> FlaskClient:
+        app_state = AppState()
+        app = create_app(config=Config(), app_state=app_state)
+        return app.test_client()
+
+    def test_discover_json_returns_503(self, not_ready_client: FlaskClient) -> None:
+        resp = not_ready_client.get("/discover.json")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+    def test_device_xml_returns_503(self, not_ready_client: FlaskClient) -> None:
+        resp = not_ready_client.get("/device.xml")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+    def test_lineup_m3u_returns_503(self, not_ready_client: FlaskClient) -> None:
+        resp = not_ready_client.get("/lineup.m3u")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+    def test_lineup_json_returns_503(self, not_ready_client: FlaskClient) -> None:
+        resp = not_ready_client.get("/lineup.json")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+    def test_lineup_xml_returns_503(self, not_ready_client: FlaskClient) -> None:
+        resp = not_ready_client.get("/lineup.xml")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+    def test_xmltv_xml_returns_503(self, not_ready_client: FlaskClient) -> None:
+        resp = not_ready_client.get("/xmltv.xml")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+    def test_watch_returns_503(self, not_ready_client: FlaskClient) -> None:
+        resp = not_ready_client.get("/watch/100")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+
+class TestRequireClient:
+    """Routes behind `_require_client()` return 503 when tablo_client is None."""
+
+    @pytest.fixture
+    def client_no_tablo(self) -> FlaskClient:
+        app_state = AppState()
+        app_state.set_phase(InitPhase.READY)  # ready but no tablo_client
+        app = create_app(config=Config(), app_state=app_state)
+        return app.test_client()
+
+    def test_lineup_m3u_returns_503(self, client_no_tablo: FlaskClient) -> None:
+        resp = client_no_tablo.get("/lineup.m3u")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+    def test_lineup_json_returns_503(self, client_no_tablo: FlaskClient) -> None:
+        resp = client_no_tablo.get("/lineup.json")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+    def test_watch_returns_503(self, client_no_tablo: FlaskClient) -> None:
+        resp = client_no_tablo.get("/watch/100")
+        assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+
+class TestIndexNotReady:
+    """The index page works even before init completes."""
+
+    def test_returns_200_when_not_ready(self) -> None:
+        app_state = AppState()
+        app = create_app(config=Config(), app_state=app_state)
+
+        resp = app.test_client().get("/")
+
+        assert resp.status_code == HTTPStatus.OK

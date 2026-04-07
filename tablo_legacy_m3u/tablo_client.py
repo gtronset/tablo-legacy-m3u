@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 import requests
 
-from cachetools import TTLCache, cachedmethod
+from cachetools import TTLCache
 from cachetools.keys import hashkey
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 
 # Batching parameters for fetching channels and airings
 BATCH_SIZE = 50
-MAX_CONCURRENT_BATCHES = 5
+MAX_CONCURRENT_BATCHES = 3
 
 # Tablo API ports
 TABLO_API_PORT = 8885
@@ -187,11 +187,6 @@ class TabloClient:
 
         return channels
 
-    # @cachedmethod(
-    #     lambda self: self._cache,
-    #     key=lambda _self: hashkey("channels"),
-    #     lock=lambda self: self._cache_lock,
-    # )
     def get_channels(self) -> list[Channel]:
         """Return cached channels, fetching with coalescing if needed."""
         key = hashkey("channels")
@@ -284,24 +279,8 @@ class TabloClient:
 
         return data["playlist_url"]
 
-    # TODO(gtronset): Improve with a replace-in-place refresh.
-    # https://github.com/gtronset/tablo-legacy-m3u/pull/22
-    def refresh_airings(self) -> list[Airing]:
-        """Force a fresh fetch of airing data."""
-        with self._cache_lock:
-            self._cache.pop(hashkey("airings"), None)
-        return self.get_airings()
-
-    @cachedmethod(
-        lambda self: self._cache,
-        key=lambda _self: hashkey("airings"),
-        lock=lambda self: self._cache_lock,
-    )
-    def get_airings(self) -> list[Airing]:
-        """Fetch all upcoming guide airings from the Tablo.
-
-        First GETs the airing path list, then hydrates via POST `/batch`.
-        """
+    def _fetch_airings(self) -> list[Airing]:
+        """Fetch all upcoming guide airings from the Tablo."""
         paths: list[str] = self._get("/guide/airings")
         logger.debug("Found %d airing paths", len(paths))
 
@@ -315,6 +294,39 @@ class TabloClient:
         logger.debug("Hydrated %d airings", len(airings))
 
         return airings
+
+    def get_airings(self) -> list[Airing]:
+        """Return cached airings, fetching with coalescing if needed."""
+        key = hashkey("airings")
+
+        with self._cache_lock:
+            cached: list[Airing] | None = self._cache.get(key)
+
+        if cached is not None:
+            return cached
+
+        with self._fetch_locks["airings"]:
+            with self._cache_lock:
+                rechecked: list[Airing] | None = self._cache.get(key)
+
+            if rechecked is not None:
+                return rechecked
+
+            airings = self._fetch_airings()
+            with self._cache_lock:
+                self._cache[key] = airings
+
+            return airings
+
+    def refresh_airings(self) -> list[Airing]:
+        """Fetch fresh airing data and write directly into cache."""
+        with self._fetch_locks["airings"]:
+            airings = self._fetch_airings()
+
+            with self._cache_lock:
+                self._cache[hashkey("airings")] = airings
+
+            return airings
 
 
 def discover_tablo_ip(autodiscover: bool, tablo_ip: str) -> str:

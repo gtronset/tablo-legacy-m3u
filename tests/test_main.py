@@ -229,13 +229,13 @@ class TestInitTablo:
         mock_sched: MagicMock,
         init_tablo: InitTabloFn,
     ) -> None:
-        """Only channel scheduler is created when guide subscription is absent."""
+        """Only channel and probe schedulers are created when guide sub. is absent."""
         mock_client_cls.return_value.has_guide_subscription.return_value = False
 
         init_tablo()
 
         names = [call.args[0] for call in mock_sched.call_args_list]
-        assert names == ["channels"]
+        assert names == ["probe", "channels"]
 
     @patch("tablo_legacy_m3u.main.Scheduler")
     @patch("tablo_legacy_m3u.main.TabloClient")
@@ -247,7 +247,7 @@ class TestInitTablo:
         mock_sched: MagicMock,
         init_tablo: InitTabloFn,
     ) -> None:
-        """Only channel scheduler is created when EPG is disabled in config."""
+        """Only channel and probe schedulers are created when EPG config is disabled."""
         mock_client_cls.return_value.has_guide_subscription.return_value = True
 
         init_tablo(
@@ -255,7 +255,7 @@ class TestInitTablo:
         )
 
         names = [call.args[0] for call in mock_sched.call_args_list]
-        assert names == ["channels"]
+        assert names == ["probe", "channels"]
 
     @patch("tablo_legacy_m3u.main.Scheduler")
     @patch("tablo_legacy_m3u.main.TabloClient")
@@ -267,14 +267,14 @@ class TestInitTablo:
         mock_sched: MagicMock,
         init_tablo: InitTabloFn,
     ) -> None:
-        """Both channel and guide schedulers are created when EPG is enabled."""
+        """Channel, guide, and probe schedulers are created when EPG is enabled."""
         mock_client_cls.return_value.has_guide_subscription.return_value = True
 
         app_state = init_tablo()
 
         names = [call.args[0] for call in mock_sched.call_args_list]
-        assert names == ["channels", "guide"]
-        assert len(app_state.schedulers) == 2  # noqa: PLR2004, Value here is more readable raw.
+        assert names == ["probe", "channels", "guide"]
+        assert len(app_state.schedulers) == 3  # noqa: PLR2004, Value here is more readable raw.
 
     @patch("tablo_legacy_m3u.main.Scheduler")
     @patch("tablo_legacy_m3u.main.TabloClient")

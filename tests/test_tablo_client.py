@@ -170,7 +170,7 @@ class TestGetGuideStatus:
     def test_returns_guide_status(self, tablo_client: TabloClient) -> None:
         responses.add(
             responses.GET,
-            f"{BASE_URL}/guide/status",
+            f"{BASE_URL}/server/guide/status",
             json={
                 "guide_seeded": True,
                 "last_update": "2026-04-03T10:56:50Z",
@@ -183,7 +183,7 @@ class TestGetGuideStatus:
 
     @responses.activate
     def test_raises_on_http_error(self, tablo_client: TabloClient) -> None:
-        responses.add(responses.GET, f"{BASE_URL}/guide/status", status=500)
+        responses.add(responses.GET, f"{BASE_URL}/server/guide/status", status=500)
         with pytest.raises(requests.HTTPError):
             tablo_client.get_guide_status()
 

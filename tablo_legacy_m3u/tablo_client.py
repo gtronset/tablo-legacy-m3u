@@ -1,4 +1,11 @@
-"""HTTP client for the legacy Tablo device API."""
+"""HTTP client for the legacy Tablo device API.
+
+Channels and airings are cached in a shared TTL cache. `get_channels()` and
+`get_airings()` use double-checked locking to coalesce concurrent requests: only one
+thread fetches while others wait and receive the cached result.  `refresh_channels()`
+and `refresh_airings()` bypass the cache check and write fresh data directly, used by
+background schedulers for periodic refresh.
+"""
 
 import logging
 import threading

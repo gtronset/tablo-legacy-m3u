@@ -2,9 +2,10 @@
 
 import os
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from dotenv import load_dotenv
 
@@ -23,6 +24,7 @@ VALID_ENV_VARS: frozenset[str] = frozenset({
     "ENABLE_EPG",
     "CHANNEL_REFRESH_INTERVAL",
     "GUIDE_REFRESH_INTERVAL",
+    "TZ",
 })
 VALID_ENVIRONMENTS: frozenset[str] = frozenset({"production", "development"})
 VALID_LOG_LEVELS: frozenset[str] = frozenset({
@@ -39,6 +41,7 @@ class Config:
     """Application configuration loaded from environment variables."""
 
     environment: str = "production"
+    tz: ZoneInfo = field(default_factory=lambda: ZoneInfo("UTC"))
 
     @property
     def is_dev(self) -> bool:
@@ -162,6 +165,20 @@ def _env_int(
     return result
 
 
+def _env_tz(name: str, default: str) -> ZoneInfo:
+    """Get a timezone environment variable and return a ZoneInfo object."""
+    _check_var_name(name)
+
+    raw = os.environ.get(name, "").strip()
+    tz_str = raw if raw else default
+
+    try:
+        return ZoneInfo(tz_str)
+    except ZoneInfoNotFoundError:
+        msg = f"Invalid timezone for {name}: {tz_str!r}"
+        raise ValueError(msg) from None
+
+
 def load_config() -> Config:
     """Load configuration from environment variables and `.env` file."""
     env_file = Path.cwd() / ".env"
@@ -175,6 +192,7 @@ def load_config() -> Config:
         environment=_env(
             "ENVIRONMENT", Config.environment, case="lower", choices=VALID_ENVIRONMENTS
         ),
+        tz=_env_tz("TZ", "UTC"),
         log_level=_env(
             "LOG_LEVEL", Config.log_level, case="upper", choices=VALID_LOG_LEVELS
         ),

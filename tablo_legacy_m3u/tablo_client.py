@@ -211,8 +211,8 @@ class TabloClient:
         return harddrives
 
     def get_guide_status(self) -> GuideStatus:
-        """Fetch guide data status from `/guide/status`."""
-        guide_status: GuideStatus = self._get("/guide/status")
+        """Fetch guide data status from `/server/guide/status`."""
+        guide_status: GuideStatus = self._get("/server/guide/status")
         return guide_status
 
     def has_guide_subscription(self) -> bool:

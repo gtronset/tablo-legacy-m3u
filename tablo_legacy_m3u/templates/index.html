@@ -4,6 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{{ friendly_name }} — tablo-legacy-m3u</title>
+        {% if phase not in ("ready", "error") %}<meta http-equiv="refresh" content="5">{% endif %}
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap"
@@ -17,7 +18,18 @@
                 --color-secondary: #7AAACE;
                 --color-accent: #9CD5FF;
                 --color-bg: #F7F8F0;
+                --color-card: #fff;
+                --color-muted: #8a9bae;
+
+                --status-ok:   #6bc785;
+                --status-warn: #d4a74a;
+                --status-err:  #e05555;
+                --status-wait: #5b8ec9;
+                --status-off:  #999;
+
+                --radius: 10px;
             }
+            * { box-sizing: border-box; }
             body {
                 font-family: 'Poppins', system-ui, -apple-system, sans-serif;
                 max-width: 640px;
@@ -28,200 +40,351 @@
                 min-height: 100vh;
                 display: flex;
                 flex-direction: column;
-                box-sizing: border-box;
             }
             h1 {
-                font-size: 2rem;
+                font-size: 1.6rem;
                 color: var(--color-bg);
                 background-color: var(--color-primary);
-                padding: 1rem;
+                padding: 1rem 1.25rem;
+                border-radius: var(--radius);
+                margin: 0 0 1.5rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
             }
-            h2 {
-                font-size: 1.1rem;
-                margin-top: 1.5rem;
-                padding: 0 0 0.5rem;
-                border-bottom: 0.5rem solid;
-            }
-            dl {
-                display: grid;
-                grid-template-columns: 10rem 1fr;
-                gap: 1rem;
-                margin: 1rem 0 2rem;
-            }
-            dt {
+            h1 small {
+                font-size: 1rem;
+                font-weight: 400;
                 color: var(--color-secondary);
-                font-weight: 600;
+                font-style: italic;
             }
-            dd {
-                margin: 0;
+            .card {
+                background: var(--color-card);
+                border-radius: var(--radius);
+                padding: 1.25rem;
+                margin-bottom: 1rem;
+                box-shadow: 0 1px 3px rgba(53, 88, 114, 0.08);
             }
-            footer {
-                margin-top: auto;
-                padding-top: 1rem;
-                border-top: 1px solid var(--color-accent);
-                font-size: 0.85rem;
-                color: var(--color-secondary);
+            .card-header {
+                font-size: 0.75rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                color: var(--color-muted);
+                margin: 0 0 0.75rem;
+            }
+            .row {
                 display: flex;
                 justify-content: space-between;
                 align-items: baseline;
+                padding: 0.75rem 0;
             }
-            a {
+            .row + .row {
+                border-top: 1px solid var(--color-bg);
+            }
+            .label {
+                font-size: 0.85rem;
+                color: var(--color-muted);
+            }
+            .value {
+                font-size: 0.85rem;
+                font-weight: 600;
+                text-align: right;
+            }
+            .ip-display {
+                font-family: "Courier New", Courier, monospace;
+                background-color: var(--color-bg);
+                padding: 5px 10px;
+                border-radius: 4px;
                 color: var(--color-primary);
             }
-            a:hover {
+            .meta {
+                display: block;
+                font-size: 0.75rem;
+                font-weight: 400;
+                color: var(--color-muted);
+            }
+            .meta.error {
+                color: var(--status-err);
+            }
+            .pill {
+                display: inline-block;
+                font-size: 0.75rem;
+                font-weight: 600;
+                padding: 0.15rem 0.55rem;
+                border-radius: 999px;
+            }
+            .pill + .meta {
+                margin-top: 0.25rem;
+            }
+
+            .pill-ok {
+                background: color-mix(in srgb, var(--status-ok) 15%, white);
+                color: color-mix(in srgb, var(--status-ok), black 45%);
+            }
+            .pill-warn {
+                background: color-mix(in srgb, var(--status-warn) 15%, white);
+                color: color-mix(in srgb, var(--status-warn), black 45%);
+            }
+            .pill-err {
+                background: color-mix(in srgb, var(--status-err) 15%, white);
+                color: color-mix(in srgb, var(--status-err), black 45%);
+            }
+            .pill-wait {
+                background: color-mix(in srgb, var(--status-wait) 15%, white);
+                color: color-mix(in srgb, var(--status-wait), black 45%);
+            }
+            .pill-off {
+                background: color-mix(in srgb, var(--status-off) 15%, white);
+                color: color-mix(in srgb, var(--status-off), black 30%);
+            }
+
+            .tuner-dots {
+                display: flex;
+                gap: 0.35rem;
+                align-items: center;
+            }
+            .dot {
+                width: 0.6rem;
+                height: 0.6rem;
+                border-radius: 50%;
+                display: inline-block;
+            }
+            .dot-free     { background: var(--status-ok); }
+            .dot-active   { background: var(--status-err); }
+            .dot-reserved { background: var(--status-warn); }
+
+            .storage-bar {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            .storage-track {
+                width: 5rem;
+                height: 0.5rem;
+                background: #e8ecef;
+                border-radius: 999px;
+                overflow: hidden;
+            }
+            .storage-fill {
+                height: 100%;
+                display: block;
+                border-radius: 999px;
+                background: var(--status-ok);
+            }
+            .storage-fill.warn { background: var(--status-warn); }
+            .storage-fill.crit { background: var(--status-err); }
+            .storage-text {
+                font-size: 0.75rem;
+                color: var(--color-muted);
+                white-space: nowrap;
+            }
+
+            .endpoints a {
+                font-size: 0.85rem;
+                color: var(--color-primary);
+                text-decoration: none;
+                padding: 0.35rem 0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .endpoints a + a {
+                border-top: 1px solid var(--color-bg);
+            }
+            .endpoints a:hover {
                 color: var(--color-secondary);
             }
-            .status {
-                font-weight: bold;
+            .endpoints .path {
+                font-weight: 600;
             }
-            .status small {
-                font-weight: normal;
-                color: var(--color-secondary);
+            .endpoints .desc {
+                color: var(--color-muted);
+                font-size: 0.75rem;
             }
-            .border-gradient {
-                --angle: 0deg;
-
-                border: 3px solid #0000;
-                border-radius: 12px;
-                background:  linear-gradient(var(--color-primary),var(--color-primary)) padding-box,
-                    linear-gradient(
-                        var(--angle),
-                        var(--color-primary),
-                        var(--color-secondary)
-                    ) border-box;
-
-                animation: 8s rotate linear infinite;
+            .icon-new-tab {
+                width: 0.7em;
+                height: 0.7em;
+                vertical-align: baseline;
+                margin-left: 0.25em;
+                opacity: 0.35;
             }
-
-            @keyframes rotate {
-                to {
-                    --angle: 360deg;
-                }
+            .endpoints a:hover .icon-new-tab {
+                opacity: 0.6;
             }
-            @property --angle {
-                syntax: '<angle>';
-                initial-value: 0deg;
-                inherits: false;
+            footer {
+                margin-top: auto;
+                padding-top: 1.5rem;
+                font-size: 0.75rem;
+                color: var(--color-muted);
+                display: flex;
+                justify-content: space-between;
             }
+            footer a { color: var(--color-muted); }
+            footer a:hover { color: var(--color-primary); }
         </style>
     </head>
     <body>
-        <h1 class="border-gradient">tablo-legacy-m3u</h1>
-        <h2>Status</h2>
-        <dl>
-            <dt>Server</dt>
-            <dd class="status">
-                ✅ Running
-            </dd>
+        {% macro endpoint(route, path, desc) %}
+            <a href="{{ url_for(route) }}" target="_blank" rel="noopener">
+                <span class="path">{{ path }}
+                    <img src="{{ url_for('static', filename='new-tab.svg') }}"
+                         class="icon-new-tab"
+                         alt=""
+                         width="12"
+                         height="12">
+                </span>
+                <span class="desc">{{ desc }}</span>
+            </a>
+        {% endmacro %}
+        <h1>
+            {{ friendly_name }} <small>Tablo Legacy M3U</small>
+        </h1>
+        <div class="card">
+            <p class="card-header">Status</p>
+            <div class="row">
+                <span class="label">Server</span>
+                <span class="value"><span class="pill pill-ok">Running</span></span>
+            </div>
             {% for scheduler in schedulers %}
-                <dt>{{ scheduler.name | capitalize }}</dt>
-                <dd class="status">
-                    {% if scheduler.state.value == "ready" %}
-                        ✅ Ready
-                    {% elif scheduler.state.value == "warming" %}
-                        ⏳ Warming
-                    {% elif scheduler.state.value == "retrying" %}
-                        ⚠️ Retrying
-                    {% elif scheduler.state.value == "stopped" %}
-                        🛑 Stopped
-                    {% elif scheduler.state.value == "error" %}
-                        ❌ Error (retrying next run)
-                    {% else %}
-                        ⏸️ Idle
-                    {% endif %}
-                    {% if scheduler.last_error %}
-                        <br>
-                        <small>Error: {{ scheduler.last_error }}</small>
-                    {% endif %}
-                    {% if scheduler.last_success %}
-                        <br>
-                        <small>Last refresh:
-                            <time datetime="{{ scheduler.last_success.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
-                                {{ scheduler.last_success.strftime("%Y-%m-%d %H:%M:%S UTC") }}
-                            </time>
-                        </small>
-                    {% endif %}
-                    {% if scheduler.next_run %}
-                        <br>
-                        <small>Next refresh:
-                            <time datetime="{{ scheduler.next_run.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
-                                {{ scheduler.next_run.strftime("%Y-%m-%d %H:%M:%S UTC") }}
-                            </time>
-                        </small>
-                    {% endif %}
-                </dd>
+                <div class="row">
+                    <span class="label">{{ scheduler.name | capitalize }}</span>
+                    <span class="value">
+                        {% if scheduler.state.value == "ready" %}
+                            <span class="pill pill-ok">Ready</span>
+                        {% elif scheduler.state.value == "warming" %}
+                            <span class="pill pill-wait">Warming</span>
+                        {% elif scheduler.state.value == "retrying" %}
+                            <span class="pill pill-warn">Retrying</span>
+                        {% elif scheduler.state.value == "error" %}
+                            <span class="pill pill-err">Error</span>
+                        {% elif scheduler.state.value == "stopped" %}
+                            <span class="pill pill-off">Stopped</span>
+                        {% else %}
+                            <span class="pill pill-off">Idle</span>
+                        {% endif %}
+                        {% if scheduler.last_error and scheduler.state.value in ("error", "retrying") %}
+                            <span class="meta error">{{ scheduler.last_error }}</span>
+                        {% endif %}
+                        {% if scheduler.last_success %}
+                            <span class="meta"
+                                  {% if scheduler.next_run %}title="Next run: {{ scheduler.next_run | localtime(tz) }}"{% endif %}>{{ scheduler.last_success | localtime(tz) }}</span>
+                        {% endif %}
+                    </span>
+                </div>
             {% endfor %}
             {% if not enable_epg %}
-                <dt>Guide</dt>
-                <dd class="status">
-                    ⚠️ EPG Disabled
-                </dd>
+                <div class="row">
+                    <span class="label">Guide</span>
+                    <span class="value"><span class="pill pill-warn">EPG Disabled</span></span>
+                </div>
             {% endif %}
-        </dl>
-        <h2>Tablo Device</h2>
-        {% if server_info %}
-            <dl>
-                <dt>Name</dt>
-                <dd>
-                    {{ friendly_name }}
-                </dd>
-                <dt>IP Address</dt>
-                <dd>
-                    {{ server_info.local_address }}
-                </dd>
-                <dt>Model</dt>
-                <dd>
-                    {{ server_info.model.name }}
-                </dd>
-                <dt>Firmware</dt>
-                <dd>
-                    {{ server_info.version }}
-                </dd>
-                <dt>Tuners</dt>
-                <dd>
-                    {{ server_info.model.tuners }}
-                </dd>
-            </dl>
-        {% else %}
-            <p>Connecting to Tablo device...</p>
-        {% endif %}
-        <h2>Endpoints</h2>
-        <dl>
-            <dt>M3U Playlist</dt>
-            <dd>
-                <a href="{{ url_for('lineup_m3u') }}">{{ base_url }}/lineup.m3u</a>
-            </dd>
-            <dt>M3U8 Playlist</dt>
-            <dd>
-                <a href="{{ url_for('lineup_m3u8') }}">{{ base_url }}/lineup.m3u8</a>
-            </dd>
-            <dt>JSON Lineup</dt>
-            <dd>
-                <a href="{{ url_for('lineup_json') }}">{{ base_url }}/lineup.json</a>
-            </dd>
-            <dt>XML Lineup</dt>
-            <dd>
-                <a href="{{ url_for('lineup_xml') }}">{{ base_url }}/lineup.xml</a>
-            </dd>
-            <dt>XMLTV EPG</dt>
-            <dd>
-                {% if enable_epg %}
-                    <a href="{{ url_for('xmltv') }}">{{ base_url }}/xmltv.xml</a>
-                {% else %}
-                    ⚠️ EPG Disabled
+        </div>
+        <div class="card">
+            <p class="card-header">Tablo Device</p>
+            {% if server_info %}
+                <div class="row">
+                    <span class="label">IP Address</span>
+                    <span class="value ip-display">{{ server_info.local_address }}</span>
+                </div>
+                <div class="row">
+                    <span class="label">Model</span>
+                    <span class="value">{{ server_info.model.name }}</span>
+                </div>
+                <div class="row">
+                    <span class="label">Firmware</span>
+                    <span class="value">{{ server_info.version }}</span>
+                </div>
+                {% if device_status.tuners %}
+                    {% set real_tuners = device_status.tuners[:server_info.model.tuners] %}
+                    <div class="row">
+                        <span class="label">Tuners</span>
+                        <span class="value tuner-dots">
+                            {% for tuner in real_tuners %}
+                                {% if tuner.in_use and tuner.channel_identifier %}
+                                    <span class="dot dot-active"
+                                          role="img"
+                                          aria-label="In use ({{ tuner.channel_identifier }})"
+                                          title="In use ({{ tuner.channel_identifier }})"></span>
+                                {% elif tuner.in_use %}
+                                    <span class="dot dot-reserved"
+                                          role="img"
+                                          aria-label="Reserved"
+                                          title="Reserved"></span>
+                                {% else %}
+                                    <span class="dot dot-free"
+                                          role="img"
+                                          aria-label="Available"
+                                          title="Available"></span>
+                                {% endif %}
+                            {% endfor %}
+                        </span>
+                    </div>
                 {% endif %}
-            </dd>
-            <dt>Device Descriptor</dt>
-            <dd>
-                <a href="{{ url_for('discover') }}">{{ base_url }}/discover.json</a>
-            </dd>
-            <dt>Device XML</dt>
-            <dd>
-                <a href="{{ url_for('device_xml') }}">{{ base_url }}/device.xml</a>
-            </dd>
-        </dl>
+                {% if device_status.harddrives %}
+                    {% for drive in device_status.harddrives %}
+                        <div class="row">
+                            <span class="label">Storage</span>
+                            <span class="value">
+                                {% if drive.connected %}
+                                    {% set pct_used = ((drive.usage / drive.size) * 100) | round(1) %}
+                                    <span class="storage-bar">
+                                        <span class="storage-text">{{ (100 - pct_used) | round(1) }}% free</span>
+                                        <span class="storage-track">
+                                            <span class="storage-fill {% if pct_used > 90 %}crit{% elif pct_used > 75 %}warn{% endif %}"
+                                                  style="width: {{ pct_used }}%"></span>
+                                        </span>
+                                    </span>
+                                {% else %}
+                                    <span class="pill pill-err">Disconnected</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                {% if device_status.guide_status %}
+                    <div class="row">
+                        <span class="label">Guide</span>
+                        <span class="value">
+                            {% if device_status.guide_status.guide_seeded %}
+                                <span class="pill pill-ok">Seeded</span>
+                            {% else %}
+                                <span class="pill pill-warn">Not seeded</span>
+                            {% endif %}
+                            {% if device_status.last_guide_update %}
+                                <span class="meta">Updated {{ device_status.last_guide_update | localtime(tz) }}</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                {% endif %}
+                {% if device_status.last_probe %}
+                    <div class="row">
+                        <span class="label">Last probe</span>
+                        <span class="value meta">{{ device_status.last_probe | localtime(tz) }}</span>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="row">
+                    <span class="label">Connecting to Tablo device…</span>
+                </div>
+            {% endif %}
+        </div>
+        <div class="card">
+            <p class="card-header">Endpoints</p>
+            <div class="endpoints">
+                {{ endpoint('lineup_m3u', '/lineup.m3u', 'M3U Playlist') }}
+                {{ endpoint('lineup_m3u8', '/lineup.m3u8', 'M3U8 Playlist') }}
+                {{ endpoint('lineup_json', '/lineup.json', 'JSON Lineup') }}
+                {{ endpoint('lineup_xml', '/lineup.xml', 'XML Lineup') }}
+                {% if enable_epg %}{{ endpoint('xmltv', '/xmltv.xml', 'XMLTV EPG') }}{% endif %}
+                {{ endpoint('discover', '/discover.json', 'Device Descriptor') }}
+                {{ endpoint('device_xml', '/device.xml', 'Device XML') }}
+            </div>
+        </div>
         <footer>
-            <a href="https://github.com/gtronset/tablo-legacy-m3u">tablo-legacy-m3u on GitHub</a>
+            <a href="https://github.com/gtronset/tablo-legacy-m3u"
+               target="_blank"
+               rel="noopener">tablo-legacy-m3u</a>
             <span>v{{ version }}</span>
         </footer>
     </body>

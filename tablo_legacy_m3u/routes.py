@@ -16,6 +16,7 @@ from tablo_legacy_m3u._version import __version__
 from tablo_legacy_m3u.app_state import AppState
 from tablo_legacy_m3u.discover import device_info, generate_device_xml
 from tablo_legacy_m3u.epg import generate_xmltv
+from tablo_legacy_m3u.filters import register_filters
 from tablo_legacy_m3u.lineup import (
     generate_json,
     generate_m3u,
@@ -37,6 +38,8 @@ UTF8_CHARSET = "utf-8"
 
 def register_routes(app: Flask) -> None:
     """Register all route handlers on the Flask app."""
+    register_filters(app)
+
     app.add_url_rule("/", view_func=index)
 
     app.add_url_rule("/favicon.ico", view_func=favicon)
@@ -94,7 +97,9 @@ def index() -> str:
     return render_template(
         "index.html",
         friendly_name=friendly_name,
+        phase=app_state.phase,
         server_info=server_info,
+        device_status=app_state.device_status,
         base_url=base_url,
         version=__version__,
         enable_epg=app_state.enable_epg,

@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog], and this project adheres to [Semantic
 - Handle Tablo server_busy responses with retry hints <https://github.com/gtronset/tablo-legacy-m3u/pull/25>
 - Defer app initialization to accommodate Tablo being temporarily unavailable during
   startup <https://github.com/gtronset/tablo-legacy-m3u/pull/26>
+- Add scheduled device probe, TZ ENV, and improve status page <https://github.com/gtronset/tablo-legacy-m3u/pull/267>
 
 ## [1.0.0] - 2026-03-30
 

@@ -4,16 +4,20 @@ import logging
 import os
 
 from collections.abc import Callable
-from typing import cast
+from datetime import UTC
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tablo_legacy_m3u.app_state import AppState, InitPhase
+from tablo_legacy_m3u.app_state import AppState, DeviceStatus, InitPhase
 from tablo_legacy_m3u.config import Config
-from tablo_legacy_m3u.main import _init_tablo, _run_startup_probe, main
+from tablo_legacy_m3u.main import _init_tablo, _probe_device, _run_startup_probe, main
 from tablo_legacy_m3u.tablo_client import TabloServerBusyError
 from tests.conftest import TABLO_IP
+
+if TYPE_CHECKING:
+    from tablo_legacy_m3u.tablo_types import ServerInfo
 
 TEST_LOGGER: logging.Logger = logging.getLogger("test")
 
@@ -229,13 +233,13 @@ class TestInitTablo:
         mock_sched: MagicMock,
         init_tablo: InitTabloFn,
     ) -> None:
-        """Only channel scheduler is created when guide subscription is absent."""
+        """Only channel and probe schedulers are created when guide sub. is absent."""
         mock_client_cls.return_value.has_guide_subscription.return_value = False
 
         init_tablo()
 
         names = [call.args[0] for call in mock_sched.call_args_list]
-        assert names == ["channels"]
+        assert names == ["probe", "channels"]
 
     @patch("tablo_legacy_m3u.main.Scheduler")
     @patch("tablo_legacy_m3u.main.TabloClient")
@@ -247,7 +251,7 @@ class TestInitTablo:
         mock_sched: MagicMock,
         init_tablo: InitTabloFn,
     ) -> None:
-        """Only channel scheduler is created when EPG is disabled in config."""
+        """Only channel and probe schedulers are created when EPG config is disabled."""
         mock_client_cls.return_value.has_guide_subscription.return_value = True
 
         init_tablo(
@@ -255,7 +259,7 @@ class TestInitTablo:
         )
 
         names = [call.args[0] for call in mock_sched.call_args_list]
-        assert names == ["channels"]
+        assert names == ["probe", "channels"]
 
     @patch("tablo_legacy_m3u.main.Scheduler")
     @patch("tablo_legacy_m3u.main.TabloClient")
@@ -267,14 +271,14 @@ class TestInitTablo:
         mock_sched: MagicMock,
         init_tablo: InitTabloFn,
     ) -> None:
-        """Both channel and guide schedulers are created when EPG is enabled."""
+        """Channel, guide, and probe schedulers are created when EPG is enabled."""
         mock_client_cls.return_value.has_guide_subscription.return_value = True
 
         app_state = init_tablo()
 
         names = [call.args[0] for call in mock_sched.call_args_list]
-        assert names == ["channels", "guide"]
-        assert len(app_state.schedulers) == 2  # noqa: PLR2004, Value here is more readable raw.
+        assert names == ["probe", "channels", "guide"]
+        assert len(app_state.schedulers) == 3  # noqa: PLR2004, Value here is more readable raw.
 
     @patch("tablo_legacy_m3u.main.Scheduler")
     @patch("tablo_legacy_m3u.main.TabloClient")
@@ -357,3 +361,91 @@ class TestStartupProbe:
 
         assert fn.call_count == 3  # noqa: PLR2004, Value here is more readable raw.
         assert mock_time.sleep.call_count == 2  # noqa: PLR2004, Value here is more readable raw.
+
+
+class TestProbeDevice:
+    """Tests for the _probe_device background function."""
+
+    def test_returns_early_without_client(self) -> None:
+        """Probe safely returns if tablo initializing is incomplete."""
+        app_state = AppState()
+        _probe_device(app_state)
+        assert app_state.device_status.last_probe is None
+
+    def test_fetches_and_updates_data(self) -> None:
+        """Probe successfully sets server_info, tuners, drives, and guide."""
+        app_state = AppState()
+        mock_client = MagicMock()
+        app_state.tablo_client = mock_client
+
+        mock_client.get_server_info.return_value = {"name": "Test Tablo"}
+        mock_client.get_tuners.return_value = ["tuner1", "tuner2"]
+        mock_client.get_harddrives.return_value = ["drive1"]
+        mock_client.get_guide_status.return_value = {"state": "normal"}
+
+        _probe_device(app_state)
+
+        status = app_state.device_status
+        assert status.server_info is mock_client.get_server_info.return_value
+        assert status.tuners is mock_client.get_tuners.return_value
+        assert status.harddrives is mock_client.get_harddrives.return_value
+        assert status.guide_status is mock_client.get_guide_status.return_value
+        assert status.error is None
+        assert status.last_probe is not None
+
+    def test_catches_and_logs_exception(self) -> None:
+        """Probe network errors update the state error but don't crash."""
+        app_state = AppState()
+        mock_client = MagicMock()
+        app_state.tablo_client = mock_client
+
+        existing_info = cast("ServerInfo", {"name": "Existing"})
+
+        app_state.device_status = DeviceStatus(server_info=existing_info)
+        mock_client.get_server_info.side_effect = ConnectionError(
+            "Tablo dropped off WiFi"
+        )
+
+        with pytest.raises(ConnectionError, match="Tablo dropped off WiFi"):
+            _probe_device(app_state)
+
+        status = app_state.device_status
+        assert status.error == "Tablo dropped off WiFi"
+        assert status.last_probe is not None
+        assert status.server_info is existing_info
+
+    def test_last_probe_stored_as_utc(self) -> None:
+        """last_probe timestamp is always stored in UTC."""
+        app_state = AppState()
+        mock_client = MagicMock()
+        mock_client.get_guide_status.return_value = {"guide_seeded": True}
+        app_state.tablo_client = mock_client
+
+        _probe_device(app_state)
+
+        assert app_state.device_status.last_probe is not None
+        assert app_state.device_status.last_probe.tzinfo is UTC
+
+    def test_parses_last_guide_update(self) -> None:
+        """Probe parses guide_status.last_update into a datetime."""
+        app_state = AppState()
+        mock_client = MagicMock()
+        app_state.tablo_client = mock_client
+
+        test_year = 2026
+        test_month = 4
+        test_day = 7
+
+        mock_client.get_guide_status.return_value = {
+            "guide_seeded": True,
+            "last_update": f"{test_year}-{test_month:02d}-{test_day:02d}T10:12:34Z",
+            "limit": f"{test_year}-{test_month:02d}-21",
+            "download_progress": None,
+        }
+
+        _probe_device(app_state)
+
+        assert app_state.device_status.last_guide_update is not None
+        assert app_state.device_status.last_guide_update.year == test_year
+        assert app_state.device_status.last_guide_update.month == test_month
+        assert app_state.device_status.last_guide_update.day == test_day

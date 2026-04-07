@@ -65,6 +65,43 @@ class TestIndex:
         assert "/xmltv.xml" in body
 
 
+class TestIndexNotReady:
+    """The index page works even before init completes."""
+
+    def test_returns_200_when_not_ready(self) -> None:
+        app_state = AppState()
+        app = create_app(config=Config(), app_state=app_state)
+
+        resp = app.test_client().get("/")
+
+        assert resp.status_code == HTTPStatus.OK
+
+    def test_contains_auto_refresh_when_not_ready(self) -> None:
+        app_state = AppState()
+        app = create_app(config=Config(), app_state=app_state)
+
+        resp = app.test_client().get("/")
+        body = resp.data.decode()
+
+        assert '<meta http-equiv="refresh" content="5">' in body
+
+    def test_no_auto_refresh_when_ready(self, flask_client: FlaskClient) -> None:
+        resp = flask_client.get("/")
+        body = resp.data.decode()
+
+        assert 'http-equiv="refresh"' not in body
+
+    def test_no_auto_refresh_when_error(self) -> None:
+        app_state = AppState()
+        app_state.set_phase(InitPhase.ERROR)
+        app = create_app(config=Config(), app_state=app_state)
+
+        resp = app.test_client().get("/")
+        body = resp.data.decode()
+
+        assert 'http-equiv="refresh"' not in body
+
+
 class TestFavicon:
     """Tests for GET `/favicon.ico`."""
 
@@ -482,15 +519,3 @@ class TestRequireClient:
     def test_watch_returns_503(self, client_no_tablo: FlaskClient) -> None:
         resp = client_no_tablo.get("/watch/100")
         assert resp.status_code == HTTPStatus.SERVICE_UNAVAILABLE
-
-
-class TestIndexNotReady:
-    """The index page works even before init completes."""
-
-    def test_returns_200_when_not_ready(self) -> None:
-        app_state = AppState()
-        app = create_app(config=Config(), app_state=app_state)
-
-        resp = app.test_client().get("/")
-
-        assert resp.status_code == HTTPStatus.OK

@@ -6,13 +6,14 @@ import threading
 import time
 
 from collections.abc import Callable
+from datetime import UTC, datetime
 
 from flask import Flask
 from rich.logging import RichHandler
 from waitress import serve
 
 from tablo_legacy_m3u import create_app
-from tablo_legacy_m3u.app_state import AppState, InitPhase
+from tablo_legacy_m3u.app_state import AppState, DeviceStatus, InitPhase
 from tablo_legacy_m3u.config import Config, load_config
 from tablo_legacy_m3u.scheduler import Scheduler
 from tablo_legacy_m3u.tablo_client import (
@@ -20,6 +21,8 @@ from tablo_legacy_m3u.tablo_client import (
     TabloServerBusyError,
     discover_tablo_ip,
 )
+
+PROBE_REFRESH_INTERVAL = 60  # seconds
 
 
 def _run_startup_probe[T](
@@ -43,16 +46,56 @@ def _run_startup_probe[T](
     raise RuntimeError(msg)
 
 
+def _probe_device(app_state: AppState) -> None:
+    """Periodically fetch health data from the Tablo and update device status."""
+    client = app_state.tablo_client
+    if client is None:
+        return
+
+    try:
+        server_info = client.get_server_info()
+        tuners = client.get_tuners()
+        harddrives = client.get_harddrives()
+        guide_status = client.get_guide_status()
+
+        last_guide_update = None
+        if guide_status and guide_status.get("last_update"):
+            last_guide_update = datetime.fromisoformat(guide_status["last_update"])
+
+        app_state.device_status = DeviceStatus(
+            server_info=server_info,
+            tuners=tuners,
+            harddrives=harddrives,
+            guide_status=guide_status,
+            last_guide_update=last_guide_update,
+            last_probe=datetime.now(tz=UTC),
+        )
+
+    except Exception as exception:
+        app_state.device_status = DeviceStatus(
+            server_info=app_state.device_status.server_info,
+            tuners=app_state.device_status.tuners,
+            harddrives=app_state.device_status.harddrives,
+            guide_status=app_state.device_status.guide_status,
+            last_guide_update=app_state.device_status.last_guide_update,
+            last_probe=datetime.now(tz=UTC),
+            error=str(exception),
+        )
+        raise
+
+
 def _init_tablo(config: Config, app_state: AppState, logger: logging.Logger) -> None:
     """Background Tablo initialization."""
     try:
         # Phase: `DISCOVERING`
         app_state.set_phase(InitPhase.DISCOVERING)
+
         tablo_ip = discover_tablo_ip(config.autodiscover, config.tablo_ip)
         logger.info("Using Tablo device at %s", tablo_ip)
 
         # Phase: `CONNECTING`
         app_state.set_phase(InitPhase.CONNECTING)
+
         client = TabloClient(tablo_ip, cache_ttl=config.cache_ttl)
         app_state.tablo_client = client
 
@@ -68,6 +111,16 @@ def _init_tablo(config: Config, app_state: AppState, logger: logging.Logger) -> 
 
         # Phase: `WARMING`
         app_state.set_phase(InitPhase.WARMING)
+
+        probe_scheduler = Scheduler(
+            "probe",
+            interval=PROBE_REFRESH_INTERVAL,
+            task=lambda: _probe_device(app_state),
+        )
+        probe_scheduler.warm_async()
+        app_state.schedulers.append(probe_scheduler)
+        probe_scheduler.start()
+
         channel_scheduler = Scheduler(
             "channels", config.channel_refresh_interval, client.refresh_channels
         )

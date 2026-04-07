@@ -6,12 +6,13 @@ import os
 from collections.abc import Callable
 from typing import cast
 from unittest.mock import MagicMock, patch
+from zoneinfo import ZoneInfo
 
 import pytest
 
 from tablo_legacy_m3u.app_state import AppState, InitPhase
 from tablo_legacy_m3u.config import Config
-from tablo_legacy_m3u.main import _init_tablo, _run_startup_probe, main
+from tablo_legacy_m3u.main import _init_tablo, _probe_device, _run_startup_probe, main
 from tablo_legacy_m3u.tablo_client import TabloServerBusyError
 from tests.conftest import TABLO_IP
 
@@ -357,3 +358,68 @@ class TestStartupProbe:
 
         assert fn.call_count == 3  # noqa: PLR2004, Value here is more readable raw.
         assert mock_time.sleep.call_count == 2  # noqa: PLR2004, Value here is more readable raw.
+
+
+class TestProbeDevice:
+    """Tests for the _probe_device background function."""
+
+    def test_returns_early_without_client(self) -> None:
+        """Probe safely returns if tablo initializing is incomplete."""
+        app_state = AppState()
+        _probe_device(app_state, ZoneInfo("UTC"), TEST_LOGGER)
+        assert app_state.device_status.last_probe is None
+
+    def test_fetches_and_updates_data(self) -> None:
+        """Probe successfully sets server_info, tuners, drives, and guide."""
+        app_state = AppState()
+        mock_client = MagicMock()
+        app_state.tablo_client = mock_client
+
+        mock_client.get_server_info.return_value = {"name": "Test Tablo"}
+        mock_client.get_tuners.return_value = ["tuner1", "tuner2"]
+        mock_client.get_harddrives.return_value = ["drive1"]
+        mock_client.get_guide_status.return_value = {"state": "normal"}
+
+        _probe_device(app_state, ZoneInfo("UTC"), TEST_LOGGER)
+
+        assert (
+            app_state.device_status.server_info
+            is mock_client.get_server_info.return_value
+        )
+        assert app_state.device_status.tuners is mock_client.get_tuners.return_value
+        assert (
+            app_state.device_status.harddrives
+            is mock_client.get_harddrives.return_value
+        )
+        assert (
+            app_state.device_status.guide_status
+            is mock_client.get_guide_status.return_value
+        )
+        assert app_state.device_status.error is None
+        assert app_state.device_status.last_probe is not None
+
+    def test_catches_and_logs_exception(self) -> None:
+        """Probe network errors update the state error but don't crash."""
+        app_state = AppState()
+        mock_client = MagicMock()
+        app_state.tablo_client = mock_client
+
+        mock_client.get_server_info.side_effect = ConnectionError(
+            "Tablo dropped off WiFi"
+        )
+
+        _probe_device(app_state, ZoneInfo("UTC"), TEST_LOGGER)
+
+        assert app_state.device_status.error == "Tablo dropped off WiFi"
+        assert app_state.device_status.last_probe is not None
+
+    def test_last_probe_uses_configured_timezone(self) -> None:
+        """last_probe timestamp uses the provided timezone."""
+        app_state = AppState()
+        app_state.tablo_client = MagicMock()
+        tz = ZoneInfo("America/Chicago")
+
+        _probe_device(app_state, tz, TEST_LOGGER)
+
+        assert app_state.device_status.last_probe is not None
+        assert app_state.device_status.last_probe.tzinfo == tz

@@ -33,6 +33,23 @@ class TestCaching:
         assert len(responses.calls) == 2  # noqa: PLR2004, Value here is more readable raw.
 
     @responses.activate
+    def test_get_channels_uses_refreshed_cache(self, tablo_client: TabloClient) -> None:
+        """`get_channels()` returns cached data populated by a prior refresh."""
+        channel = make_channel(100, "WABC", 7, 1)
+        responses.add(
+            responses.GET, f"{BASE_URL}/guide/channels", json=["/guide/channels/100"]
+        )
+        responses.add(
+            responses.POST, f"{BASE_URL}/batch", json={"/guide/channels/100": channel}
+        )
+
+        tablo_client.refresh_channels()
+        result = tablo_client.get_channels()
+
+        assert result[0]["channel"]["call_sign"] == "WABC"
+        assert len(responses.calls) == 2  # noqa: PLR2004, get_channels() used cache
+
+    @responses.activate
     def test_get_channels_cache_expiry(self) -> None:
         """Expired cache triggers a fresh API call.
 
@@ -83,6 +100,29 @@ class TestCaching:
         second = tablo_client.get_airings()
         assert first == second
         assert len(responses.calls) == 2  # noqa: PLR2004, Value here is more readable raw.
+
+    @responses.activate
+    def test_get_airings_uses_refreshed_cache(self, tablo_client: TabloClient) -> None:
+        """`get_airings()` returns cached data populated by a prior refresh."""
+        channel = make_channel(100, "WABC", 7, 1)
+        airing = make_episode_airing(500, "Show A", channel=channel)
+
+        responses.add(
+            responses.GET,
+            f"{BASE_URL}/guide/airings",
+            json=["/guide/series/episodes/500"],
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/series/episodes/500": airing},
+        )
+
+        tablo_client.refresh_airings()
+        result = tablo_client.get_airings()
+
+        assert result[0]["airing_details"]["show_title"] == "Show A"
+        assert len(responses.calls) == 2  # noqa: PLR2004, get_airings() used cache
 
     @responses.activate
     def test_get_airings_cache_expiry(self) -> None:

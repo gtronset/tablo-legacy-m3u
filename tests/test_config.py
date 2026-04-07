@@ -4,6 +4,7 @@ import os
 
 from collections.abc import Generator
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -52,6 +53,7 @@ class TestConfigDefaults:
         config = Config()
 
         assert config.environment == "production"
+        assert config.tz == ZoneInfo("UTC")
         assert config.is_dev is False
         assert config.log_level == DEFAULT_LOG_LEVEL
         assert not config.tablo_ip
@@ -363,3 +365,21 @@ class TestEnvInt:
         """When env var is absent, the default is returned without range validation."""
         monkeypatch.delenv("CHANNEL_REFRESH_INTERVAL", raising=False)
         assert _env_int("CHANNEL_REFRESH_INTERVAL", 900, min_val=0) == 900  # noqa: PLR2004, Value here is more readable raw.
+
+
+class TestEnvTz:
+    """Tests for the _env_tz helper."""
+
+    def test_loads_valid_timezone(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("TZ", "America/New_York")
+        config = load_config()
+        assert config.tz == ZoneInfo("America/New_York")
+
+    def test_raises_error_on_invalid_timezone(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("TZ", "Fake/Timezone")
+        with pytest.raises(
+            ValueError, match="Invalid timezone for TZ: 'Fake/Timezone'"
+        ):
+            load_config()

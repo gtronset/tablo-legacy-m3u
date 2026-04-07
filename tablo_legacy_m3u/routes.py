@@ -104,7 +104,6 @@ def index() -> str:
         version=__version__,
         enable_epg=app_state.enable_epg,
         schedulers=app_state.schedulers,
-        tz=config.tz,
     )
 
 

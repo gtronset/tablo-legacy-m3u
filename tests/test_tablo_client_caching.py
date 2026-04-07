@@ -1,5 +1,11 @@
 """Tests for TTL cache behavior in the Tablo API client."""
 
+import json
+import threading
+import time
+
+from typing import Any
+
 import responses
 
 from tablo_legacy_m3u.tablo_client import (
@@ -315,3 +321,89 @@ class TestCaching:
 
         assert first[0]["airing_details"]["show_title"] == "Show A"
         assert refreshed[0]["airing_details"]["show_title"] == "Show A Updated"
+
+
+class TestCoalescing:
+    """Tests for concurrent request coalescing via double-checked locking."""
+
+    @responses.activate
+    def test_get_channels_coalesces_concurrent_requests(
+        self, tablo_client: TabloClient
+    ) -> None:
+        """Concurrent cache misses trigger only one fetch; all get same result."""
+        fetch_entered = threading.Event()
+        proceed = threading.Event()
+
+        def slow_response(_request: Any) -> tuple[int, dict[str, str], str]:
+            fetch_entered.set()
+            proceed.wait(timeout=5)
+            return (200, {}, json.dumps(["/guide/channels/100"]))
+
+        responses.add_callback(
+            responses.GET, f"{BASE_URL}/guide/channels", callback=slow_response
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/channels/100": make_channel(100, "WABC", 7, 1)},
+        )
+
+        results: list[Any] = [None, None, None]
+
+        def fetch(index: int) -> None:
+            results[index] = tablo_client.get_channels()
+
+        threads = [threading.Thread(target=fetch, args=(i,)) for i in range(3)]
+        for t in threads:
+            t.start()
+
+        fetch_entered.wait(timeout=5)  # Thread 1 is mid-fetch, holding _fetch_lock
+        time.sleep(0.05)  # Let threads 2 & 3 reach the lock
+        proceed.set()
+
+        for t in threads:
+            t.join(timeout=5)
+
+        assert len(responses.calls) == 2  # noqa: PLR2004, 1 GET + 1 POST
+        assert all(r == results[0] for r in results)
+
+    @responses.activate
+    def test_get_airings_coalesces_concurrent_requests(
+        self, tablo_client: TabloClient
+    ) -> None:
+        """Concurrent cache misses trigger only one fetch; all get same result."""
+        fetch_entered = threading.Event()
+        proceed = threading.Event()
+
+        def slow_response(_request: Any) -> tuple[int, dict[str, str], str]:
+            fetch_entered.set()
+            proceed.wait(timeout=5)
+            return (200, {}, json.dumps(["/guide/series/episodes/500"]))
+
+        responses.add_callback(
+            responses.GET, f"{BASE_URL}/guide/airings", callback=slow_response
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE_URL}/batch",
+            json={"/guide/series/episodes/500": make_episode_airing(500, "Show A")},
+        )
+
+        results: list[Any] = [None, None, None]
+
+        def fetch(index: int) -> None:
+            results[index] = tablo_client.get_airings()
+
+        threads = [threading.Thread(target=fetch, args=(i,)) for i in range(3)]
+        for t in threads:
+            t.start()
+
+        fetch_entered.wait(timeout=5)
+        time.sleep(0.05)
+        proceed.set()
+
+        for t in threads:
+            t.join(timeout=5)
+
+        assert len(responses.calls) == 2  # noqa: PLR2004, 1 GET + 1 POST
+        assert all(r == results[0] for r in results)

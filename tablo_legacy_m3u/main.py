@@ -117,23 +117,27 @@ def _init_tablo(config: Config, app_state: AppState, logger: logging.Logger) -> 
             interval=PROBE_REFRESH_INTERVAL,
             task=lambda: _probe_device(app_state),
         )
-        probe_scheduler.warm_async()
         app_state.schedulers.append(probe_scheduler)
-        probe_scheduler.start()
 
         channel_scheduler = Scheduler(
             "channels", config.channel_refresh_interval, client.refresh_channels
         )
-        channel_scheduler.warm_async()
         app_state.schedulers.append(channel_scheduler)
-        channel_scheduler.start()
 
         if app_state.enable_epg:
             guide_scheduler = Scheduler(
                 "guide", config.guide_refresh_interval, client.refresh_airings
             )
-            guide_scheduler.warm_async()
             app_state.schedulers.append(guide_scheduler)
+
+        probe_scheduler.warm()
+        probe_scheduler.start()
+
+        channel_scheduler.warm()
+        channel_scheduler.start()
+
+        if app_state.enable_epg:
+            guide_scheduler.warm()
             guide_scheduler.start()
 
         # Phase: `READY`

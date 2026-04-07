@@ -104,6 +104,9 @@
                 font-weight: 400;
                 color: var(--color-muted);
             }
+            .meta.error {
+                color: var(--status-err);
+            }
             .pill {
                 display: inline-block;
                 font-size: 0.75rem;
@@ -259,6 +262,9 @@
                             <span class="pill pill-off">Stopped</span>
                         {% else %}
                             <span class="pill pill-off">Idle</span>
+                        {% endif %}
+                        {% if scheduler.last_error and scheduler.state.value in ("error", "retrying") %}
+                            <span class="meta error">{{ scheduler.last_error }}</span>
                         {% endif %}
                         {% if scheduler.last_success %}
                             <span class="meta"

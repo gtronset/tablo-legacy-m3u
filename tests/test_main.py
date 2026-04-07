@@ -5,16 +5,19 @@ import os
 
 from collections.abc import Callable
 from datetime import UTC
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tablo_legacy_m3u.app_state import AppState, InitPhase
+from tablo_legacy_m3u.app_state import AppState, DeviceStatus, InitPhase
 from tablo_legacy_m3u.config import Config
 from tablo_legacy_m3u.main import _init_tablo, _probe_device, _run_startup_probe, main
 from tablo_legacy_m3u.tablo_client import TabloServerBusyError
 from tests.conftest import TABLO_IP
+
+if TYPE_CHECKING:
+    from tablo_legacy_m3u.tablo_types import ServerInfo
 
 TEST_LOGGER: logging.Logger = logging.getLogger("test")
 
@@ -366,7 +369,7 @@ class TestProbeDevice:
     def test_returns_early_without_client(self) -> None:
         """Probe safely returns if tablo initializing is incomplete."""
         app_state = AppState()
-        _probe_device(app_state, TEST_LOGGER)
+        _probe_device(app_state)
         assert app_state.device_status.last_probe is None
 
     def test_fetches_and_updates_data(self) -> None:
@@ -380,23 +383,15 @@ class TestProbeDevice:
         mock_client.get_harddrives.return_value = ["drive1"]
         mock_client.get_guide_status.return_value = {"state": "normal"}
 
-        _probe_device(app_state, TEST_LOGGER)
+        _probe_device(app_state)
 
-        assert (
-            app_state.device_status.server_info
-            is mock_client.get_server_info.return_value
-        )
-        assert app_state.device_status.tuners is mock_client.get_tuners.return_value
-        assert (
-            app_state.device_status.harddrives
-            is mock_client.get_harddrives.return_value
-        )
-        assert (
-            app_state.device_status.guide_status
-            is mock_client.get_guide_status.return_value
-        )
-        assert app_state.device_status.error is None
-        assert app_state.device_status.last_probe is not None
+        status = app_state.device_status
+        assert status.server_info is mock_client.get_server_info.return_value
+        assert status.tuners is mock_client.get_tuners.return_value
+        assert status.harddrives is mock_client.get_harddrives.return_value
+        assert status.guide_status is mock_client.get_guide_status.return_value
+        assert status.error is None
+        assert status.last_probe is not None
 
     def test_catches_and_logs_exception(self) -> None:
         """Probe network errors update the state error but don't crash."""
@@ -404,21 +399,29 @@ class TestProbeDevice:
         mock_client = MagicMock()
         app_state.tablo_client = mock_client
 
+        existing_info = cast("ServerInfo", {"name": "Existing"})
+
+        app_state.device_status = DeviceStatus(server_info=existing_info)
         mock_client.get_server_info.side_effect = ConnectionError(
             "Tablo dropped off WiFi"
         )
 
-        _probe_device(app_state, TEST_LOGGER)
+        with pytest.raises(ConnectionError, match="Tablo dropped off WiFi"):
+            _probe_device(app_state)
 
-        assert app_state.device_status.error == "Tablo dropped off WiFi"
-        assert app_state.device_status.last_probe is not None
+        status = app_state.device_status
+        assert status.error == "Tablo dropped off WiFi"
+        assert status.last_probe is not None
+        assert status.server_info is existing_info
 
     def test_last_probe_stored_as_utc(self) -> None:
         """last_probe timestamp is always stored in UTC."""
         app_state = AppState()
-        app_state.tablo_client = MagicMock()
+        mock_client = MagicMock()
+        mock_client.get_guide_status.return_value = {"guide_seeded": True}
+        app_state.tablo_client = mock_client
 
-        _probe_device(app_state, TEST_LOGGER)
+        _probe_device(app_state)
 
         assert app_state.device_status.last_probe is not None
         assert app_state.device_status.last_probe.tzinfo is UTC
@@ -440,7 +443,7 @@ class TestProbeDevice:
             "download_progress": None,
         }
 
-        _probe_device(app_state, TEST_LOGGER)
+        _probe_device(app_state)
 
         assert app_state.device_status.last_guide_update is not None
         assert app_state.device_status.last_guide_update.year == test_year

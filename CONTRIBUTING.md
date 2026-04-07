@@ -38,6 +38,7 @@ docker compose -f docker-compose.dev.yaml up --build
 | `PORT`                     | `5004`       | Server port (1–65535). Defaults to standard HDHomeRun port.                       |
 | `LOG_LEVEL`                | `INFO`       | Logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`).                  |
 | `ENVIRONMENT`              | `production` | `development` for Flask dev server with reloader; `production` for `waitress`.    |
+| `TZ`                       | `UTC`        | IANA timezone for display timestamps (e.g. `America/Chicago`).                    |
 | `DEVICE_NAME`              | _(empty)_    | Override advertised device name ("FriendlyName").                                 |
 | `ENABLE_EPG`               | `true`       | Enable EPG generation (boolean).                                                  |
 | `CHANNEL_REFRESH_INTERVAL` | `86400`      | How often to refresh channel data, in seconds (default: 24 hours, minimum: 60).   |

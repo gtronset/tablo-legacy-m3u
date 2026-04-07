@@ -4,9 +4,9 @@ import logging
 import os
 
 from collections.abc import Callable
+from datetime import UTC
 from typing import cast
 from unittest.mock import MagicMock, patch
-from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -366,7 +366,7 @@ class TestProbeDevice:
     def test_returns_early_without_client(self) -> None:
         """Probe safely returns if tablo initializing is incomplete."""
         app_state = AppState()
-        _probe_device(app_state, ZoneInfo("UTC"), TEST_LOGGER)
+        _probe_device(app_state, TEST_LOGGER)
         assert app_state.device_status.last_probe is None
 
     def test_fetches_and_updates_data(self) -> None:
@@ -380,7 +380,7 @@ class TestProbeDevice:
         mock_client.get_harddrives.return_value = ["drive1"]
         mock_client.get_guide_status.return_value = {"state": "normal"}
 
-        _probe_device(app_state, ZoneInfo("UTC"), TEST_LOGGER)
+        _probe_device(app_state, TEST_LOGGER)
 
         assert (
             app_state.device_status.server_info
@@ -408,18 +408,41 @@ class TestProbeDevice:
             "Tablo dropped off WiFi"
         )
 
-        _probe_device(app_state, ZoneInfo("UTC"), TEST_LOGGER)
+        _probe_device(app_state, TEST_LOGGER)
 
         assert app_state.device_status.error == "Tablo dropped off WiFi"
         assert app_state.device_status.last_probe is not None
 
-    def test_last_probe_uses_configured_timezone(self) -> None:
-        """last_probe timestamp uses the provided timezone."""
+    def test_last_probe_stored_as_utc(self) -> None:
+        """last_probe timestamp is always stored in UTC."""
         app_state = AppState()
         app_state.tablo_client = MagicMock()
-        tz = ZoneInfo("America/Chicago")
 
-        _probe_device(app_state, tz, TEST_LOGGER)
+        _probe_device(app_state, TEST_LOGGER)
 
         assert app_state.device_status.last_probe is not None
-        assert app_state.device_status.last_probe.tzinfo == tz
+        assert app_state.device_status.last_probe.tzinfo is UTC
+
+    def test_parses_last_guide_update(self) -> None:
+        """Probe parses guide_status.last_update into a datetime."""
+        app_state = AppState()
+        mock_client = MagicMock()
+        app_state.tablo_client = mock_client
+
+        test_year = 2026
+        test_month = 4
+        test_day = 7
+
+        mock_client.get_guide_status.return_value = {
+            "guide_seeded": True,
+            "last_update": f"{test_year}-{test_month:02d}-{test_day:02d}T10:12:34Z",
+            "limit": f"{test_year}-{test_month:02d}-21",
+            "download_progress": None,
+        }
+
+        _probe_device(app_state, TEST_LOGGER)
+
+        assert app_state.device_status.last_guide_update is not None
+        assert app_state.device_status.last_guide_update.year == test_year
+        assert app_state.device_status.last_guide_update.month == test_month
+        assert app_state.device_status.last_guide_update.day == test_day

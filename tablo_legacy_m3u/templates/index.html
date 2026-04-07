@@ -4,6 +4,9 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{{ friendly_name }} — tablo-legacy-m3u</title>
+        {% if phase not in ("ready", "error") %}
+            <meta http-equiv="refresh" content="5">
+        {% endif %}
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap"
@@ -136,16 +139,16 @@
                     {% if scheduler.last_success %}
                         <br>
                         <small>Last refresh:
-                            <time datetime="{{ scheduler.last_success.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
-                                {{ scheduler.last_success.strftime("%Y-%m-%d %H:%M:%S UTC") }}
+                            <time datetime="{{ scheduler.last_success.astimezone(tz).strftime('%Y-%m-%dT%H:%M:%SZ') }}">
+                                {{ scheduler.last_success.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S %Z") }}
                             </time>
                         </small>
                     {% endif %}
                     {% if scheduler.next_run %}
                         <br>
                         <small>Next refresh:
-                            <time datetime="{{ scheduler.next_run.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
-                                {{ scheduler.next_run.strftime("%Y-%m-%d %H:%M:%S UTC") }}
+                            <time datetime="{{ scheduler.next_run.astimezone(tz).strftime('%Y-%m-%dT%H:%M:%SZ') }}">
+                                {{ scheduler.next_run.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S %Z") }}
                             </time>
                         </small>
                     {% endif %}
@@ -162,26 +165,62 @@
         {% if server_info %}
             <dl>
                 <dt>Name</dt>
-                <dd>
-                    {{ friendly_name }}
-                </dd>
+                <dd>{{ friendly_name }}</dd>
                 <dt>IP Address</dt>
-                <dd>
-                    {{ server_info.local_address }}
-                </dd>
+                <dd>{{ server_info.local_address }}</dd>
                 <dt>Model</dt>
-                <dd>
-                    {{ server_info.model.name }}
-                </dd>
+                <dd>{{ server_info.model.name }}</dd>
                 <dt>Firmware</dt>
-                <dd>
-                    {{ server_info.version }}
-                </dd>
+                <dd>{{ server_info.version }}</dd>
                 <dt>Tuners</dt>
-                <dd>
-                    {{ server_info.model.tuners }}
-                </dd>
+                <dd>{{ server_info.model.tuners }}</dd>
             </dl>
+            {% if device_status.tuners %}
+                <h2>Tuners</h2>
+                <dl>
+                    {% for tuner in device_status.tuners[:server_info.model.tuners] %}
+                        <dt>Tuner {{ loop.index }}</dt>
+                        <dd>
+                            {% if tuner.in_use and tuner.channel_identifier %}
+                                🔴 In use ({{ tuner.channel_identifier }})
+                            {% else %}
+                                🟢 Available
+                            {% endif %}
+                        </dd>
+                    {% endfor %}
+                </dl>
+            {% endif %}
+
+            {% if device_status.harddrives %}
+                <h2>Storage</h2>
+                <dl>
+                    {% for drive in device_status.harddrives %}
+                        <dt>{{ drive.name }}</dt>
+                        <dd>
+                            {% if drive.connected %}
+                                🟢 Connected — {{ ((drive.free / drive.size) * 100) | round(1) }}% free
+                            {% else %}
+                                🔴 Disconnected
+                            {% endif %}
+                        </dd>
+                    {% endfor %}
+                </dl>
+            {% endif %}
+
+            {% if device_status.guide_status %}
+                <h2>Guide</h2>
+                <dl>
+                    <dt>Seeded</dt>
+                    <dd>{{ "Yes" if device_status.guide_status.guide_seeded else "No" }}</dd>
+                    {% if device_status.last_guide_update %}
+                        <dt>Last Update</dt>
+                        <dd>{{ device_status.last_guide_update.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S %Z") }}</dd>
+                    {% endif %}
+                </dl>
+            {% endif %}
+            {% if device_status.last_probe %}
+                <p><small>Last probe: {{ device_status.last_probe.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S %Z") }}</small></p>
+            {% endif %}
         {% else %}
             <p>Connecting to Tablo device...</p>
         {% endif %}

@@ -6,7 +6,7 @@ import threading
 import time
 
 from collections.abc import Callable
-from datetime import datetime, tzinfo
+from datetime import UTC, datetime
 
 from flask import Flask
 from rich.logging import RichHandler
@@ -44,7 +44,7 @@ def _run_startup_probe[T](
     raise RuntimeError(msg)
 
 
-def _probe_device(app_state: AppState, tz: tzinfo, logger: logging.Logger) -> None:
+def _probe_device(app_state: AppState, logger: logging.Logger) -> None:
     """Periodically fetch health data from the Tablo and update device status."""
     client = app_state.tablo_client
     if client is None:
@@ -62,11 +62,16 @@ def _probe_device(app_state: AppState, tz: tzinfo, logger: logging.Logger) -> No
         app_state.device_status.guide_status = guide_status
         app_state.device_status.error = None
 
+        if guide_status and guide_status.get("last_update"):
+            app_state.device_status.last_guide_update = datetime.fromisoformat(
+                guide_status["last_update"]
+            )
+
     except Exception as exception:  # noqa: BLE001
         logger.warning("Device probe failed: %s", exception)
         app_state.device_status.error = str(exception)
     finally:
-        app_state.device_status.last_probe = datetime.now(tz=tz)
+        app_state.device_status.last_probe = datetime.now(tz=UTC)
 
 
 def _init_tablo(config: Config, app_state: AppState, logger: logging.Logger) -> None:
@@ -100,7 +105,7 @@ def _init_tablo(config: Config, app_state: AppState, logger: logging.Logger) -> 
         probe_scheduler = Scheduler(
             "probe",
             interval=60,
-            task=lambda: _probe_device(app_state, config.tz, logger),
+            task=lambda: _probe_device(app_state, logger),
         )
         probe_scheduler.warm_async()
         app_state.schedulers.append(probe_scheduler)

@@ -94,11 +94,14 @@ def index() -> str:
     return render_template(
         "index.html",
         friendly_name=friendly_name,
+        phase=app_state.phase,
         server_info=server_info,
+        device_status=app_state.device_status,
         base_url=base_url,
         version=__version__,
         enable_epg=app_state.enable_epg,
         schedulers=app_state.schedulers,
+        tz=config.tz,
     )
 
 

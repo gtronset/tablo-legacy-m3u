@@ -37,6 +37,7 @@ class DeviceStatus:
     tuners: list[TunerStatus] = field(default_factory=list)
     harddrives: list[HarddriveInfo] = field(default_factory=list)
     guide_status: GuideStatus | None = None
+    last_guide_update: datetime | None = None
     last_probe: datetime | None = None
     error: str | None = None
 

@@ -22,6 +22,8 @@ from tablo_legacy_m3u.tablo_client import (
     discover_tablo_ip,
 )
 
+PROBE_REFRESH_INTERVAL = 60  # seconds
+
 
 def _run_startup_probe[T](
     fn: Callable[[], T],
@@ -112,7 +114,7 @@ def _init_tablo(config: Config, app_state: AppState, logger: logging.Logger) -> 
 
         probe_scheduler = Scheduler(
             "probe",
-            interval=60,
+            interval=PROBE_REFRESH_INTERVAL,
             task=lambda: _probe_device(app_state),
         )
         probe_scheduler.warm_async()

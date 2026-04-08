@@ -1,5 +1,6 @@
 """Application initialization state and Tablo device status."""
 
+import contextlib
 import queue
 import threading
 
@@ -77,9 +78,10 @@ class AppState:
     def sse_subscribe(self) -> queue.Queue[str]:
         """Subscribe to SSE events.
 
-        Returns a queue that will receive published events.
+        Returns a bounded queue that will receive published events.
+        Events are dropped if the queue is full (stalled client).
         """
-        q: queue.Queue[str] = queue.Queue()
+        q: queue.Queue[str] = queue.Queue(maxsize=16)
         with self._sse_lock:
             self._sse_subscribers.add(q)
         return q
@@ -92,7 +94,9 @@ class AppState:
     def sse_publish(self, event: str) -> None:
         """Publish an SSE event to all subscribers."""
         with self._sse_lock:
-            for q in self._sse_subscribers:
+            subscribers = list(self._sse_subscribers)
+        for q in subscribers:
+            with contextlib.suppress(queue.Full):
                 q.put_nowait(event)
 
     def submit_tuner_refresh(self, task: Callable[[], None]) -> None:

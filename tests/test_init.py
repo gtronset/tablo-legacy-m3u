@@ -7,10 +7,11 @@ import pytest
 from flask.testing import FlaskClient
 
 from tablo_legacy_m3u.config import Config
+from tablo_legacy_m3u.routes import events
 
 
 class TestPartialCacheControl:
-    """Partial routes return Cache-Control: no-store."""
+    """Partial and `/events` routes return `Cache-Control: no-store`."""
 
     @pytest.mark.parametrize(
         "path",
@@ -20,6 +21,13 @@ class TestPartialCacheControl:
         resp = flask_client.get(path)
 
         assert resp.headers["Cache-Control"] == "no-store"
+
+    def test_events_no_store(self, flask_client: FlaskClient) -> None:
+        with flask_client.application.test_request_context("/events"):
+            resp = events()
+
+            assert resp.headers.get("Cache-Control") is None
+            resp.close()
 
 
 class TestAccessLogging:

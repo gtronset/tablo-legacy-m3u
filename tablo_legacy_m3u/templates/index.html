@@ -51,6 +51,8 @@
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                flex-wrap: wrap;
+                gap: 0.25rem;
             }
             h1 small {
                 font-size: 1rem;
@@ -78,6 +80,8 @@
                 justify-content: space-between;
                 align-items: baseline;
                 padding: 0.75rem 0;
+                gap: 0.5rem;
+                flex-wrap: wrap;
             }
             .row ~ .row, .row ~ div .row {
                 border-top: 1px solid var(--color-bg);
@@ -160,7 +164,7 @@
                 gap: 0.5rem;
             }
             .storage-track {
-                width: 5rem;
+                flex: 0 0 5rem;
                 height: 0.5rem;
                 background: #e8ecef;
                 border-radius: 999px;
@@ -188,6 +192,7 @@
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                flex-wrap: wrap;
             }
             .endpoints a + a {
                 border-top: 1px solid var(--color-bg);

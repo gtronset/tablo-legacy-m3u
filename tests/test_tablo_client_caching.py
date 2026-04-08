@@ -349,20 +349,29 @@ class TestCoalescing:
         )
 
         results: list[Any] = [None, None, None]
+        errors: list[BaseException | None] = [None, None, None]
 
         def fetch(index: int) -> None:
-            results[index] = tablo_client.get_channels()
+            try:
+                results[index] = tablo_client.get_channels()
+            except Exception as e:  # noqa: BLE001
+                errors[index] = e
 
         threads = [threading.Thread(target=fetch, args=(i,)) for i in range(3)]
         for t in threads:
             t.start()
 
-        fetch_entered.wait(timeout=5)  # Thread 1 is mid-fetch, holding _fetch_lock
+        assert fetch_entered.wait(
+            timeout=5
+        )  # Thread 1 is mid-fetch, holding _fetch_lock
         time.sleep(0.05)  # Let threads 2 & 3 reach the lock
         proceed.set()
 
         for t in threads:
             t.join(timeout=5)
+
+        assert not any(t.is_alive() for t in threads)
+        assert not any(errors), f"Worker thread raised: {errors}"
 
         assert len(responses.calls) == 2  # noqa: PLR2004, 1 GET + 1 POST
         assert all(r == results[0] for r in results)
@@ -390,20 +399,27 @@ class TestCoalescing:
         )
 
         results: list[Any] = [None, None, None]
+        errors: list[BaseException | None] = [None, None, None]
 
         def fetch(index: int) -> None:
-            results[index] = tablo_client.get_airings()
+            try:
+                results[index] = tablo_client.get_channels()
+            except Exception as e:  # noqa: BLE001
+                errors[index] = e
 
         threads = [threading.Thread(target=fetch, args=(i,)) for i in range(3)]
         for t in threads:
             t.start()
 
-        fetch_entered.wait(timeout=5)
+        assert fetch_entered.wait(timeout=5)
         time.sleep(0.05)
         proceed.set()
 
         for t in threads:
             t.join(timeout=5)
+
+        assert not any(t.is_alive() for t in threads)
+        assert not any(errors), f"Worker thread raised: {errors}"
 
         assert len(responses.calls) == 2  # noqa: PLR2004, 1 GET + 1 POST
         assert all(r == results[0] for r in results)

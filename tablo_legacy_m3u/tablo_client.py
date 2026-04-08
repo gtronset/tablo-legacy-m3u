@@ -1,10 +1,12 @@
 """HTTP client for the legacy Tablo device API.
 
-Channels and airings are cached in a shared TTL cache. `get_channels()` and
-`get_airings()` use double-checked locking to coalesce concurrent requests: only one
-thread fetches while others wait and receive the cached result.  `refresh_channels()`
-and `refresh_airings()` bypass the cache check and write fresh data directly, used by
-background schedulers for periodic refresh.
+Channels and airings are cached in a shared TTL cache. `get_channels()`,
+`get_airings()`, and `get_tuners()` use double-checked locking to coalesce concurrent
+requests: only one thread fetches while others wait and receive the cached result.
+`refresh_channels()`, `refresh_airings()`, and `refresh_tuners()` bypass the cache check
+and write fresh data directly. `refresh_channels()` and `refresh_airings()` are used
+by background schedulers for periodic refresh, while `refresh_tuners()` is used by
+request-driven paths such as `/watch` to refresh tuner state on demand.
 """
 
 import logging
@@ -48,6 +50,8 @@ TABLO_DISCOVERY_URL = "https://api.tablotv.com/assocserver/getipinfo/"
 REQUEST_TIMEOUT = 10
 RETRY_COUNT = 2
 
+TUNER_CACHE_TTL = 2
+
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +71,12 @@ class TabloServerBusyError(requests.HTTPError):
 class TabloClient:
     """Client for interacting with a legacy Tablo device."""
 
-    def __init__(self, tablo_ip: str, cache_ttl: int = DEFAULT_CACHE_TTL) -> None:
+    def __init__(
+        self,
+        tablo_ip: str,
+        cache_ttl: int = DEFAULT_CACHE_TTL,
+        tuner_cache_ttl: int = TUNER_CACHE_TTL,
+    ) -> None:
         """Initialize with a resolved Tablo IP address.
 
         For most API calls, each thread uses its own persistent HTTP session with
@@ -81,9 +90,13 @@ class TabloClient:
         self.base_url: str = f"http://{tablo_ip}:{TABLO_API_PORT}"
         self._cache: TTLCache[Hashable, Any] = TTLCache(maxsize=4, ttl=cache_ttl)
         self._cache_lock = threading.Lock()
+        self._tuner_cache: TTLCache[Hashable, Any] = TTLCache(
+            maxsize=1, ttl=tuner_cache_ttl
+        )
         self._fetch_locks: dict[str, threading.Lock] = {
             "channels": threading.Lock(),
             "airings": threading.Lock(),
+            "tuners": threading.Lock(),
         }
         self._local = threading.local()
         self._retry = Retry(
@@ -231,10 +244,43 @@ class TabloClient:
 
         return server_info
 
-    def get_tuners(self) -> list[TunerStatus]:
+    def _fetch_tuners(self) -> list[TunerStatus]:
         """Fetch tuner status from `/server/tuners`."""
         tuners: list[TunerStatus] = self._get("/server/tuners")
         return tuners
+
+    def get_tuners(self) -> list[TunerStatus]:
+        """Return cached tuner status, fetching with coalescing if needed."""
+        key = hashkey("tuners")
+
+        with self._cache_lock:
+            cached: list[TunerStatus] | None = self._tuner_cache.get(key)
+
+        if cached is not None:
+            return cached
+
+        with self._fetch_locks["tuners"]:
+            with self._cache_lock:
+                rechecked: list[TunerStatus] | None = self._tuner_cache.get(key)
+
+            if rechecked is not None:
+                return rechecked
+
+            tuners = self._fetch_tuners()
+            with self._cache_lock:
+                self._tuner_cache[key] = tuners
+
+            return tuners
+
+    def refresh_tuners(self) -> list[TunerStatus]:
+        """Fetch fresh tuner data and write directly into cache."""
+        with self._fetch_locks["tuners"]:
+            tuners = self._fetch_tuners()
+
+            with self._cache_lock:
+                self._tuner_cache[hashkey("tuners")] = tuners
+
+            return tuners
 
     def get_harddrives(self) -> list[HarddriveInfo]:
         """Fetch storage device info from `/server/harddrives`."""

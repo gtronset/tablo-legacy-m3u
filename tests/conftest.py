@@ -1,5 +1,6 @@
 """Pytest fixtures for testing."""
 
+from collections.abc import Generator
 from unittest.mock import MagicMock
 
 import pytest
@@ -57,15 +58,23 @@ def tablo_client() -> TabloClient:
 
 
 @pytest.fixture
+def app_state() -> Generator[AppState]:
+    """AppState with default values for testing."""
+    state = AppState()
+    yield state
+    state.shutdown_executor()
+
+
+@pytest.fixture
 def flask_client(
     request: pytest.FixtureRequest,
     server_info: ServerInfo,
     tablo_client_mock: MagicMock,
+    app_state: AppState,
 ) -> FlaskClient:
     """Flask test client with configurable app config."""
     config = getattr(request, "param", Config())
 
-    app_state = AppState()
     app_state.tablo_client = tablo_client_mock
     app_state.device_status.server_info = server_info
     app_state.enable_epg = True

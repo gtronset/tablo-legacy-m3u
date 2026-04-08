@@ -1,5 +1,9 @@
 """Tests for application initialization state."""
 
+import threading
+
+import pytest
+
 from tablo_legacy_m3u.app_state import AppState, DeviceStatus, InitPhase
 
 
@@ -84,3 +88,41 @@ class TestAppState:
         state2 = AppState()
 
         assert state1.device_status is not state2.device_status
+
+    def test_submit_tuner_refresh_executes_task(self) -> None:
+        state = AppState()
+        called = threading.Event()
+
+        state.submit_tuner_refresh(called.set)
+        state.drain_tuner_refresh()
+
+        assert called.is_set()
+
+    def test_submit_tuner_refresh_skips_if_pending(self) -> None:
+        state = AppState()
+        started = threading.Event()
+        proceed = threading.Event()
+        call_count = 0
+
+        def slow_task() -> None:
+            nonlocal call_count
+            call_count += 1
+            started.set()
+            proceed.wait(timeout=5)
+
+        state.submit_tuner_refresh(slow_task)
+        assert started.wait(timeout=5)
+
+        # Second submit should be skipped (first is still running)
+        state.submit_tuner_refresh(slow_task)
+        proceed.set()
+        state.drain_tuner_refresh()
+
+        assert call_count == 1
+
+    def test_shutdown_executor(self) -> None:
+        state = AppState()
+        state.shutdown_executor()
+
+        with pytest.raises(RuntimeError):
+            state.submit_tuner_refresh(lambda: None)

@@ -1,8 +1,8 @@
 """Route handlers for HDHomeRun-compatible endpoints."""
 
 import logging
-import threading
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from typing import TYPE_CHECKING
 
@@ -240,6 +240,9 @@ def xmltv() -> Response:
     )
 
 
+_tuner_refresh_executor = ThreadPoolExecutor(max_workers=1)
+
+
 def watch(channel_id: int) -> Response:
     """Redirect to a live stream for the given channel.
 
@@ -257,6 +260,6 @@ def watch(channel_id: int) -> Response:
         except Exception:
             logger.exception("Failed to refresh tuners after watch")
 
-    threading.Thread(target=_refresh_tuners, daemon=True).start()
+    _tuner_refresh_executor.submit(_refresh_tuners)
 
     return Response(status=302, headers={"Location": playlist_url})

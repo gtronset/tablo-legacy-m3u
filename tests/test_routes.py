@@ -10,6 +10,7 @@ from flask.testing import FlaskClient
 from tablo_legacy_m3u import create_app
 from tablo_legacy_m3u.app_state import AppState, InitPhase
 from tablo_legacy_m3u.config import Config
+from tablo_legacy_m3u.routes import _tuner_refresh_executor
 from tablo_legacy_m3u.tablo_types import ServerInfo
 from tests.helpers import make_channel, make_episode_airing
 
@@ -466,6 +467,7 @@ class TestWatch:
         tablo_client_mock.refresh_tuners.return_value = []
 
         flask_client.get("/watch/100")
+        _tuner_refresh_executor.submit(lambda: None).result(timeout=5)
 
         tablo_client_mock.refresh_tuners.assert_called_once()
 
@@ -492,6 +494,7 @@ class TestWatch:
 
         app = create_app(config=Config(), app_state=app_state)
         app.test_client().get("/watch/100")
+        _tuner_refresh_executor.submit(lambda: None).result(timeout=5)
 
         assert app_state.device_status.tuners == new_tuners
 
@@ -504,9 +507,10 @@ class TestWatch:
         )
 
         resp = flask_client.get("/watch/100")
+        _tuner_refresh_executor.submit(lambda: None).result(timeout=5)
 
         assert resp.status_code == HTTPStatus.FOUND
-        assert resp.headers["Location"] == f"http://{TABLO_IP}:18080/pvr/100/pl.m3u8"
+        assert resp.headers["Location"] == self.WATCH_URL
 
 
 class TestRequireReady:

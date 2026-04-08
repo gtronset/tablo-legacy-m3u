@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog], and this project adheres to [Semantic
 
 ## [Unreleased]
 
-## Changed
+### Changed
 
 - Refresh tuner status on watch with short-TTL coalesced cache <https://github.com/gtronset/tablo-legacy-m3u/pull/30>
 

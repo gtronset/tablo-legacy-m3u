@@ -6,15 +6,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog], and this project adheres to [Semantic Versioning].
 
-[Keep a Changelog]: https://keepachangelog.com/en/1.0.0/
+[Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
+
+## [1.1.0] - 2026-04-07
 
 ### Added
 
 - Add background scheduled refresh for channel and guide data <https://github.com/gtronset/tablo-legacy-m3u/pull/22>
 - Add dedicated/fallback `favicon.ico` <https://github.com/gtronset/tablo-legacy-m3u/pull/23>
+
+### Changed
+
 - Handle Tablo server_busy responses with retry hints <https://github.com/gtronset/tablo-legacy-m3u/pull/25>
 - Defer app initialization to accommodate Tablo being temporarily unavailable during
   startup <https://github.com/gtronset/tablo-legacy-m3u/pull/26>
@@ -51,6 +56,7 @@ The format is based on [Keep a Changelog], and this project adheres to [Semantic
 
 <!-- Release Links -->
 
-[unreleased]: https://github.com/gtronset/tablo-legacy-m3u/compare/v1.0.0...HEAD
+[unreleased]: https://github.com/gtronset/tablo-legacy-m3u/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/gtronset/tablo-legacy-m3u/releases/tag/v1.1.0
 [1.0.0]: https://github.com/gtronset/tablo-legacy-m3u/releases/tag/v1.0.0
 [0.1.0]: https://github.com/gtronset/tablo-legacy-m3u/releases/tag/v0.1.0

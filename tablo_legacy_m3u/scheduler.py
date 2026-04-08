@@ -85,7 +85,10 @@ class Scheduler:
         self._state = state
 
         if self._on_state_change:
-            self._on_state_change()
+            try:
+                self._on_state_change()
+            except Exception:
+                logger.exception("`on_state_change` callback failed for %r", self._name)
 
         return True
 

@@ -355,7 +355,7 @@ class TestInitTablo:
     @patch("tablo_legacy_m3u.main.Scheduler")
     @patch("tablo_legacy_m3u.main.TabloClient")
     @patch("tablo_legacy_m3u.main.discover_tablo_ip", return_value=TABLO_IP)
-    def test_stops_schedulers_on_warming_error(
+    def test_stops_schedulers_on_construction_error(
         self,
         mock_discover: MagicMock,
         mock_client_cls: MagicMock,

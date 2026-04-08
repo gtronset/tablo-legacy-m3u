@@ -120,7 +120,6 @@ def _init_tablo(config: Config, app_state: AppState, logger: logging.Logger) -> 
             "probe",
             interval=PROBE_REFRESH_INTERVAL,
             task=lambda: _probe_device(app_state),
-            on_state_change=lambda: app_state.sse_publish("probe"),
         )
         app_state.schedulers.append(probe_scheduler)
 

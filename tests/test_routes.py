@@ -475,7 +475,7 @@ class TestWatch:
 
     def test_updates_device_status_tuners_after_watch(
         self,
-        server_info: ServerInfo,
+        flask_client: FlaskClient,
         tablo_client_mock: MagicMock,
         app_state: AppState,
     ) -> None:
@@ -490,13 +490,7 @@ class TestWatch:
         tablo_client_mock.get_watch_url.return_value = self.WATCH_URL
         tablo_client_mock.refresh_tuners.return_value = new_tuners
 
-        app_state = AppState()
-        app_state.tablo_client = tablo_client_mock
-        app_state.device_status.server_info = server_info
-        app_state.set_phase(InitPhase.READY)
-
-        app = create_app(config=Config(), app_state=app_state)
-        app.test_client().get("/watch/100")
+        flask_client.get("/watch/100")
         app_state.drain_tuner_refresh()
 
         assert app_state.device_status.tuners == new_tuners

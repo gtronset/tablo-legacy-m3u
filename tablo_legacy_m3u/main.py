@@ -211,3 +211,5 @@ def main() -> None:
     finally:
         for scheduler in app_state.schedulers:
             scheduler.stop()
+
+        app_state.shutdown_executor()

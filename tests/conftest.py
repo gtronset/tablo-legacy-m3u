@@ -1,5 +1,6 @@
 """Pytest fixtures for testing."""
 
+from collections.abc import Generator
 from unittest.mock import MagicMock
 
 import pytest
@@ -57,9 +58,11 @@ def tablo_client() -> TabloClient:
 
 
 @pytest.fixture
-def app_state() -> AppState:
+def app_state() -> Generator[AppState]:
     """AppState with default values for testing."""
-    return AppState()
+    state = AppState()
+    yield state
+    state.shutdown_executor()
 
 
 @pytest.fixture

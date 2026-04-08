@@ -10,7 +10,6 @@ from flask.testing import FlaskClient
 from tablo_legacy_m3u import create_app
 from tablo_legacy_m3u.app_state import AppState, InitPhase
 from tablo_legacy_m3u.config import Config
-from tablo_legacy_m3u.routes import _tuner_refresh_executor
 from tablo_legacy_m3u.tablo_types import ServerInfo
 from tests.helpers import make_channel, make_episode_airing
 
@@ -461,13 +460,16 @@ class TestWatch:
         tablo_client_mock.get_watch_url.assert_called_once_with("/guide/channels/12345")
 
     def test_refreshes_tuners_after_watch(
-        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
+        self,
+        flask_client: FlaskClient,
+        tablo_client_mock: MagicMock,
+        app_state: AppState,
     ) -> None:
         tablo_client_mock.get_watch_url.return_value = self.WATCH_URL
         tablo_client_mock.refresh_tuners.return_value = []
 
         flask_client.get("/watch/100")
-        _tuner_refresh_executor.submit(lambda: None).result(timeout=5)
+        app_state.drain_tuner_refresh()
 
         tablo_client_mock.refresh_tuners.assert_called_once()
 
@@ -475,6 +477,7 @@ class TestWatch:
         self,
         server_info: ServerInfo,
         tablo_client_mock: MagicMock,
+        app_state: AppState,
     ) -> None:
         new_tuners = [
             {
@@ -494,12 +497,15 @@ class TestWatch:
 
         app = create_app(config=Config(), app_state=app_state)
         app.test_client().get("/watch/100")
-        _tuner_refresh_executor.submit(lambda: None).result(timeout=5)
+        app_state.drain_tuner_refresh()
 
         assert app_state.device_status.tuners == new_tuners
 
     def test_still_redirects_when_tuner_refresh_fails(
-        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
+        self,
+        flask_client: FlaskClient,
+        tablo_client_mock: MagicMock,
+        app_state: AppState,
     ) -> None:
         tablo_client_mock.get_watch_url.return_value = self.WATCH_URL
         tablo_client_mock.refresh_tuners.side_effect = ConnectionError(
@@ -507,7 +513,7 @@ class TestWatch:
         )
 
         resp = flask_client.get("/watch/100")
-        _tuner_refresh_executor.submit(lambda: None).result(timeout=5)
+        app_state.drain_tuner_refresh()
 
         assert resp.status_code == HTTPStatus.FOUND
         assert resp.headers["Location"] == self.WATCH_URL

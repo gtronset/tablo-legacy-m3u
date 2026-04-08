@@ -376,6 +376,20 @@ class TestInitTablo:
         assert app_state.error is not None
         assert "Scheduler creation failed" in app_state.error
 
+    @patch("tablo_legacy_m3u.main.discover_tablo_ip", side_effect=OSError("no device"))
+    def test_shuts_down_executor_on_failure(
+        self,
+        mock_discover: MagicMock,
+        init_tablo: InitTabloFn,
+    ) -> None:
+        """Tuner refresh executor is shut down when init fails."""
+        app_state = init_tablo()
+
+        assert app_state.phase == InitPhase.ERROR
+
+        with pytest.raises(RuntimeError):
+            app_state.submit_tuner_refresh(lambda: None)
+
 
 class TestStartupProbe:
     """Tests for the `_run_startup_probe` helper function."""

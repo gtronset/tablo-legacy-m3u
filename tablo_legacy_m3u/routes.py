@@ -2,7 +2,6 @@
 
 import logging
 
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from typing import TYPE_CHECKING
 
@@ -240,9 +239,6 @@ def xmltv() -> Response:
     )
 
 
-_tuner_refresh_executor = ThreadPoolExecutor(max_workers=1)
-
-
 def watch(channel_id: int) -> Response:
     """Redirect to a live stream for the given channel.
 
@@ -260,6 +256,6 @@ def watch(channel_id: int) -> Response:
         except Exception:
             logger.exception("Failed to refresh tuners after watch")
 
-    _tuner_refresh_executor.submit(_refresh_tuners)
+    app_state.submit_tuner_refresh(_refresh_tuners)
 
     return Response(status=302, headers={"Location": playlist_url})

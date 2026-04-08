@@ -2,6 +2,8 @@
 
 import threading
 
+from collections.abc import Callable
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
@@ -65,6 +67,21 @@ class AppState:
         self.schedulers: list[Scheduler] = []
         self.ready = threading.Event()
         self.error: str | None = None
+        self._tuner_executor: ThreadPoolExecutor = ThreadPoolExecutor(max_workers=1)
+        self._tuner_future: Future[None] | None = None
+
+    def submit_tuner_refresh(self, task: Callable[[], None]) -> None:
+        """Submit a tuner refresh, skipping if one is already pending."""
+        if self._tuner_future is None or self._tuner_future.done():
+            self._tuner_future = self._tuner_executor.submit(task)
+
+    def drain_tuner_refresh(self, timeout: float = 5) -> None:
+        """Block until any pending tuner refresh completes. For testing."""
+        self._tuner_executor.submit(lambda: None).result(timeout=timeout)
+
+    def shutdown_executor(self) -> None:
+        """Shut down the tuner refresh executor."""
+        self._tuner_executor.shutdown(cancel_futures=True)
 
     @property
     def phase(self) -> InitPhase:

@@ -149,6 +149,8 @@ def _init_tablo(config: Config, app_state: AppState, logger: logging.Logger) -> 
         for scheduler in app_state.schedulers:
             scheduler.stop()
 
+        app_state.shutdown_executor()
+
         app_state.set_phase(InitPhase.ERROR)
 
 

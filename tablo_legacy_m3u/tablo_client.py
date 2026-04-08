@@ -4,7 +4,9 @@ Channels and airings are cached in a shared TTL cache. `get_channels()`,
 `get_airings()`, and `get_tuners()` use double-checked locking to coalesce concurrent
 requests: only one thread fetches while others wait and receive the cached result.
 `refresh_channels()`, `refresh_airings()`, and `refresh_tuners()` bypass the cache check
-and write fresh data directly, used by background schedulers for periodic refresh.
+and write fresh data directly. `refresh_channels()` and `refresh_airings()` are used
+by background schedulers for periodic refresh, while `refresh_tuners()` is used by
+request-driven paths such as `/watch` to refresh tuner state on demand.
 """
 
 import logging

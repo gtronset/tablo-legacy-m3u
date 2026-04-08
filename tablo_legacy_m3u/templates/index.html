@@ -248,9 +248,9 @@
         <div class="card">
             <p class="card-header">Status</p>
             <div id="status-rows"
-                hx-get="/partials/status"
-                hx-trigger="sse:status, sse:probe"
-                hx-swap="innerHTML">{% include "_status_rows.html" %}</div>
+                 hx-get="/partials/status"
+                 hx-trigger="sse:status, sse:probe"
+                 hx-swap="innerHTML">{% include "_status_rows.html" %}</div>
         </div>
         <div class="card">
             <p class="card-header">Tablo Device</p>
@@ -268,9 +268,9 @@
                     <span class="value">{{ server_info.version }}</span>
                 </div>
                 <div id="tuners"
-                    hx-get="/partials/tuners"
-                    hx-trigger="sse:tuners, sse:probe"
-                    hx-swap="innerHTML">{% include "_tuners.html" %}</div>
+                     hx-get="/partials/tuners"
+                     hx-trigger="sse:tuners, sse:probe"
+                     hx-swap="innerHTML">{% include "_tuners.html" %}</div>
                 <div id="device-rows"
                      hx-get="/partials/device"
                      hx-trigger="sse:probe"

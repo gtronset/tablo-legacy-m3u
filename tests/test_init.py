@@ -9,6 +9,19 @@ from flask.testing import FlaskClient
 from tablo_legacy_m3u.config import Config
 
 
+class TestPartialCacheControl:
+    """Partial routes return Cache-Control: no-store."""
+
+    @pytest.mark.parametrize(
+        "path",
+        ["/partials/status", "/partials/tuners", "/partials/device"],
+    )
+    def test_no_store(self, flask_client: FlaskClient, path: str) -> None:
+        resp = flask_client.get(path)
+
+        assert resp.headers["Cache-Control"] == "no-store"
+
+
 class TestAccessLogging:
     """Tests for production access logging."""
 

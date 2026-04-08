@@ -34,6 +34,12 @@ def create_app(
 
     register_routes(app)
 
+    @app.after_request
+    def no_cache_partials(response: Response) -> Response:
+        if request.path.startswith("/partials/") or request.path == "/events":
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
     if not config.is_dev:
 
         @app.before_request

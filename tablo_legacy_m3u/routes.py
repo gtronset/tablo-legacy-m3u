@@ -1,7 +1,9 @@
 """Route handlers for HDHomeRun-compatible endpoints."""
 
 import logging
+import queue
 
+from collections.abc import Generator
 from dataclasses import replace
 from typing import TYPE_CHECKING
 
@@ -44,6 +46,8 @@ logger = logging.getLogger(__name__)
 def register_routes(app: Flask) -> None:
     """Register all route handlers on the Flask app."""
     register_filters(app)
+
+    app.add_url_rule("/events", view_func=events)
 
     app.add_url_rule("/", view_func=index)
     app.add_url_rule("/partials/status", view_func=partial_status)
@@ -142,6 +146,27 @@ def partial_device() -> str:
         "_device_rows.html",
         device_status=app_state.device_status,
     )
+
+
+def events() -> Response:
+    """SSE endpoint for server-sent events about status changes."""
+    app_state: AppState = current_app.config["APP_STATE"]
+    q = app_state.sse_subscribe()
+
+    def stream() -> Generator[str]:
+        try:
+            while True:
+                try:
+                    event = q.get(timeout=15)
+                    yield f"event: {event}\ndata:\n\n"
+                except queue.Empty:
+                    yield ": keepalive\n\n"
+        except GeneratorExit:
+            pass
+        finally:
+            app_state.sse_unsubscribe(q)
+
+    return Response(stream(), mimetype="text/event-stream")
 
 
 def favicon() -> Response:
@@ -285,6 +310,7 @@ def watch(channel_id: int) -> Response:
         try:
             tuners = tablo_client.refresh_tuners()
             app_state.device_status = replace(app_state.device_status, tuners=tuners)
+            app_state.sse_publish("tuners")
         except Exception:
             logger.exception("Failed to refresh tuners after watch")
 

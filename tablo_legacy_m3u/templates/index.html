@@ -224,7 +224,7 @@
             footer a:hover { color: var(--color-primary); }
         </style>
     </head>
-    <body>
+    <body hx-ext="sse" sse-connect="/events">
         {% macro endpoint(route, path, desc) %}
             <a href="{{ url_for(route) }}" target="_blank" rel="noopener">
                 <span class="path">{{ path }}
@@ -243,9 +243,9 @@
         <div class="card">
             <p class="card-header">Status</p>
             <div id="status-rows"
-                 hx-get="/partials/status"
-                 hx-trigger="every 10s"
-                 hx-swap="innerHTML">{% include "_status_rows.html" %}</div>
+                hx-get="/partials/status"
+                hx-trigger="sse:status, sse:probe"
+                hx-swap="innerHTML">{% include "_status_rows.html" %}</div>
         </div>
         <div class="card">
             <p class="card-header">Tablo Device</p>
@@ -263,12 +263,12 @@
                     <span class="value">{{ server_info.version }}</span>
                 </div>
                 <div id="tuners"
-                     hx-get="/partials/tuners"
-                     hx-trigger="every 3s"
-                     hx-swap="innerHTML">{% include "_tuners.html" %}</div>
+                    hx-get="/partials/tuners"
+                    hx-trigger="sse:tuners, sse:probe"
+                    hx-swap="innerHTML">{% include "_tuners.html" %}</div>
                 <div id="device-rows"
                      hx-get="/partials/device"
-                     hx-trigger="every 15s"
+                     hx-trigger="sse:probe"
                      hx-swap="innerHTML">{% include "_device_rows.html" %}</div>
             {% else %}
                 <div class="row">
@@ -296,6 +296,9 @@
         </footer>
         <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.js"
                 integrity="sha384-ezjq8118wdwdRMj+nX4bevEi+cDLTbhLAeFF688VK8tPDGeLUe0WoY2MZtSla72F"
+                crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/htmx-ext-sse@2.2.4"
+                integrity="sha384-A986SAtodyH8eg8x8irJnYUk7i9inVQqYigD6qZ9evobksGNIXfeFvDwLSHcp31N"
                 crossorigin="anonymous"></script>
     </body>
 </html>

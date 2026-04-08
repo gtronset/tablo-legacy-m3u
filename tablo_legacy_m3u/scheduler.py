@@ -34,6 +34,7 @@ class Scheduler:
         name: str,
         interval: int,
         task: Callable[[], object],
+        on_state_change: Callable[[], None] | None = None,
     ) -> None:
         """Create a scheduler that can run a task every 'interval' seconds."""
         self._name = name
@@ -45,6 +46,7 @@ class Scheduler:
         self._last_success: datetime | None = None
         self._next_run: datetime | None = None
         self._last_error: str | None = None
+        self._on_state_change = on_state_change
 
     @property
     def name(self) -> str:
@@ -81,6 +83,10 @@ class Scheduler:
         if self._stop_event.is_set():
             return False
         self._state = state
+
+        if self._on_state_change:
+            self._on_state_change()
+
         return True
 
     def warm(self) -> None:  # noqa: PLR0911

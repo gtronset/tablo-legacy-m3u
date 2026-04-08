@@ -21,6 +21,9 @@ if TYPE_CHECKING:
 
 TEST_LOGGER: logging.Logger = logging.getLogger("test")
 
+SCHEDULER_NAMES = ["probe", "channels", "guide"]
+SCHEDULER_NAMES_NO_EPG = ["probe", "channels"]
+
 type InitTabloFn = Callable[..., AppState]
 
 
@@ -177,6 +180,45 @@ class TestInitTablo:
         assert app_state.device_status.server_info is not None
         assert app_state.tablo_client is not None
 
+        sched_instance = mock_sched.return_value
+        assert sched_instance.warm.call_count == len(SCHEDULER_NAMES)
+        assert sched_instance.start.call_count == len(SCHEDULER_NAMES)
+        sched_instance.warm_async.assert_not_called()
+
+    @patch("tablo_legacy_m3u.main.Scheduler")
+    @patch("tablo_legacy_m3u.main.TabloClient")
+    @patch("tablo_legacy_m3u.main.discover_tablo_ip", return_value=TABLO_IP)
+    def test_sequential_warm_ordering(
+        self,
+        mock_discover: MagicMock,
+        mock_client_cls: MagicMock,
+        mock_sched: MagicMock,
+        init_tablo: InitTabloFn,
+    ) -> None:
+        """Schedulers warm and start sequentially: probe, channels, guide."""
+        mock_client_cls.return_value.has_guide_subscription.return_value = True
+
+        call_order: list[str] = []
+
+        def make_scheduler(name: str, *args: object, **kwargs: object) -> MagicMock:
+            m = MagicMock()
+            m.warm.side_effect = lambda: call_order.append(f"{name}.warm")
+            m.start.side_effect = lambda: call_order.append(f"{name}.start")
+            return m
+
+        mock_sched.side_effect = make_scheduler
+
+        init_tablo()
+
+        assert call_order == [
+            "probe.warm",
+            "probe.start",
+            "channels.warm",
+            "channels.start",
+            "guide.warm",
+            "guide.start",
+        ]
+
     @patch("tablo_legacy_m3u.main.time")
     @patch("tablo_legacy_m3u.main.TabloClient")
     @patch("tablo_legacy_m3u.main.discover_tablo_ip", return_value=TABLO_IP)
@@ -239,7 +281,7 @@ class TestInitTablo:
         init_tablo()
 
         names = [call.args[0] for call in mock_sched.call_args_list]
-        assert names == ["probe", "channels"]
+        assert names == SCHEDULER_NAMES_NO_EPG
 
     @patch("tablo_legacy_m3u.main.Scheduler")
     @patch("tablo_legacy_m3u.main.TabloClient")
@@ -259,7 +301,7 @@ class TestInitTablo:
         )
 
         names = [call.args[0] for call in mock_sched.call_args_list]
-        assert names == ["probe", "channels"]
+        assert names == SCHEDULER_NAMES_NO_EPG
 
     @patch("tablo_legacy_m3u.main.Scheduler")
     @patch("tablo_legacy_m3u.main.TabloClient")
@@ -277,8 +319,8 @@ class TestInitTablo:
         app_state = init_tablo()
 
         names = [call.args[0] for call in mock_sched.call_args_list]
-        assert names == ["probe", "channels", "guide"]
-        assert len(app_state.schedulers) == 3  # noqa: PLR2004, Value here is more readable raw.
+        assert names == SCHEDULER_NAMES
+        assert len(app_state.schedulers) == len(SCHEDULER_NAMES)
 
     @patch("tablo_legacy_m3u.main.Scheduler")
     @patch("tablo_legacy_m3u.main.TabloClient")
@@ -313,17 +355,17 @@ class TestInitTablo:
     @patch("tablo_legacy_m3u.main.Scheduler")
     @patch("tablo_legacy_m3u.main.TabloClient")
     @patch("tablo_legacy_m3u.main.discover_tablo_ip", return_value=TABLO_IP)
-    def test_stops_schedulers_on_warming_error(
+    def test_stops_schedulers_on_construction_error(
         self,
         mock_discover: MagicMock,
         mock_client_cls: MagicMock,
         mock_sched: MagicMock,
         init_tablo: InitTabloFn,
     ) -> None:
-        """Schedulers are stopped if init fails during WARMING phase."""
+        """Schedulers are stopped if a later scheduler fails to construct."""
         mock_client_cls.return_value.has_guide_subscription.return_value = True
 
-        mock_sched.side_effect = [MagicMock(), Exception("Guide scheduler failed")]
+        mock_sched.side_effect = [MagicMock(), Exception("Scheduler creation failed")]
 
         app_state = init_tablo()
 
@@ -332,7 +374,7 @@ class TestInitTablo:
         cast("MagicMock", app_state.schedulers[0]).stop.assert_called_once()
 
         assert app_state.error is not None
-        assert "Guide scheduler failed" in app_state.error
+        assert "Scheduler creation failed" in app_state.error
 
 
 class TestStartupProbe:

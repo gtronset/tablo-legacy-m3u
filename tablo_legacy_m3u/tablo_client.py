@@ -1,4 +1,11 @@
-"""HTTP client for the legacy Tablo device API."""
+"""HTTP client for the legacy Tablo device API.
+
+Channels and airings are cached in a shared TTL cache. `get_channels()` and
+`get_airings()` use double-checked locking to coalesce concurrent requests: only one
+thread fetches while others wait and receive the cached result.  `refresh_channels()`
+and `refresh_airings()` bypass the cache check and write fresh data directly, used by
+background schedulers for periodic refresh.
+"""
 
 import logging
 import threading
@@ -8,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 
 import requests
 
-from cachetools import TTLCache, cachedmethod
+from cachetools import TTLCache
 from cachetools.keys import hashkey
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -32,7 +39,7 @@ if TYPE_CHECKING:
 
 # Batching parameters for fetching channels and airings
 BATCH_SIZE = 50
-MAX_CONCURRENT_BATCHES = 5
+MAX_CONCURRENT_BATCHES = 3
 
 # Tablo API ports
 TABLO_API_PORT = 8885
@@ -74,6 +81,10 @@ class TabloClient:
         self.base_url: str = f"http://{tablo_ip}:{TABLO_API_PORT}"
         self._cache: TTLCache[Hashable, Any] = TTLCache(maxsize=4, ttl=cache_ttl)
         self._cache_lock = threading.Lock()
+        self._fetch_locks: dict[str, threading.Lock] = {
+            "channels": threading.Lock(),
+            "airings": threading.Lock(),
+        }
         self._local = threading.local()
         self._retry = Retry(
             total=RETRY_COUNT,
@@ -154,21 +165,18 @@ class TabloClient:
 
         return results
 
-    # TODO(gtronset): Improve with a replace-in-place refresh.
-    # https://github.com/gtronset/tablo-legacy-m3u/pull/22
     def refresh_channels(self) -> list[Channel]:
-        """Force a fresh fetch of channel data."""
-        with self._cache_lock:
-            self._cache.pop(hashkey("channels"), None)
-        return self.get_channels()
+        """Fetch fresh channel data and write directly into cache."""
+        with self._fetch_locks["channels"]:
+            channels = self._fetch_channels()
 
-    @cachedmethod(
-        lambda self: self._cache,
-        key=lambda _self: hashkey("channels"),
-        lock=lambda self: self._cache_lock,
-    )
-    def get_channels(self) -> list[Channel]:
-        """Fetch all channel details from the Tablo.
+            with self._cache_lock:
+                self._cache[hashkey("channels")] = channels
+
+            return channels
+
+    def _fetch_channels(self) -> list[Channel]:
+        """Fetch channel data from the Tablo API.
 
         First GETs the channel path list, then hydrates via POST `/batch`.
         """
@@ -185,6 +193,29 @@ class TabloClient:
         logger.debug("Hydrated %d channels", len(channels))
 
         return channels
+
+    def get_channels(self) -> list[Channel]:
+        """Return cached channels, fetching with coalescing if needed."""
+        key = hashkey("channels")
+
+        with self._cache_lock:
+            cached: list[Channel] | None = self._cache.get(key)
+
+        if cached is not None:
+            return cached
+
+        with self._fetch_locks["channels"]:
+            with self._cache_lock:
+                rechecked: list[Channel] | None = self._cache.get(key)
+
+            if rechecked is not None:
+                return rechecked
+
+            channels = self._fetch_channels()
+            with self._cache_lock:
+                self._cache[key] = channels
+
+            return channels
 
     def get_server_info(self) -> ServerInfo:
         """Fetch device info from `/server/info`."""
@@ -255,24 +286,8 @@ class TabloClient:
 
         return data["playlist_url"]
 
-    # TODO(gtronset): Improve with a replace-in-place refresh.
-    # https://github.com/gtronset/tablo-legacy-m3u/pull/22
-    def refresh_airings(self) -> list[Airing]:
-        """Force a fresh fetch of airing data."""
-        with self._cache_lock:
-            self._cache.pop(hashkey("airings"), None)
-        return self.get_airings()
-
-    @cachedmethod(
-        lambda self: self._cache,
-        key=lambda _self: hashkey("airings"),
-        lock=lambda self: self._cache_lock,
-    )
-    def get_airings(self) -> list[Airing]:
-        """Fetch all upcoming guide airings from the Tablo.
-
-        First GETs the airing path list, then hydrates via POST `/batch`.
-        """
+    def _fetch_airings(self) -> list[Airing]:
+        """Fetch all upcoming guide airings from the Tablo."""
         paths: list[str] = self._get("/guide/airings")
         logger.debug("Found %d airing paths", len(paths))
 
@@ -286,6 +301,39 @@ class TabloClient:
         logger.debug("Hydrated %d airings", len(airings))
 
         return airings
+
+    def get_airings(self) -> list[Airing]:
+        """Return cached airings, fetching with coalescing if needed."""
+        key = hashkey("airings")
+
+        with self._cache_lock:
+            cached: list[Airing] | None = self._cache.get(key)
+
+        if cached is not None:
+            return cached
+
+        with self._fetch_locks["airings"]:
+            with self._cache_lock:
+                rechecked: list[Airing] | None = self._cache.get(key)
+
+            if rechecked is not None:
+                return rechecked
+
+            airings = self._fetch_airings()
+            with self._cache_lock:
+                self._cache[key] = airings
+
+            return airings
+
+    def refresh_airings(self) -> list[Airing]:
+        """Fetch fresh airing data and write directly into cache."""
+        with self._fetch_locks["airings"]:
+            airings = self._fetch_airings()
+
+            with self._cache_lock:
+                self._cache[hashkey("airings")] = airings
+
+            return airings
 
 
 def discover_tablo_ip(autodiscover: bool, tablo_ip: str) -> str:

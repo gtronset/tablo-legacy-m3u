@@ -12,6 +12,16 @@ from tablo_legacy_m3u.scheduler import Scheduler
 from tablo_legacy_m3u.tablo_types import ServerInfo
 
 
+class TestEvents:
+    """Tests for GET `/events`."""
+
+    def test_returns_event_stream_content_type(self, flask_client: FlaskClient) -> None:
+        resp = flask_client.get("/events")
+
+        assert resp.status_code == HTTPStatus.OK
+        assert "text/event-stream" in resp.content_type
+
+
 class TestPartialStatus:
     """Tests for GET `/partials/status`."""
 

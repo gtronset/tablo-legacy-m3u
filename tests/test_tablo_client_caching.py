@@ -403,7 +403,7 @@ class TestCoalescing:
 
         def fetch(index: int) -> None:
             try:
-                results[index] = tablo_client.get_channels()
+                results[index] = tablo_client.get_airings()
             except Exception as e:  # noqa: BLE001
                 errors[index] = e
 

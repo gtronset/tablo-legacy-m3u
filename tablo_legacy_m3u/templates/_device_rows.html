@@ -1,0 +1,42 @@
+{% if device_status.harddrives %}
+    {% for drive in device_status.harddrives %}
+        <div class="row">
+            <span class="label">Storage</span>
+            <span class="value">
+                {% if drive.connected %}
+                    {% set pct_used = ((drive.usage / drive.size) * 100) | round(1) %}
+                    <span class="storage-bar">
+                        <span class="storage-text">{{ (100 - pct_used) | round(1) }}% free</span>
+                        <span class="storage-track">
+                            <span class="storage-fill {% if pct_used > 90 %}crit{% elif pct_used > 75 %}warn{% endif %}"
+                                  style="width: {{ pct_used }}%"></span>
+                        </span>
+                    </span>
+                {% else %}
+                    <span class="pill pill-err">Disconnected</span>
+                {% endif %}
+            </span>
+        </div>
+    {% endfor %}
+{% endif %}
+{% if device_status.guide_status %}
+    <div class="row">
+        <span class="label">Guide</span>
+        <span class="value">
+            {% if device_status.guide_status.guide_seeded %}
+                <span class="pill pill-ok">Seeded</span>
+            {% else %}
+                <span class="pill pill-warn">Not seeded</span>
+            {% endif %}
+            {% if device_status.last_guide_update %}
+                <span class="meta">Updated {{ device_status.last_guide_update | localtime(tz) }}</span>
+            {% endif %}
+        </span>
+    </div>
+{% endif %}
+{% if device_status.last_probe %}
+    <div class="row">
+        <span class="label">Last probe</span>
+        <span class="value meta">{{ device_status.last_probe | localtime(tz) }}</span>
+    </div>
+{% endif %}

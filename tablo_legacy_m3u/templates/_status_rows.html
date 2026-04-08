@@ -1,0 +1,37 @@
+<div class="row">
+    <span class="label">Server</span>
+    <span class="value"><span class="pill pill-ok">Running</span></span>
+</div>
+{% for scheduler in schedulers %}
+    <div class="row">
+        <span class="label">{{ scheduler.name | capitalize }}</span>
+        <span class="value">
+            {% if scheduler.state.value == "ready" %}
+                <span class="pill pill-ok">Ready</span>
+            {% elif scheduler.state.value == "warming" %}
+                <span class="pill pill-wait">Warming</span>
+            {% elif scheduler.state.value == "retrying" %}
+                <span class="pill pill-warn">Retrying</span>
+            {% elif scheduler.state.value == "error" %}
+                <span class="pill pill-err">Error</span>
+            {% elif scheduler.state.value == "stopped" %}
+                <span class="pill pill-off">Stopped</span>
+            {% else %}
+                <span class="pill pill-off">Idle</span>
+            {% endif %}
+            {% if scheduler.last_error and scheduler.state.value in ("error", "retrying") %}
+                <span class="meta error">{{ scheduler.last_error }}</span>
+            {% endif %}
+            {% if scheduler.last_success %}
+                <span class="meta"
+                      {% if scheduler.next_run %}title="Next run: {{ scheduler.next_run | localtime(tz) }}"{% endif %}>{{ scheduler.last_success | localtime(tz) }}</span>
+            {% endif %}
+        </span>
+    </div>
+{% endfor %}
+{% if not enable_epg %}
+    <div class="row">
+        <span class="label">Guide</span>
+        <span class="value"><span class="pill pill-warn">EPG Disabled</span></span>
+    </div>
+{% endif %}

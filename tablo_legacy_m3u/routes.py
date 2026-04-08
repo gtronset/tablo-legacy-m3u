@@ -18,7 +18,7 @@ from flask import (
 )
 
 from tablo_legacy_m3u._version import __version__
-from tablo_legacy_m3u.app_state import AppState
+from tablo_legacy_m3u.app_state import AppState, InitPhase
 from tablo_legacy_m3u.discover import device_info, generate_device_xml
 from tablo_legacy_m3u.epg import generate_xmltv
 from tablo_legacy_m3u.filters import register_filters
@@ -84,6 +84,16 @@ def _require_ready() -> AppState:
     return app_state
 
 
+def _require_initialized() -> AppState:
+    """Return app_state if past connecting phase, else abort 503."""
+    app_state: AppState = current_app.config["APP_STATE"]
+
+    if app_state.phase in {InitPhase.DISCOVERING, InitPhase.CONNECTING}:
+        abort(503, description=f"Initializing ({app_state.phase})")
+
+    return app_state
+
+
 def _require_client(app_state: AppState) -> TabloClient:
     """Return the Tablo client if initialized, else abort 503."""
     tablo_client = app_state.tablo_client
@@ -121,7 +131,7 @@ def index() -> str:
 
 def partial_status() -> str:
     """Return status rows fragment for HTMX polling."""
-    app_state = _require_ready()
+    app_state = _require_initialized()
     return render_template(
         "_status_rows.html",
         schedulers=app_state.schedulers,
@@ -131,7 +141,7 @@ def partial_status() -> str:
 
 def partial_tuners() -> str:
     """Return tuner dots fragment for HTMX polling."""
-    app_state = _require_ready()
+    app_state = _require_initialized()
     return render_template(
         "_tuners.html",
         device_status=app_state.device_status,
@@ -141,7 +151,7 @@ def partial_tuners() -> str:
 
 def partial_device() -> str:
     """Return device rows fragment for HTMX polling."""
-    app_state = _require_ready()
+    app_state = _require_initialized()
     return render_template(
         "_device_rows.html",
         device_status=app_state.device_status,

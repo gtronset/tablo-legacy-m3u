@@ -361,8 +361,13 @@ class TestCaching:
         assert len(responses.calls) == 1
 
     @responses.activate
-    def test_get_tuners_cache_expiry(self, tablo_client: TabloClient) -> None:
-        """Expired tuner cache triggers a fresh API call."""
+    def test_get_tuners_cache_expiry(self) -> None:
+        """Expired tuner cache triggers a fresh API call.
+
+        Sets `tuner_cache_ttl=0` to force immediate expiry.
+        """
+        tablo = TabloClient(TABLO_IP, tuner_cache_ttl=0)
+
         tuners = [
             {
                 "in_use": False,
@@ -374,9 +379,8 @@ class TestCaching:
         responses.add(responses.GET, f"{BASE_URL}/server/tuners", json=tuners)
         responses.add(responses.GET, f"{BASE_URL}/server/tuners", json=tuners)
 
-        tablo_client.get_tuners()
-        tablo_client._tuner_cache.clear()
-        tablo_client.get_tuners()
+        tablo.get_tuners()
+        tablo.get_tuners()
 
         assert len(responses.calls) == 2  # noqa: PLR2004
 

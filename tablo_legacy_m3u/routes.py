@@ -1,6 +1,7 @@
 """Route handlers for HDHomeRun-compatible endpoints."""
 
 import logging
+import threading
 
 from dataclasses import replace
 from typing import TYPE_CHECKING
@@ -242,17 +243,20 @@ def xmltv() -> Response:
 def watch(channel_id: int) -> Response:
     """Redirect to a live stream for the given channel.
 
-    Refreshes tuner status so the status page reflects the new stream.
+    Refreshes tuner status in the background so the status page reflects the new stream.
     """
     app_state: AppState = _require_ready()
     tablo_client = _require_client(app_state)
     channel_path = f"/guide/channels/{channel_id}"
     playlist_url = tablo_client.get_watch_url(channel_path)
 
-    try:
-        tuners = tablo_client.refresh_tuners()
-        app_state.device_status = replace(app_state.device_status, tuners=tuners)
-    except Exception:
-        logger.exception("Failed to refresh tuners after watch")
+    def _refresh_tuners() -> None:
+        try:
+            tuners = tablo_client.refresh_tuners()
+            app_state.device_status = replace(app_state.device_status, tuners=tuners)
+        except Exception:
+            logger.exception("Failed to refresh tuners after watch")
+
+    threading.Thread(target=_refresh_tuners, daemon=True).start()
 
     return Response(status=302, headers={"Location": playlist_url})

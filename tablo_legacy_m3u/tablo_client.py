@@ -69,7 +69,12 @@ class TabloServerBusyError(requests.HTTPError):
 class TabloClient:
     """Client for interacting with a legacy Tablo device."""
 
-    def __init__(self, tablo_ip: str, cache_ttl: int = DEFAULT_CACHE_TTL) -> None:
+    def __init__(
+        self,
+        tablo_ip: str,
+        cache_ttl: int = DEFAULT_CACHE_TTL,
+        tuner_cache_ttl: int = TUNER_CACHE_TTL,
+    ) -> None:
         """Initialize with a resolved Tablo IP address.
 
         For most API calls, each thread uses its own persistent HTTP session with
@@ -84,7 +89,7 @@ class TabloClient:
         self._cache: TTLCache[Hashable, Any] = TTLCache(maxsize=4, ttl=cache_ttl)
         self._cache_lock = threading.Lock()
         self._tuner_cache: TTLCache[Hashable, Any] = TTLCache(
-            maxsize=1, ttl=TUNER_CACHE_TTL
+            maxsize=1, ttl=tuner_cache_ttl
         )
         self._fetch_locks: dict[str, threading.Lock] = {
             "channels": threading.Lock(),

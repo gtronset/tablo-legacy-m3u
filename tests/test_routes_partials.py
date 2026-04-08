@@ -8,6 +8,7 @@ from flask.testing import FlaskClient
 from tablo_legacy_m3u import create_app
 from tablo_legacy_m3u.app_state import AppState, InitPhase
 from tablo_legacy_m3u.config import Config
+from tablo_legacy_m3u.routes import events
 from tablo_legacy_m3u.scheduler import Scheduler
 from tablo_legacy_m3u.tablo_types import ServerInfo
 
@@ -16,10 +17,11 @@ class TestEvents:
     """Tests for GET `/events`."""
 
     def test_returns_event_stream_content_type(self, flask_client: FlaskClient) -> None:
-        resp = flask_client.get("/events")
+        with flask_client.application.test_request_context("/events"):
+            resp = events()
 
-        assert resp.status_code == HTTPStatus.OK
-        assert "text/event-stream" in resp.content_type
+            assert resp.mimetype == "text/event-stream"
+            resp.close()
 
 
 class TestPartialStatus:

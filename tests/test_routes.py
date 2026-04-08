@@ -438,26 +438,75 @@ class TestLineupStatus:
 class TestWatch:
     """Tests for GET `/watch/<channel_id>`."""
 
+    WATCH_URL = f"http://{TABLO_IP}:18080/pvr/100/pl.m3u8"
+
     def test_redirects_to_playlist_url(
         self, flask_client: FlaskClient, tablo_client_mock: MagicMock
     ) -> None:
-        tablo_client_mock.get_watch_url.return_value = (
-            f"http://{TABLO_IP}:18080/pvr/100/pl.m3u8"
+        tablo_client_mock.get_watch_url.return_value = self.WATCH_URL
+
+        resp = flask_client.get("/watch/100")
+
+        assert resp.status_code == HTTPStatus.FOUND
+        assert resp.headers["Location"] == self.WATCH_URL
+
+    def test_calls_get_watch_url_with_channel_path(
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
+    ) -> None:
+        tablo_client_mock.get_watch_url.return_value = self.WATCH_URL
+
+        flask_client.get("/watch/12345")
+
+        tablo_client_mock.get_watch_url.assert_called_once_with("/guide/channels/12345")
+
+    def test_refreshes_tuners_after_watch(
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
+    ) -> None:
+        tablo_client_mock.get_watch_url.return_value = self.WATCH_URL
+        tablo_client_mock.refresh_tuners.return_value = []
+
+        flask_client.get("/watch/100")
+
+        tablo_client_mock.refresh_tuners.assert_called_once()
+
+    def test_updates_device_status_tuners_after_watch(
+        self,
+        server_info: ServerInfo,
+        tablo_client_mock: MagicMock,
+    ) -> None:
+        new_tuners = [
+            {
+                "in_use": True,
+                "channel": "/guide/channels/100",
+                "recording": None,
+                "channel_identifier": "7.1",
+            }
+        ]
+        tablo_client_mock.get_watch_url.return_value = self.WATCH_URL
+        tablo_client_mock.refresh_tuners.return_value = new_tuners
+
+        app_state = AppState()
+        app_state.tablo_client = tablo_client_mock
+        app_state.device_status.server_info = server_info
+        app_state.set_phase(InitPhase.READY)
+
+        app = create_app(config=Config(), app_state=app_state)
+        app.test_client().get("/watch/100")
+
+        assert app_state.device_status.tuners == new_tuners
+
+    def test_still_redirects_when_tuner_refresh_fails(
+        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
+    ) -> None:
+        tablo_client_mock.get_watch_url.return_value = self.WATCH_URL
+        tablo_client_mock.refresh_tuners.side_effect = ConnectionError(
+            "Tablo unreachable"
         )
 
         resp = flask_client.get("/watch/100")
 
         assert resp.status_code == HTTPStatus.FOUND
         assert resp.headers["Location"] == f"http://{TABLO_IP}:18080/pvr/100/pl.m3u8"
-
-    def test_calls_get_watch_url_with_channel_path(
-        self, flask_client: FlaskClient, tablo_client_mock: MagicMock
-    ) -> None:
-        tablo_client_mock.get_watch_url.return_value = "http://example.com/stream.m3u8"
-
-        flask_client.get("/watch/12345")
-
-        tablo_client_mock.get_watch_url.assert_called_once_with("/guide/channels/12345")
 
 
 class TestRequireReady:

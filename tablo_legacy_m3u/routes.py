@@ -1,5 +1,8 @@
 """Route handlers for HDHomeRun-compatible endpoints."""
 
+import logging
+
+from dataclasses import replace
 from typing import TYPE_CHECKING
 
 from flask import (
@@ -34,6 +37,8 @@ TABLO_DEFAULT_DEVICE_NAME = "Tablo"
 XML_MIMETYPE = "application/xml"
 M3U_MIMETYPE = "application/x-mpegurl"
 UTF8_CHARSET = "utf-8"
+
+logger = logging.getLogger(__name__)
 
 
 def register_routes(app: Flask) -> None:
@@ -235,13 +240,19 @@ def xmltv() -> Response:
 
 
 def watch(channel_id: int) -> Response:
-    """Redirect to a live stream for the given channel."""
+    """Redirect to a live stream for the given channel.
+
+    Refreshes tuner status so the status page reflects the new stream.
+    """
     app_state: AppState = _require_ready()
-
     tablo_client = _require_client(app_state)
-
     channel_path = f"/guide/channels/{channel_id}"
-
     playlist_url = tablo_client.get_watch_url(channel_path)
+
+    try:
+        tuners = tablo_client.refresh_tuners()
+        app_state.device_status = replace(app_state.device_status, tuners=tuners)
+    except Exception:
+        logger.exception("Failed to refresh tuners after watch")
 
     return Response(status=302, headers={"Location": playlist_url})

@@ -132,6 +132,7 @@ def index() -> str:
 def partial_status() -> str:
     """Return status rows fragment for HTMX polling."""
     app_state = _require_initialized()
+
     return render_template(
         "_status_rows.html",
         schedulers=app_state.schedulers,
@@ -142,6 +143,11 @@ def partial_status() -> str:
 def partial_tuners() -> str:
     """Return tuner dots fragment for HTMX polling."""
     app_state = _require_initialized()
+    server_info = app_state.device_status.server_info
+
+    if server_info is None:
+        return ""
+
     return render_template(
         "_tuners.html",
         device_status=app_state.device_status,
@@ -152,6 +158,7 @@ def partial_tuners() -> str:
 def partial_device() -> str:
     """Return device rows fragment for HTMX polling."""
     app_state = _require_initialized()
+
     return render_template(
         "_device_rows.html",
         device_status=app_state.device_status,

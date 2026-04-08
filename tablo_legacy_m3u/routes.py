@@ -46,6 +46,9 @@ def register_routes(app: Flask) -> None:
     register_filters(app)
 
     app.add_url_rule("/", view_func=index)
+    app.add_url_rule("/partials/status", view_func=partial_status)
+    app.add_url_rule("/partials/tuners", view_func=partial_tuners)
+    app.add_url_rule("/partials/device", view_func=partial_device)
 
     app.add_url_rule("/favicon.ico", view_func=favicon)
 
@@ -109,6 +112,35 @@ def index() -> str:
         version=__version__,
         enable_epg=app_state.enable_epg,
         schedulers=app_state.schedulers,
+    )
+
+
+def partial_status() -> str:
+    """Return status rows fragment for HTMX polling."""
+    app_state = _require_ready()
+    return render_template(
+        "_status_rows.html",
+        schedulers=app_state.schedulers,
+        enable_epg=app_state.enable_epg,
+    )
+
+
+def partial_tuners() -> str:
+    """Return tuner dots fragment for HTMX polling."""
+    app_state = _require_ready()
+    return render_template(
+        "_tuners.html",
+        device_status=app_state.device_status,
+        server_info=app_state.device_status.server_info,
+    )
+
+
+def partial_device() -> str:
+    """Return device rows fragment for HTMX polling."""
+    app_state = _require_ready()
+    return render_template(
+        "_device_rows.html",
+        device_status=app_state.device_status,
     )
 
 

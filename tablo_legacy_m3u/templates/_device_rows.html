@@ -5,7 +5,8 @@
             <span class="value">
                 {% if drive.connected %}
                     {% set pct_used = ((drive.usage / drive.size) * 100) | round(1) %}
-                    <span class="storage-bar">
+                    <span class="storage-bar"
+                          title="{{ drive.usage | bytes_to_gb }} of {{ drive.size | bytes_to_gb }} used">
                         <span class="storage-text">{{ (100 - pct_used) | round(1) }}% free</span>
                         <span class="storage-track">
                             <span class="storage-fill {% if pct_used > 90 %}crit{% elif pct_used > 75 %}warn{% endif %}"

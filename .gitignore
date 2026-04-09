@@ -52,3 +52,6 @@ dmypy.json
 # act
 .act-secrets
 .act-variables
+
+# NPM/Yarn
+node_modules/

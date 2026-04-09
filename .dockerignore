@@ -21,3 +21,6 @@ LICENSE
 .act/
 .act-secrets
 .act-variables
+node_modules/
+package.json
+package-lock.json

@@ -299,11 +299,7 @@
                rel="noopener">tablo-legacy-m3u</a>
             <span>v{{ version }}</span>
         </footer>
-        <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.js"
-                integrity="sha384-ezjq8118wdwdRMj+nX4bevEi+cDLTbhLAeFF688VK8tPDGeLUe0WoY2MZtSla72F"
-                crossorigin="anonymous"></script>
-        <script src="https://cdn.jsdelivr.net/npm/htmx-ext-sse@2.2.4"
-                integrity="sha384-A986SAtodyH8eg8x8irJnYUk7i9inVQqYigD6qZ9evobksGNIXfeFvDwLSHcp31N"
-                crossorigin="anonymous"></script>
+        <script src="{{ url_for('static', filename='vendor/htmx.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='vendor/htmx-ext-sse.min.js') }}"></script>
     </body>
 </html>

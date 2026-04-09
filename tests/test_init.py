@@ -60,3 +60,25 @@ class TestAccessLogging:
         assert not any(
             "GET /discover.json" in record.message for record in caplog.records
         )
+
+
+class TestCompression:
+    """Responses are compressed when the client supports it."""
+
+    def test_brotli_preferred_over_gzip(self, flask_client: FlaskClient) -> None:
+        resp = flask_client.get("/", headers={"Accept-Encoding": "gzip, br"})
+
+        assert resp.headers.get("Content-Encoding") == "br"
+
+    def test_gzip_fallback(self, flask_client: FlaskClient) -> None:
+        resp = flask_client.get("/", headers={"Accept-Encoding": "gzip"})
+
+        assert resp.headers.get("Content-Encoding") == "gzip"
+
+    def test_no_compression_without_accept_encoding(
+        self,
+        flask_client: FlaskClient,
+    ) -> None:
+        resp = flask_client.get("/")
+
+        assert "Content-Encoding" not in resp.headers

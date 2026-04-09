@@ -6,6 +6,7 @@ import time
 from typing import TYPE_CHECKING
 
 from flask import Flask, Response, g, request
+from flask_compress import Compress
 
 from tablo_legacy_m3u._version import __version__
 from tablo_legacy_m3u.routes import register_routes
@@ -17,6 +18,10 @@ if TYPE_CHECKING:
     from tablo_legacy_m3u.config import Config
 
 logger = logging.getLogger(__name__)
+
+COMPRESS_ALGORITHM = ["br", "gzip"]
+COMPRESS_MIN_SIZE = 256
+COMPRESS_STREAMS = False
 
 
 def create_app(
@@ -30,8 +35,12 @@ def create_app(
     app.config.from_mapping(
         APP_CONFIG=config,
         APP_STATE=app_state,
+        COMPRESS_ALGORITHM=COMPRESS_ALGORITHM,
+        COMPRESS_MIN_SIZE=COMPRESS_MIN_SIZE,
+        COMPRESS_STREAMS=COMPRESS_STREAMS,
     )
 
+    Compress(app)
     register_routes(app)
 
     @app.after_request

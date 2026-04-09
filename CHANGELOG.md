@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog], and this project adheres to [Semantic
 
 ## [Unreleased]
 
+### Added
+
+- Add brotli & gzip response compression <https://github.com/gtronset/tablo-legacy-m3u/pull/32>
+
 ### Changed
 
 - Refresh tuner status on watch with short-TTL coalesced cache <https://github.com/gtronset/tablo-legacy-m3u/pull/30>

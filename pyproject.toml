@@ -10,6 +10,7 @@ dependencies = [
     "requests>=2.32.5",
     "rich>=14.3.3",
     "waitress>=3.0.2",
+    "flask-compress>=1.24",
 ]
 
 [dependency-groups]

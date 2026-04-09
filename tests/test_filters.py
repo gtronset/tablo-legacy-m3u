@@ -29,14 +29,14 @@ class TestBytesToGbFilter:
     """Tests the bytes_to_gb Jinja filter converts bytes to a GB string."""
 
     def test_converts_bytes_to_gb(self) -> None:
-        result = bytes_to_gb_filter(1_073_741_824)  # exactly 1 GiB
+        result = bytes_to_gb_filter(1_000_000_000)  # exactly 1 GiB
 
         assert result == "1.0 GB"
 
     def test_rounds_to_one_decimal(self) -> None:
         result = bytes_to_gb_filter(1_500_000_000_000)
 
-        assert result == "1397.0 GB"
+        assert result == "1500.0 GB"
 
     def test_zero_bytes(self) -> None:
         result = bytes_to_gb_filter(0)

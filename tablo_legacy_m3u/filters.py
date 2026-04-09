@@ -19,7 +19,7 @@ def localtime_filter(dt: datetime, tz: ZoneInfo) -> str:
 
 def bytes_to_gb_filter(bytes_int: int) -> str:
     """Convert a byte value to gigabytes and format for display."""
-    gb = bytes_int / (1024**3)
+    gb = bytes_int / (1000**3)
     return f"{gb:.1f} GB"
 
 

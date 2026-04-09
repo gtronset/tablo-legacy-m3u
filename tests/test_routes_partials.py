@@ -17,8 +17,10 @@ class TestEvents:
     """Tests for GET `/events`."""
 
     def test_returns_event_stream_content_type(self, flask_client: FlaskClient) -> None:
-        with flask_client.application.test_request_context("/events"):
-            resp = events()
+        app = flask_client.application
+        with app.test_request_context("/events"):
+            app.preprocess_request()
+            resp = app.process_response(events())
 
             assert resp.mimetype == "text/event-stream"
             resp.close()

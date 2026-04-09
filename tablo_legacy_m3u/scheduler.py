@@ -103,32 +103,39 @@ class Scheduler:
             try:
                 self._task()
 
+                self._last_success = datetime.now(UTC)
+                self._last_error = None
+
                 if not self._set_state(SchedulerState.READY):
                     return
 
-                self._last_success = datetime.now(UTC)
-                self._last_error = None
                 return
             except TabloServerBusyError as e:
+                self._last_error = str(e)
+
                 if not self._set_state(SchedulerState.RETRYING):
                     return
-                self._last_error = str(e)
+
                 logger.warning(
                     "Initial %r fetch: server busy, retrying in %ds",
                     self._name,
                     int(e.retry_in_s),
                 )
+
                 if self._stop_event.wait(timeout=e.retry_in_s):
                     return
             except Exception as e:  # noqa: BLE001, Scheduler must survive task failures
+                self._last_error = str(e)
+
                 if not self._set_state(SchedulerState.RETRYING):
                     return
-                self._last_error = str(e)
+
                 logger.warning(
                     "Initial %r fetch failed, retrying in %ds",
                     self._name,
                     delay,
                 )
+
                 if self._stop_event.wait(timeout=delay):
                     return  # stopped during wait
 
@@ -205,16 +212,17 @@ class Scheduler:
 
         try:
             self._task()
+            self._last_success = datetime.now(UTC)
+            self._last_error = None
+
             if not self._set_state(SchedulerState.READY):
                 return
 
-            self._last_success = datetime.now(UTC)
-            self._last_error = None
         except Exception as e:
-            if not self._set_state(SchedulerState.ERROR):
-                return
-
             self._last_error = str(e)
             logger.exception("Scheduled task %r failed", self._name)
+
+            if not self._set_state(SchedulerState.ERROR):
+                return
 
         self._schedule()

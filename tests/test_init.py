@@ -4,10 +4,10 @@ import logging
 
 import pytest
 
+from flask import Response
 from flask.testing import FlaskClient
 
 from tablo_legacy_m3u.config import Config
-from tablo_legacy_m3u.routes import events
 
 
 class TestPartialCacheControl:
@@ -23,11 +23,11 @@ class TestPartialCacheControl:
         assert resp.headers["Cache-Control"] == "no-store"
 
     def test_events_no_store(self, flask_client: FlaskClient) -> None:
-        with flask_client.application.test_request_context("/events"):
-            resp = events()
-
-            assert resp.headers.get("Cache-Control") is None
-            resp.close()
+        app = flask_client.application
+        with app.test_request_context("/events"):
+            app.preprocess_request()
+            resp = app.process_response(Response())
+            assert resp.headers["Cache-Control"] == "no-store"
 
 
 class TestAccessLogging:

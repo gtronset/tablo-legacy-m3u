@@ -130,7 +130,7 @@ def index() -> str:
 
 
 def partial_status() -> str:
-    """Return status rows fragment for HTMX polling."""
+    """Return status rows fragment for HTMX SSE-triggered refresh."""
     app_state = _require_initialized()
 
     return render_template(
@@ -141,7 +141,7 @@ def partial_status() -> str:
 
 
 def partial_tuners() -> str:
-    """Return tuner dots fragment for HTMX polling."""
+    """Return tuner dots fragment for HTMX SSE-triggered refresh."""
     app_state = _require_initialized()
     server_info = app_state.device_status.server_info
 
@@ -156,7 +156,7 @@ def partial_tuners() -> str:
 
 
 def partial_device() -> str:
-    """Return device rows fragment for HTMX polling."""
+    """Return device rows fragment for HTMX SSE-triggered refresh."""
     app_state = _require_initialized()
 
     return render_template(

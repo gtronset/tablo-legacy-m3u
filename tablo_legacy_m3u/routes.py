@@ -151,7 +151,7 @@ def partial_tuners() -> str:
     return render_template(
         "_tuners.html",
         device_status=app_state.device_status,
-        server_info=app_state.device_status.server_info,
+        server_info=server_info,
     )
 
 

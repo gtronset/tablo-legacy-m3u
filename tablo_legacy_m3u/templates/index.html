@@ -229,7 +229,7 @@
             footer a:hover { color: var(--color-primary); }
         </style>
     </head>
-    <body hx-ext="sse" sse-connect="/events">
+    <body hx-ext="sse" sse-connect="{{ url_for('events') }}">
         {% macro endpoint(route, path, desc) %}
             <a href="{{ url_for(route) }}" target="_blank" rel="noopener">
                 <span class="path">{{ path }}
@@ -248,7 +248,7 @@
         <div class="card">
             <p class="card-header">Status</p>
             <div id="status-rows"
-                 hx-get="/partials/status"
+                 hx-get="{{ url_for('partial_status') }}"
                  hx-trigger="sse:status, sse:probe"
                  hx-swap="innerHTML">{% include "_status_rows.html" %}</div>
         </div>
@@ -268,11 +268,11 @@
                     <span class="value">{{ server_info.version }}</span>
                 </div>
                 <div id="tuners"
-                     hx-get="/partials/tuners"
+                     hx-get="{{ url_for('partial_tuners') }}"
                      hx-trigger="sse:tuners, sse:probe"
                      hx-swap="innerHTML">{% include "_tuners.html" %}</div>
                 <div id="device-rows"
-                     hx-get="/partials/device"
+                     hx-get="{{ url_for('partial_device') }}"
                      hx-trigger="sse:probe"
                      hx-swap="innerHTML">{% include "_device_rows.html" %}</div>
             {% else %}

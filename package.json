@@ -1,7 +1,15 @@
 {
     "private": true,
+    "scripts": {
+        "build": "vite build",
+        "watch": "vite build --watch"
+    },
     "dependencies": {
         "htmx.org": "2.0.8",
         "htmx-ext-sse": "2.2.4"
+    },
+    "devDependencies": {
+        "vite": "^8.0.8",
+        "vite-plugin-webfont-dl": "^3.12.0"
     }
 }

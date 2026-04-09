@@ -1,5 +1,7 @@
 """Application initialization state and Tablo device status."""
 
+import contextlib
+import queue
 import threading
 
 from collections.abc import Callable
@@ -70,6 +72,32 @@ class AppState:
         self._tuner_executor: ThreadPoolExecutor = ThreadPoolExecutor(max_workers=1)
         self._tuner_future: Future[None] | None = None
         self._tuner_lock = threading.Lock()
+        self._sse_subscribers: set[queue.Queue[str]] = set()
+        self._sse_lock = threading.Lock()
+
+    def sse_subscribe(self) -> queue.Queue[str]:
+        """Subscribe to SSE events.
+
+        Returns a bounded queue that will receive published events.
+        Events are dropped if the queue is full (stalled client).
+        """
+        q: queue.Queue[str] = queue.Queue(maxsize=16)
+        with self._sse_lock:
+            self._sse_subscribers.add(q)
+        return q
+
+    def sse_unsubscribe(self, q: queue.Queue[str]) -> None:
+        """Unsubscribe from SSE events."""
+        with self._sse_lock:
+            self._sse_subscribers.discard(q)
+
+    def sse_publish(self, event: str) -> None:
+        """Publish an SSE event to all subscribers."""
+        with self._sse_lock:
+            subscribers = list(self._sse_subscribers)
+        for q in subscribers:
+            with contextlib.suppress(queue.Full):
+                q.put_nowait(event)
 
     def submit_tuner_refresh(self, task: Callable[[], None]) -> None:
         """Submit a tuner refresh, skipping if one is already pending."""

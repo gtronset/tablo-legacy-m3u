@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog], and this project adheres to [Semantic
 ### Changed
 
 - Refresh tuner status on watch with short-TTL coalesced cache <https://github.com/gtronset/tablo-legacy-m3u/pull/30>
+- Add HTMX with SSE to make status page live <https://github.com/gtronset/tablo-legacy-m3u/pull/31>
 
 ## [1.1.0] - 2026-04-07
 

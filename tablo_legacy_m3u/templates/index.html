@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{{ friendly_name }} — tablo-legacy-m3u</title>
-        {% if phase not in ("ready", "error") %}<meta http-equiv="refresh" content="5">{% endif %}
+        {% if phase in ("discovering", "connecting") %}<meta http-equiv="refresh" content="5">{% endif %}
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap"
@@ -51,6 +51,8 @@
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                flex-wrap: wrap;
+                gap: 0.25rem;
             }
             h1 small {
                 font-size: 1rem;
@@ -78,8 +80,10 @@
                 justify-content: space-between;
                 align-items: baseline;
                 padding: 0.75rem 0;
+                gap: 0.5rem;
+                flex-wrap: wrap;
             }
-            .row + .row {
+            .row ~ .row, .row ~ div .row {
                 border-top: 1px solid var(--color-bg);
             }
             .label {
@@ -160,7 +164,7 @@
                 gap: 0.5rem;
             }
             .storage-track {
-                width: 5rem;
+                flex: 0 0 5rem;
                 height: 0.5rem;
                 background: #e8ecef;
                 border-radius: 999px;
@@ -188,6 +192,7 @@
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                flex-wrap: wrap;
             }
             .endpoints a + a {
                 border-top: 1px solid var(--color-bg);
@@ -224,7 +229,7 @@
             footer a:hover { color: var(--color-primary); }
         </style>
     </head>
-    <body>
+    <body hx-ext="sse" sse-connect="{{ url_for('events') }}">
         {% macro endpoint(route, path, desc) %}
             <a href="{{ url_for(route) }}" target="_blank" rel="noopener">
                 <span class="path">{{ path }}
@@ -242,43 +247,10 @@
         </h1>
         <div class="card">
             <p class="card-header">Status</p>
-            <div class="row">
-                <span class="label">Server</span>
-                <span class="value"><span class="pill pill-ok">Running</span></span>
-            </div>
-            {% for scheduler in schedulers %}
-                <div class="row">
-                    <span class="label">{{ scheduler.name | capitalize }}</span>
-                    <span class="value">
-                        {% if scheduler.state.value == "ready" %}
-                            <span class="pill pill-ok">Ready</span>
-                        {% elif scheduler.state.value == "warming" %}
-                            <span class="pill pill-wait">Warming</span>
-                        {% elif scheduler.state.value == "retrying" %}
-                            <span class="pill pill-warn">Retrying</span>
-                        {% elif scheduler.state.value == "error" %}
-                            <span class="pill pill-err">Error</span>
-                        {% elif scheduler.state.value == "stopped" %}
-                            <span class="pill pill-off">Stopped</span>
-                        {% else %}
-                            <span class="pill pill-off">Idle</span>
-                        {% endif %}
-                        {% if scheduler.last_error and scheduler.state.value in ("error", "retrying") %}
-                            <span class="meta error">{{ scheduler.last_error }}</span>
-                        {% endif %}
-                        {% if scheduler.last_success %}
-                            <span class="meta"
-                                  {% if scheduler.next_run %}title="Next run: {{ scheduler.next_run | localtime(tz) }}"{% endif %}>{{ scheduler.last_success | localtime(tz) }}</span>
-                        {% endif %}
-                    </span>
-                </div>
-            {% endfor %}
-            {% if not enable_epg %}
-                <div class="row">
-                    <span class="label">Guide</span>
-                    <span class="value"><span class="pill pill-warn">EPG Disabled</span></span>
-                </div>
-            {% endif %}
+            <div id="status-rows"
+                 hx-get="{{ url_for('partial_status') }}"
+                 hx-trigger="sse:status, sse:probe"
+                 hx-swap="innerHTML">{% include "_status_rows.html" %}</div>
         </div>
         <div class="card">
             <p class="card-header">Tablo Device</p>
@@ -295,74 +267,14 @@
                     <span class="label">Firmware</span>
                     <span class="value">{{ server_info.version }}</span>
                 </div>
-                {% if device_status.tuners %}
-                    {% set real_tuners = device_status.tuners[:server_info.model.tuners] %}
-                    <div class="row">
-                        <span class="label">Tuners</span>
-                        <span class="value tuner-dots">
-                            {% for tuner in real_tuners %}
-                                {% if tuner.in_use and tuner.channel_identifier %}
-                                    <span class="dot dot-active"
-                                          role="img"
-                                          aria-label="In use ({{ tuner.channel_identifier }})"
-                                          title="In use ({{ tuner.channel_identifier }})"></span>
-                                {% elif tuner.in_use %}
-                                    <span class="dot dot-reserved"
-                                          role="img"
-                                          aria-label="Reserved"
-                                          title="Reserved"></span>
-                                {% else %}
-                                    <span class="dot dot-free"
-                                          role="img"
-                                          aria-label="Available"
-                                          title="Available"></span>
-                                {% endif %}
-                            {% endfor %}
-                        </span>
-                    </div>
-                {% endif %}
-                {% if device_status.harddrives %}
-                    {% for drive in device_status.harddrives %}
-                        <div class="row">
-                            <span class="label">Storage</span>
-                            <span class="value">
-                                {% if drive.connected %}
-                                    {% set pct_used = ((drive.usage / drive.size) * 100) | round(1) %}
-                                    <span class="storage-bar">
-                                        <span class="storage-text">{{ (100 - pct_used) | round(1) }}% free</span>
-                                        <span class="storage-track">
-                                            <span class="storage-fill {% if pct_used > 90 %}crit{% elif pct_used > 75 %}warn{% endif %}"
-                                                  style="width: {{ pct_used }}%"></span>
-                                        </span>
-                                    </span>
-                                {% else %}
-                                    <span class="pill pill-err">Disconnected</span>
-                                {% endif %}
-                            </span>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-                {% if device_status.guide_status %}
-                    <div class="row">
-                        <span class="label">Guide</span>
-                        <span class="value">
-                            {% if device_status.guide_status.guide_seeded %}
-                                <span class="pill pill-ok">Seeded</span>
-                            {% else %}
-                                <span class="pill pill-warn">Not seeded</span>
-                            {% endif %}
-                            {% if device_status.last_guide_update %}
-                                <span class="meta">Updated {{ device_status.last_guide_update | localtime(tz) }}</span>
-                            {% endif %}
-                        </span>
-                    </div>
-                {% endif %}
-                {% if device_status.last_probe %}
-                    <div class="row">
-                        <span class="label">Last probe</span>
-                        <span class="value meta">{{ device_status.last_probe | localtime(tz) }}</span>
-                    </div>
-                {% endif %}
+                <div id="tuners"
+                     hx-get="{{ url_for('partial_tuners') }}"
+                     hx-trigger="sse:tuners, sse:probe"
+                     hx-swap="innerHTML">{% include "_tuners.html" %}</div>
+                <div id="device-rows"
+                     hx-get="{{ url_for('partial_device') }}"
+                     hx-trigger="sse:probe"
+                     hx-swap="innerHTML">{% include "_device_rows.html" %}</div>
             {% else %}
                 <div class="row">
                     <span class="label">Connecting to Tablo device…</span>
@@ -387,5 +299,11 @@
                rel="noopener">tablo-legacy-m3u</a>
             <span>v{{ version }}</span>
         </footer>
+        <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.js"
+                integrity="sha384-ezjq8118wdwdRMj+nX4bevEi+cDLTbhLAeFF688VK8tPDGeLUe0WoY2MZtSla72F"
+                crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/htmx-ext-sse@2.2.4"
+                integrity="sha384-A986SAtodyH8eg8x8irJnYUk7i9inVQqYigD6qZ9evobksGNIXfeFvDwLSHcp31N"
+                crossorigin="anonymous"></script>
     </body>
 </html>

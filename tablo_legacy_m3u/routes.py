@@ -1,7 +1,9 @@
 """Route handlers for HDHomeRun-compatible endpoints."""
 
 import logging
+import queue
 
+from collections.abc import Generator
 from dataclasses import replace
 from typing import TYPE_CHECKING
 
@@ -16,7 +18,7 @@ from flask import (
 )
 
 from tablo_legacy_m3u._version import __version__
-from tablo_legacy_m3u.app_state import AppState
+from tablo_legacy_m3u.app_state import AppState, InitPhase
 from tablo_legacy_m3u.discover import device_info, generate_device_xml
 from tablo_legacy_m3u.epg import generate_xmltv
 from tablo_legacy_m3u.filters import register_filters
@@ -45,7 +47,12 @@ def register_routes(app: Flask) -> None:
     """Register all route handlers on the Flask app."""
     register_filters(app)
 
+    app.add_url_rule("/events", view_func=events)
+
     app.add_url_rule("/", view_func=index)
+    app.add_url_rule("/partials/status", view_func=partial_status)
+    app.add_url_rule("/partials/tuners", view_func=partial_tuners)
+    app.add_url_rule("/partials/device", view_func=partial_device)
 
     app.add_url_rule("/favicon.ico", view_func=favicon)
 
@@ -72,6 +79,16 @@ def _require_ready() -> AppState:
     app_state: AppState = current_app.config["APP_STATE"]
 
     if not app_state.ready.is_set():
+        abort(503, description=f"Initializing ({app_state.phase})")
+
+    return app_state
+
+
+def _require_initialized() -> AppState:
+    """Return app_state if past connecting phase, else abort 503."""
+    app_state: AppState = current_app.config["APP_STATE"]
+
+    if app_state.phase in {InitPhase.DISCOVERING, InitPhase.CONNECTING}:
         abort(503, description=f"Initializing ({app_state.phase})")
 
     return app_state
@@ -110,6 +127,63 @@ def index() -> str:
         enable_epg=app_state.enable_epg,
         schedulers=app_state.schedulers,
     )
+
+
+def partial_status() -> str:
+    """Return status rows fragment for HTMX SSE-triggered refresh."""
+    app_state = _require_initialized()
+
+    return render_template(
+        "_status_rows.html",
+        schedulers=app_state.schedulers,
+        enable_epg=app_state.enable_epg,
+    )
+
+
+def partial_tuners() -> str:
+    """Return tuner dots fragment for HTMX SSE-triggered refresh."""
+    app_state = _require_initialized()
+    server_info = app_state.device_status.server_info
+
+    if server_info is None:
+        return ""
+
+    return render_template(
+        "_tuners.html",
+        device_status=app_state.device_status,
+        server_info=server_info,
+    )
+
+
+def partial_device() -> str:
+    """Return device rows fragment for HTMX SSE-triggered refresh."""
+    app_state = _require_initialized()
+
+    return render_template(
+        "_device_rows.html",
+        device_status=app_state.device_status,
+    )
+
+
+def events() -> Response:
+    """SSE endpoint for server-sent events about status changes."""
+    app_state: AppState = current_app.config["APP_STATE"]
+    q = app_state.sse_subscribe()
+
+    def stream() -> Generator[str]:
+        try:
+            while True:
+                try:
+                    event = q.get(timeout=15)
+                    yield f"event: {event}\ndata:\n\n"
+                except queue.Empty:
+                    yield ": keepalive\n\n"
+        except GeneratorExit:
+            pass
+        finally:
+            app_state.sse_unsubscribe(q)
+
+    return Response(stream(), mimetype="text/event-stream")
 
 
 def favicon() -> Response:
@@ -253,6 +327,7 @@ def watch(channel_id: int) -> Response:
         try:
             tuners = tablo_client.refresh_tuners()
             app_state.device_status = replace(app_state.device_status, tuners=tuners)
+            app_state.sse_publish("tuners")
         except Exception:
             logger.exception("Failed to refresh tuners after watch")
 

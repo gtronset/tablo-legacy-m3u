@@ -1,0 +1,26 @@
+{% if device_status.tuners %}
+    {% set real_tuners = device_status.tuners[:server_info.model.tuners] %}
+    <div class="row">
+        <span class="label">Tuners</span>
+        <span class="value tuner-dots">
+            {% for tuner in real_tuners %}
+                {% if tuner.in_use and tuner.channel_identifier %}
+                    <span class="dot dot-active"
+                          role="img"
+                          aria-label="In use ({{ tuner.channel_identifier }})"
+                          title="In use ({{ tuner.channel_identifier }})"></span>
+                {% elif tuner.in_use %}
+                    <span class="dot dot-reserved"
+                          role="img"
+                          aria-label="Reserved"
+                          title="Reserved"></span>
+                {% else %}
+                    <span class="dot dot-free"
+                          role="img"
+                          aria-label="Available"
+                          title="Available"></span>
+                {% endif %}
+            {% endfor %}
+        </span>
+    </div>
+{% endif %}

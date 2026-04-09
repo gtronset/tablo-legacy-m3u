@@ -17,9 +17,16 @@ def localtime_filter(dt: datetime, tz: ZoneInfo) -> str:
     return f"{local:%b} {local.day}, {hour}:{local:%M} {local:%p} {local:%Z}"
 
 
+def bytes_to_gb_filter(bytes_int: int) -> str:
+    """Convert a byte value to gigabytes and format for display."""
+    gb = bytes_int / (1000**3)
+    return f"{gb:.1f} GB"
+
+
 def register_filters(app: Flask) -> None:
     """Register custom Jinja2 filters on the Flask app."""
     app.template_filter("localtime")(localtime_filter)
+    app.template_filter("bytes_to_gb")(bytes_to_gb_filter)
 
     @app.context_processor
     def inject_tz() -> dict[str, ZoneInfo]:

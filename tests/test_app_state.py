@@ -126,3 +126,53 @@ class TestAppState:
 
         with pytest.raises(RuntimeError):
             state.submit_tuner_refresh(lambda: None)
+
+
+class TestSseEventBus:
+    """Tests for SSE subscribe/publish/unsubscribe."""
+
+    def test_subscribe_returns_queue(self) -> None:
+        state = AppState()
+        q = state.sse_subscribe()
+
+        assert q is not None
+        assert q.empty()
+
+    def test_publish_delivers_to_subscriber(self) -> None:
+        state = AppState()
+        q = state.sse_subscribe()
+
+        state.sse_publish("tuners")
+
+        assert q.get_nowait() == "tuners"
+
+    def test_publish_delivers_to_multiple_subscribers(self) -> None:
+        state = AppState()
+        q1 = state.sse_subscribe()
+        q2 = state.sse_subscribe()
+
+        state.sse_publish("probe")
+
+        assert q1.get_nowait() == "probe"
+        assert q2.get_nowait() == "probe"
+
+    def test_unsubscribe_stops_delivery(self) -> None:
+        state = AppState()
+        q = state.sse_subscribe()
+        state.sse_unsubscribe(q)
+
+        state.sse_publish("status")
+
+        assert q.empty()
+
+    def test_publish_with_no_subscribers(self) -> None:
+        state = AppState()
+
+        state.sse_publish("probe")  # should not raise
+
+    def test_unsubscribe_idempotent(self) -> None:
+        state = AppState()
+        q = state.sse_subscribe()
+
+        state.sse_unsubscribe(q)
+        state.sse_unsubscribe(q)  # should not raise

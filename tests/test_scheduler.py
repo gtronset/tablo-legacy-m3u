@@ -377,3 +377,50 @@ class TestStatus:
 
         scheduler.stop()
         assert scheduler.next_run is None
+
+
+class TestOnStateChange:
+    """Tests for the on_state_change callback."""
+
+    def test_callback_fires_on_warm(self, scheduler_task: MagicMock) -> None:
+        callback = MagicMock()
+        scheduler = Scheduler("test", 300, scheduler_task, on_state_change=callback)
+
+        scheduler.warm()
+
+        assert callback.call_count == 2  # noqa: PLR2004, Warming and ready result in 2 calls
+
+    def test_callback_fires_on_run(
+        self,
+        scheduler_task: MagicMock,
+        mock_timer: MagicMock,  # noqa: ARG002
+    ) -> None:
+        callback = MagicMock()
+        scheduler = Scheduler("test", 300, scheduler_task, on_state_change=callback)
+
+        scheduler.warm()
+        callback.reset_mock()
+
+        scheduler._run()
+
+        callback.assert_called_once()  # ready after successful run
+
+    def test_callback_fires_on_error(
+        self,
+        scheduler_task: MagicMock,
+        mock_timer: MagicMock,  # noqa: ARG002
+    ) -> None:
+        callback = MagicMock()
+        scheduler = Scheduler("test", 300, scheduler_task, on_state_change=callback)
+
+        scheduler.warm()
+        callback.reset_mock()
+
+        scheduler_task.side_effect = RuntimeError("boom")
+        scheduler._run()
+
+        callback.assert_called_once()  # error state
+
+    def test_no_callback_by_default(self, scheduler: Scheduler) -> None:
+        """Should not raise even without callback."""
+        scheduler.warm()

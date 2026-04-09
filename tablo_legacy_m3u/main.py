@@ -71,6 +71,8 @@ def _probe_device(app_state: AppState) -> None:
             last_probe=datetime.now(tz=UTC),
         )
 
+        app_state.sse_publish("probe")
+
     except Exception as exception:
         app_state.device_status = DeviceStatus(
             server_info=app_state.device_status.server_info,
@@ -81,6 +83,8 @@ def _probe_device(app_state: AppState) -> None:
             last_probe=datetime.now(tz=UTC),
             error=str(exception),
         )
+        app_state.sse_publish("probe")
+
         raise
 
 
@@ -120,13 +124,19 @@ def _init_tablo(config: Config, app_state: AppState, logger: logging.Logger) -> 
         app_state.schedulers.append(probe_scheduler)
 
         channel_scheduler = Scheduler(
-            "channels", config.channel_refresh_interval, client.refresh_channels
+            "channels",
+            config.channel_refresh_interval,
+            client.refresh_channels,
+            on_state_change=lambda: app_state.sse_publish("status"),
         )
         app_state.schedulers.append(channel_scheduler)
 
         if app_state.enable_epg:
             guide_scheduler = Scheduler(
-                "guide", config.guide_refresh_interval, client.refresh_airings
+                "guide",
+                config.guide_refresh_interval,
+                client.refresh_airings,
+                on_state_change=lambda: app_state.sse_publish("status"),
             )
             app_state.schedulers.append(guide_scheduler)
 
@@ -207,7 +217,7 @@ def main() -> None:
             )
         else:
             logger.info("Starting waitress on %s:%d", config.host, config.port)
-            serve(app, host=config.host, port=config.port)
+            serve(app, host=config.host, port=config.port, threads=8)
     finally:
         for scheduler in app_state.schedulers:
             scheduler.stop()

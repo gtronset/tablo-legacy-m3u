@@ -11,7 +11,6 @@ dependencies = [
     "rich>=14.3.3",
     "waitress>=3.0.2",
     "flask-compress>=1.24",
-    "brotli>=1.2.0",
 ]
 
 [dependency-groups]

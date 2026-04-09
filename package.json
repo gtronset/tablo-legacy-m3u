@@ -2,13 +2,15 @@
     "private": true,
     "scripts": {
         "build": "vite build",
-        "watch": "vite build --watch"
+        "watch": "vite build --watch",
+        "dev": "concurrently --raw \"uv run python -m tablo_legacy_m3u\" \"vite build --watch\""
     },
     "dependencies": {
         "htmx.org": "2.0.8",
         "htmx-ext-sse": "2.2.4"
     },
     "devDependencies": {
+        "concurrently": "^9.2.1",
         "vite": "^8.0.8",
         "vite-plugin-webfont-dl": "^3.12.0"
     }

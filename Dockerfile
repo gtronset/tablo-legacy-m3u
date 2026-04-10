@@ -1,3 +1,13 @@
+FROM node:24-alpine AS frontend
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY vite.config.js postcss.config.js ./
+COPY tablo_legacy_m3u/static/src/ tablo_legacy_m3u/static/src/
+RUN npm run build
+
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
 WORKDIR /app
@@ -8,6 +18,7 @@ RUN uv sync --frozen --no-dev
 
 # Copy application source
 COPY tablo_legacy_m3u/ tablo_legacy_m3u/
+COPY --from=frontend /app/tablo_legacy_m3u/static/dist/ tablo_legacy_m3u/static/dist/
 
 # Production defaults
 ENV ENVIRONMENT=production \

@@ -22,5 +22,4 @@ LICENSE
 .act-secrets
 .act-variables
 node_modules/
-package.json
-package-lock.json
+tablo_legacy_m3u/static/dist/

@@ -10,20 +10,19 @@ on:
 
     push:
         branches: [main]
-        paths:
+        paths: &docker-paths
             - Dockerfile
             - .dockerignore
             - pyproject.toml
             - uv.lock
+            - package.json
+            - package-lock.json
+            - vite.config.js
+            - postcss.config.js
             - tablo_legacy_m3u/**
     pull_request:
         branches: [main]
-        paths:
-            - Dockerfile
-            - .dockerignore
-            - pyproject.toml
-            - uv.lock
-            - tablo_legacy_m3u/**
+        paths: *docker-paths
 
 jobs:
     test_docker_container:

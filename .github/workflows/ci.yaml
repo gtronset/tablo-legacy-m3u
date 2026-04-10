@@ -41,6 +41,9 @@ jobs:
             - name: Stylelint
               run: npx stylelint "tablo_legacy_m3u/static/src/**/*.css"
 
+            - name: Prettier
+              run: npx prettier --check "tablo_legacy_m3u/static/src/**/*.{css,js}" "**/*.yaml"
+
     typecheck:
         name: Type check
         runs-on: ubuntu-24.04

@@ -1,16 +1,16 @@
 services:
-  tablo-legacy-m3u:
-    image: ghcr.io/gtronset/tablo-legacy-m3u:latest
-    ports:
-      - 5004:5004
-    environment:
-      TABLO_IP: ""
-      AUTODISCOVER_TABLO: true
-      HOST: 0.0.0.0
-      PORT: 5004
-      LOG_LEVEL: INFO
-      ENVIRONMENT: production
-      ENABLE_EPG: true
-      CHANNEL_REFRESH_INTERVAL: 86400
-      GUIDE_REFRESH_INTERVAL: 3600
-    restart: unless-stopped
+    tablo-legacy-m3u:
+        image: ghcr.io/gtronset/tablo-legacy-m3u:latest
+        ports:
+            - 5004:5004
+        environment:
+            TABLO_IP: ""
+            AUTODISCOVER_TABLO: true
+            HOST: 0.0.0.0
+            PORT: 5004
+            LOG_LEVEL: INFO
+            ENVIRONMENT: production
+            ENABLE_EPG: true
+            CHANNEL_REFRESH_INTERVAL: 86400
+            GUIDE_REFRESH_INTERVAL: 3600
+        restart: unless-stopped

@@ -1,0 +1,8 @@
+# Managed by other formatters
+*.py
+*.html
+*.md
+
+# Build output and dependencies
+node_modules/
+tablo_legacy_m3u/static/dist/

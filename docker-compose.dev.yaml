@@ -15,6 +15,6 @@ services:
             CHANNEL_REFRESH_INTERVAL: 86400
             GUIDE_REFRESH_INTERVAL: 3600
         volumes:
-			# Requires `npm run build` on the host first (static/dist is gitignored)
+            # Requires `npm run build` on the host first (static/dist is gitignored)
             - ./tablo_legacy_m3u:/app/tablo_legacy_m3u
         restart: unless-stopped

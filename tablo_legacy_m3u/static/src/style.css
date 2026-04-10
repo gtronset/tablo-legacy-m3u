@@ -43,13 +43,13 @@ h1 {
     align-items: center;
     flex-wrap: wrap;
     gap: 0.25rem;
-}
 
-h1 small {
-    font-size: 1rem;
-    font-weight: 400;
-    color: var(--color-secondary);
-    font-style: italic;
+    & small {
+        font-size: 1rem;
+        font-weight: 400;
+        color: var(--color-secondary);
+        font-style: italic;
+    }
 }
 
 .card {
@@ -76,11 +76,11 @@ h1 small {
     padding: 0.75rem 0;
     gap: 0.5rem;
     flex-wrap: wrap;
-}
 
-.row~.row,
-.row~div .row {
-    border-top: 1px solid var(--color-bg);
+    &~&,
+    &~div & {
+        border-top: 1px solid var(--color-bg);
+    }
 }
 
 .label {
@@ -107,10 +107,10 @@ h1 small {
     font-size: 0.75rem;
     font-weight: 400;
     color: var(--color-muted);
-}
 
-.meta.error {
-    color: var(--status-err);
+    &.error {
+        color: var(--status-err);
+    }
 }
 
 .pill {
@@ -119,10 +119,10 @@ h1 small {
     font-weight: 600;
     padding: 0.15rem 0.55rem;
     border-radius: 999px;
-}
 
-.pill+.meta {
-    margin-top: 0.25rem;
+    &+.meta {
+        margin-top: 0.25rem;
+    }
 }
 
 .pill-ok {
@@ -194,14 +194,14 @@ h1 small {
     display: block;
     border-radius: 999px;
     background: var(--status-ok);
-}
 
-.storage-fill.warn {
-    background: var(--status-warn);
-}
+    &.warn {
+        background: var(--status-warn);
+    }
 
-.storage-fill.crit {
-    background: var(--status-err);
+    &.crit {
+        background: var(--status-err);
+    }
 }
 
 .storage-text {
@@ -219,14 +219,18 @@ h1 small {
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-}
 
-.endpoints a+a {
-    border-top: 1px solid var(--color-bg);
-}
+    &+a {
+        border-top: 1px solid var(--color-bg);
+    }
 
-.endpoints a:hover {
-    color: var(--color-secondary);
+    &:hover {
+        color: var(--color-secondary);
+
+        & .icon-new-tab {
+            opacity: 0.6;
+        }
+    }
 }
 
 .endpoints .path {
@@ -246,10 +250,6 @@ h1 small {
     opacity: 0.35;
 }
 
-.endpoints a:hover .icon-new-tab {
-    opacity: 0.6;
-}
-
 footer {
     margin-top: auto;
     padding-top: 1.5rem;
@@ -257,12 +257,12 @@ footer {
     color: var(--color-muted);
     display: flex;
     justify-content: space-between;
-}
 
-footer a {
-    color: var(--color-muted);
-}
+    & a {
+        color: var(--color-muted);
 
-footer a:hover {
-    color: var(--color-primary);
+        &:hover {
+            color: var(--color-primary);
+        }
+    }
 }

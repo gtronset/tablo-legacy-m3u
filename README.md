@@ -94,12 +94,15 @@ Available tags:
 
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/)
+- [Node.js](https://nodejs.org/) 24+ (for frontend build)
 - A legacy Tablo device on your local network
 
 #### Running from source
 
 ```bash
 uv sync
+npm ci
+npm run build
 uv run python -m tablo_legacy_m3u
 ```
 

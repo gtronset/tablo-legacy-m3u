@@ -4,6 +4,7 @@
 
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/)
+- [Node.js](https://nodejs.org/) 24+ (for frontend build)
 - [prek](https://github.com/jdx/prek) (pre-commit hook runner)
 - [Docker](https://www.docker.com/) (optional)
 
@@ -13,13 +14,22 @@
 git clone git@github.com:gtronset/tablo-legacy-m3u.git
 cd tablo-legacy-m3u
 uv sync
+npm ci
+npm run build
 prek install
 ```
 
 ## Running Locally
 
 ```bash
+npm run dev
+```
+
+This runs the Flask dev server and Vite watcher in parallel. Or run them separately:
+
+```bash
 uv run python -m tablo_legacy_m3u
+npm run watch
 ```
 
 Or with Docker:
@@ -55,6 +65,7 @@ cp .env.example .env
 Run all checks before submitting a PR:
 
 ```bash
+npm run build
 uv run ruff check .
 uv run ruff format --check .
 uv run mypy .

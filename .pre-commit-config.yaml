@@ -44,6 +44,15 @@ repos:
         types: [python]
         pass_filenames: false
 
+  - repo: local
+    hooks:
+      - id: stylelint
+        name: stylelint
+        entry: npx stylelint --cache
+        language: system
+        types: [css]
+        files: "tablo_legacy_m3u/static/src/"
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.7
     hooks:

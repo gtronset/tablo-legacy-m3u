@@ -56,3 +56,4 @@ dmypy.json
 # NPM/Yarn
 node_modules/
 tablo_legacy_m3u/static/dist/
+.stylelintcache

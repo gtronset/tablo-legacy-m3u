@@ -5,13 +5,11 @@
     --color-bg: #F7F8F0;
     --color-card: #fff;
     --color-muted: #8a9bae;
-
     --status-ok: #6bc785;
     --status-warn: #d4a74a;
     --status-err: #e05555;
     --status-wait: #5b8ec9;
     --status-off: #999;
-
     --radius: 10px;
 }
 
@@ -20,7 +18,7 @@
 }
 
 body {
-    font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+    font-family: Poppins, system-ui, -apple-system, sans-serif;
     max-width: 640px;
     margin: 0 auto;
     padding: 2rem 1rem;
@@ -57,7 +55,7 @@ h1 {
     border-radius: var(--radius);
     padding: 1.25rem;
     margin-bottom: 1rem;
-    box-shadow: 0 1px 3px rgba(53, 88, 114, 0.08);
+    box-shadow: 0 1px 3px rgb(53 88 114 / 8%);
 }
 
 .card-header {
@@ -210,6 +208,31 @@ h1 {
     white-space: nowrap;
 }
 
+.icon-new-tab {
+    width: 0.7em;
+    height: 0.7em;
+    vertical-align: baseline;
+    margin-left: 0.25em;
+    opacity: 0.35;
+}
+
+footer {
+    margin-top: auto;
+    padding-top: 1.5rem;
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    display: flex;
+    justify-content: space-between;
+
+    & a {
+        color: var(--color-muted);
+
+        &:hover {
+            color: var(--color-primary);
+        }
+    }
+}
+
 .endpoints a {
     font-size: 0.85rem;
     color: var(--color-primary);
@@ -240,29 +263,4 @@ h1 {
 .endpoints .desc {
     color: var(--color-muted);
     font-size: 0.75rem;
-}
-
-.icon-new-tab {
-    width: 0.7em;
-    height: 0.7em;
-    vertical-align: baseline;
-    margin-left: 0.25em;
-    opacity: 0.35;
-}
-
-footer {
-    margin-top: auto;
-    padding-top: 1.5rem;
-    font-size: 0.75rem;
-    color: var(--color-muted);
-    display: flex;
-    justify-content: space-between;
-
-    & a {
-        color: var(--color-muted);
-
-        &:hover {
-            color: var(--color-primary);
-        }
-    }
 }

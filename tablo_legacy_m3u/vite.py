@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from flask import Flask
+from flask import Flask, url_for
 from markupsafe import Markup
 
 
@@ -37,18 +37,24 @@ def init_vite(app: Flask) -> None:
             return Markup("<!-- vite: {} not found -->").format(entry)
 
         tags: list[str] = [
-            Markup('<link rel="stylesheet" href="/static/dist/{}">').format(css_file)
+            Markup('<link rel="stylesheet" href="{}">').format(
+                url_for("static", filename=f"dist/{css_file}")
+            )
             for css_file in chunk.get("css", [])
         ]
 
         js_file = chunk.get("file", "")
         if js_file.endswith(".css"):
             tags.append(
-                Markup('<link rel="stylesheet" href="/static/dist/{}">').format(js_file)
+                Markup('<link rel="stylesheet" href="{}">').format(
+                    url_for("static", filename=f"dist/{js_file}")
+                )
             )
         elif js_file:
             tags.append(
-                Markup('<script defer src="/static/dist/{}"></script>').format(js_file)
+                Markup('<script defer src="{}"></script>').format(
+                    url_for("static", filename=f"dist/{js_file}")
+                )
             )
 
         return Markup("\n").join(tags)

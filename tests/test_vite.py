@@ -34,7 +34,7 @@ def vite_asset(
 ) -> Generator[ViteAssetFn]:
     """Vite asset resolver with a fake manifest."""
     app = _create_app(tmp_path)
-    with app.app_context():
+    with app.test_request_context():
         fn = app.jinja_env.globals["vite_asset"]
         assert callable(fn)
         yield fn
@@ -133,7 +133,7 @@ class TestViteDebugMode:
         app = _create_app(tmp_path, debug=True)
         manifest_path = tmp_path / "static" / "dist" / ".vite" / "manifest.json"
 
-        with app.app_context():
+        with app.test_request_context():
             vite_asset = app.jinja_env.globals["vite_asset"]
 
             assert callable(vite_asset)
@@ -151,7 +151,7 @@ class TestViteDebugMode:
         app = _create_app(tmp_path, debug=False)
         manifest_path = tmp_path / "static" / "dist" / ".vite" / "manifest.json"
 
-        with app.app_context():
+        with app.test_request_context():
             vite_asset = app.jinja_env.globals["vite_asset"]
 
             assert callable(vite_asset)

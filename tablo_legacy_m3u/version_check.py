@@ -18,8 +18,35 @@ RELEASES_URL = f"https://api.github.com/repos/{REPOSITORY}/releases/latest"
 
 CACHE_TTL_SECONDS = 60 * 60 * 24  # 24 hours
 
-_executor = ThreadPoolExecutor(max_workers=1)
-_cache: TTLCache[str, str | None] = TTLCache(maxsize=1, ttl=CACHE_TTL_SECONDS)
+
+class VersionChecker:
+    """Checks GitHub for newer releases, caching results with a TTL."""
+
+    def __init__(self, *, enabled: bool = True) -> None:
+        """Initialize the version checker."""
+        self._enabled = enabled
+        self._cache: TTLCache[str, str | None] = TTLCache(
+            maxsize=1, ttl=CACHE_TTL_SECONDS
+        )
+        self._executor = ThreadPoolExecutor(max_workers=1)
+
+    def get_latest_version(self) -> str | None:
+        """Return the cached latest version, refreshing in the background if stale."""
+        if not self._enabled:
+            return None
+
+        cached = self._cache.get("latest")
+        if cached is not None:
+            return cached
+
+        self._executor.submit(self._refresh)
+        return None
+
+    def _refresh(self) -> None:
+        """Fetch and cache the latest version."""
+        latest = check_latest_version()
+        if is_update_available(current=__version__, latest=latest):
+            self._cache["latest"] = latest
 
 
 def check_latest_version() -> str | None:
@@ -39,29 +66,11 @@ def check_latest_version() -> str | None:
         return None
 
 
-def is_update_available(latest: str | None) -> bool:
+def is_update_available(current: str, latest: str | None) -> bool:
     """Compare latest version against the running version."""
     if latest is None:
         return False
     try:
-        return Version(latest) > Version(__version__)
+        return Version(latest) > Version(current)
     except InvalidVersion:
         return False
-
-
-def get_latest_version() -> str | None:
-    """Return the cached latest version, refreshing in the background if stale."""
-    cached = _cache.get("latest")
-    if cached is not None:
-        return cached
-
-    # First call or cache expired — fire background check
-    _executor.submit(_refresh_cache)
-    return _cache.get("latest")
-
-
-def _refresh_cache() -> None:
-    """Fetch and cache the latest version."""
-    latest = check_latest_version()
-    if is_update_available(latest):
-        _cache["latest"] = latest

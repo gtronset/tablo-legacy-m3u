@@ -28,7 +28,7 @@ from tablo_legacy_m3u.lineup import (
     generate_xml,
 )
 from tablo_legacy_m3u.tablo_client import TabloClient
-from tablo_legacy_m3u.version_check import REPOSITORY, get_latest_version
+from tablo_legacy_m3u.version_check import REPOSITORY
 
 if TYPE_CHECKING:
     from tablo_legacy_m3u.config import Config
@@ -128,7 +128,7 @@ def index() -> str:
         enable_epg=app_state.enable_epg,
         schedulers=app_state.schedulers,
         repository=REPOSITORY,
-        latest_version=get_latest_version(),
+        latest_version=app_state.version_checker.get_latest_version(),
     )
 
 

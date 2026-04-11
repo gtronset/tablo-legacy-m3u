@@ -17,6 +17,7 @@ from tablo_legacy_m3u.tablo_types import (
     ServerInfo,
     TunerStatus,
 )
+from tablo_legacy_m3u.version_check import VersionChecker
 
 if TYPE_CHECKING:
     from tablo_legacy_m3u.scheduler import Scheduler
@@ -59,7 +60,7 @@ class AppState:
       threads via atomic reference assignments.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, check_for_updates: bool = True) -> None:
         """Initialize AppState with default values."""
         self._lock = threading.Lock()
         self._phase = InitPhase.DISCOVERING
@@ -74,6 +75,7 @@ class AppState:
         self._tuner_lock = threading.Lock()
         self._sse_subscribers: set[queue.Queue[str]] = set()
         self._sse_lock = threading.Lock()
+        self.version_checker = VersionChecker(enabled=check_for_updates)
 
     def sse_subscribe(self) -> queue.Queue[str]:
         """Subscribe to SSE events.

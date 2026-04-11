@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog], and this project adheres to [Semantic
 ### Added
 
 - Add Brotli & gzip response compression <https://github.com/gtronset/tablo-legacy-m3u/pull/32>
+- Add Vite build pipeline for HTMX and fonts <https://github.com/gtronset/tablo-legacy-m3u/pull/33>
 
 ### Changed
 

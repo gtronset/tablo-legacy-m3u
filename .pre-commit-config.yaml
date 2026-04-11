@@ -1,68 +1,102 @@
 # yaml-language-server: $schema=https://json.schemastore.org/pre-commit-config.json
 
 repos:
-  - repo: "https://github.com/pre-commit/pre-commit-hooks"
-    rev: v6.0.0
-    hooks:
-      - id: end-of-file-fixer
-      - id: check-yaml
-      - id: check-added-large-files
-      - id: trailing-whitespace
-        args: [--markdown-linebreak-ext=md]
-      - id: mixed-line-ending
-        args: ["--fix=lf"]
+    - repo: "https://github.com/pre-commit/pre-commit-hooks"
+      rev: v6.0.0
+      hooks:
+          - id: end-of-file-fixer
+            priority: 0
+          - id: check-yaml
+            priority: 0
+          - id: check-added-large-files
+            priority: 0
+          - id: trailing-whitespace
+            priority: 0
+            args: [--markdown-linebreak-ext=md]
+          - id: mixed-line-ending
+            priority: 0
+            args: ["--fix=lf"]
 
-  - repo: https://github.com/djlint/djLint
-    rev: v1.36.4
-    hooks:
-      - id: djlint-jinja
-        name: djlint
-        files: "tablo_legacy_m3u/templates/"
-        types_or: [html]
-      - id: djlint-reformat-jinja
-        name: djlint-format
-        files: "tablo_legacy_m3u/templates/"
-        types_or: [html]
-        stages: [manual]
+    - repo: https://github.com/djlint/djLint
+      rev: v1.36.4
+      hooks:
+          - id: djlint-jinja
+            priority: 1
+            name: djlint
+            files: "tablo_legacy_m3u/templates/"
+            types_or: [html]
+          - id: djlint-reformat-jinja
+            priority: 1
+            name: djlint-format
+            files: "tablo_legacy_m3u/templates/"
+            types_or: [html]
+            stages: [manual]
 
-  - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.48.0
-    hooks:
-      - id: markdownlint
-      - id: markdownlint
-        name: markdownlint-fix
-        alias: markdownlint-fix
-        args: ["--fix"]
-        stages: [manual]
+    - repo: https://github.com/igorshubovych/markdownlint-cli
+      rev: v0.48.0
+      hooks:
+          - id: markdownlint
+            priority: 1
+          - id: markdownlint
+            name: markdownlint-fix
+            alias: markdownlint-fix
+            priority: 1
+            args: ["--fix"]
+            stages: [manual]
 
-  - repo: local
-    hooks:
-      - id: mypy
-        name: mypy
-        entry: uv run mypy .
-        language: system
-        types: [python]
-        pass_filenames: false
+    - repo: local
+      hooks:
+          - id: mypy
+            name: mypy
+            priority: 2
+            entry: uv run mypy .
+            language: system
+            types: [python]
+            pass_filenames: false
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.7
-    hooks:
-      - id: ruff
-        name: ruff-lint
-        alias: lint
-      - id: ruff
-        name: ruff-lint-fix
-        alias: lint-fix
-        args: [--fix]
-        stages: [manual]
-      - id: ruff-format
-        name: ruff-format
-        alias: format
+    - repo: local
+      hooks:
+          - id: stylelint
+            priority: 1
+            name: stylelint
+            entry: npx stylelint --cache
+            language: system
+            types: [css]
+            files: "tablo_legacy_m3u/static/src/"
 
-  - repo: https://github.com/abravalheri/validate-pyproject
-    rev: v0.25
-    hooks:
-      - id: validate-pyproject
-        additional_dependencies:
-          - "validate-pyproject[all]"
-          - "validate-pyproject-schema-store"
+    - repo: local
+      hooks:
+          - id: prettier
+            priority: 1
+            name: prettier
+            entry: npx prettier --cache
+            language: system
+            types: [css, javascript, yaml]
+            files: "(tablo_legacy_m3u/static/src/|.*\\.yaml$)"
+
+    - repo: https://github.com/astral-sh/ruff-pre-commit
+      rev: v0.15.7
+      hooks:
+          - id: ruff
+            name: ruff-lint
+            alias: lint
+            priority: 1
+          - id: ruff
+            name: ruff-lint-fix
+            alias: lint-fix
+            args: [--fix]
+            priority: 1
+            stages: [manual]
+          - id: ruff-format
+            name: ruff-format
+            alias: format
+            priority: 1
+
+    - repo: https://github.com/abravalheri/validate-pyproject
+      rev: v0.25
+      hooks:
+          - id: validate-pyproject
+            priority: 2
+            additional_dependencies:
+                - "validate-pyproject[all]"
+                - "validate-pyproject-schema-store"

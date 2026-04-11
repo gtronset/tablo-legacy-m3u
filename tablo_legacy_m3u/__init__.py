@@ -10,6 +10,7 @@ from flask_compress import Compress
 
 from tablo_legacy_m3u._version import __version__
 from tablo_legacy_m3u.routes import register_routes
+from tablo_legacy_m3u.vite import init_vite
 
 __all__ = ["__version__", "create_app"]
 
@@ -42,6 +43,8 @@ def create_app(
 
     Compress(app)
     register_routes(app)
+
+    init_vite(app)
 
     @app.after_request
     def no_cache_partials(response: Response) -> Response:

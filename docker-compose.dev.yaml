@@ -1,19 +1,20 @@
 services:
-  tablo-legacy-m3u:
-    build: .
-    ports:
-      - 5004:5004
-    environment:
-      PYTHONPATH: /app
-      TABLO_IP: ""
-      AUTODISCOVER_TABLO: true
-      HOST: 0.0.0.0
-      PORT: 5004
-      LOG_LEVEL: DEBUG
-      ENVIRONMENT: development
-      ENABLE_EPG: true
-      CHANNEL_REFRESH_INTERVAL: 86400
-      GUIDE_REFRESH_INTERVAL: 3600
-    volumes:
-      - ./tablo_legacy_m3u:/app/tablo_legacy_m3u
-    restart: unless-stopped
+    tablo-legacy-m3u:
+        build: .
+        ports:
+            - 5004:5004
+        environment:
+            PYTHONPATH: /app
+            TABLO_IP: ""
+            AUTODISCOVER_TABLO: true
+            HOST: 0.0.0.0
+            PORT: 5004
+            LOG_LEVEL: DEBUG
+            ENVIRONMENT: development
+            ENABLE_EPG: true
+            CHANNEL_REFRESH_INTERVAL: 86400
+            GUIDE_REFRESH_INTERVAL: 3600
+        volumes:
+            # Requires `npm run build` on the host first (static/dist is gitignored)
+            - ./tablo_legacy_m3u:/app/tablo_legacy_m3u
+        restart: unless-stopped

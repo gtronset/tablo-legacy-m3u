@@ -52,3 +52,8 @@ dmypy.json
 # act
 .act-secrets
 .act-variables
+
+# NPM/Yarn
+node_modules/
+tablo_legacy_m3u/static/dist/
+.stylelintcache

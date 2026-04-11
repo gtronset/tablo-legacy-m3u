@@ -235,6 +235,14 @@ footer {
             color: var(--color-primary);
         }
     }
+
+    & .update-link {
+        color: var(--status-ok);
+
+        &:hover {
+            color: color-mix(in srgb, var(--status-ok), black 20%);
+        }
+    }
 }
 
 .endpoints a {

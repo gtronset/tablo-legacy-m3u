@@ -76,10 +76,17 @@
             </div>
         </div>
         <footer>
-            <a href="https://github.com/gtronset/tablo-legacy-m3u"
+            <a href="https://github.com/{{ repository }}"
                target="_blank"
                rel="noopener">tablo-legacy-m3u</a>
-            <span>v{{ version }}</span>
+            <span>v{{ version }}
+                {%- if latest_version and latest_version != version %}
+                    - <a href="https://github.com/{{ repository }}/releases/latest"
+    class="update-link"
+    target="_blank"
+    rel="noopener">v{{ latest_version }} available</a>
+                {%- endif %}
+            </span>
         </footer>
     </body>
 </html>

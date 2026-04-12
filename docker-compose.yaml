@@ -13,4 +13,5 @@ services:
             ENABLE_EPG: true
             CHANNEL_REFRESH_INTERVAL: 86400
             GUIDE_REFRESH_INTERVAL: 3600
+            CHECK_FOR_UPDATES: true
         restart: unless-stopped

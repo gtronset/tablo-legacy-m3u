@@ -125,6 +125,7 @@ All settings are configured via environment variables:
 | `ENABLE_EPG`               | `true`       | Enable EPG generation (boolean).                                                  |
 | `CHANNEL_REFRESH_INTERVAL` | `86400`      | How often to refresh channel data, in seconds (default: 24 hours, minimum: 60).   |
 | `GUIDE_REFRESH_INTERVAL`   | `3600`       | How often to refresh guide/EPG data, in seconds (default: 1 hour, minimum: 60).   |
+| `CHECK_FOR_UPDATES`        | `true`       | Periodically Check GitHub for newer releases (boolean).                           |
 
 A `.env` file in the current working directory is also supported, useful when running
 from source. See [.env.example] for available variables.

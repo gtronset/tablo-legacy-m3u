@@ -50,6 +50,7 @@ class TestAppState:
         assert state.enable_epg is False
         assert state.schedulers == []
         assert state.error is None
+        assert state.version_checker._enabled is True
 
     def test_set_phase_ready(self) -> None:
         state = AppState()
@@ -126,6 +127,11 @@ class TestAppState:
 
         with pytest.raises(RuntimeError):
             state.submit_tuner_refresh(lambda: None)
+
+    def test_version_checker_disabled(self) -> None:
+        state = AppState(check_for_updates=False)
+
+        assert state.version_checker._enabled is False
 
 
 class TestSseEventBus:

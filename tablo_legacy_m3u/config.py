@@ -25,6 +25,7 @@ VALID_ENV_VARS: frozenset[str] = frozenset({
     "CHANNEL_REFRESH_INTERVAL",
     "GUIDE_REFRESH_INTERVAL",
     "TZ",
+    "CHECK_FOR_UPDATES",
 })
 VALID_ENVIRONMENTS: frozenset[str] = frozenset({"production", "development"})
 VALID_LOG_LEVELS: frozenset[str] = frozenset({
@@ -63,6 +64,7 @@ class Config:
 
     # Feature flags
     enable_epg: bool = True
+    check_for_updates: bool = True
 
     # Caching
     channel_refresh_interval: int = DEFAULT_CHANNEL_REFRESH_INTERVAL
@@ -212,6 +214,7 @@ def load_config() -> Config:
             Config.guide_refresh_interval,
             min_val=MINIMUM_REFRESH_INTERVAL,
         ),
+        check_for_updates=_env_bool("CHECK_FOR_UPDATES", Config.check_for_updates),
     )
 
 

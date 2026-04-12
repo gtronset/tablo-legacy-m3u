@@ -53,6 +53,7 @@ docker compose -f docker-compose.dev.yaml up --build
 | `ENABLE_EPG`               | `true`       | Enable EPG generation (boolean).                                                  |
 | `CHANNEL_REFRESH_INTERVAL` | `86400`      | How often to refresh channel data, in seconds (default: 24 hours, minimum: 60).   |
 | `GUIDE_REFRESH_INTERVAL`   | `3600`       | How often to refresh guide/EPG data, in seconds (default: 1 hour, minimum: 60).   |
+| `CHECK_FOR_UPDATES`        | `true`       | Periodically Check GitHub for newer releases (boolean).                           |
 
 Copy `.env.example` to `.env` and adjust for your setup:
 

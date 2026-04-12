@@ -65,6 +65,7 @@ class TestConfigDefaults:
         assert config.cache_ttl == DEFAULT_CACHE_TTL
         assert config.channel_refresh_interval == DEFAULT_CHANNEL_REFRESH_INTERVAL
         assert config.guide_refresh_interval == DEFAULT_GUIDE_REFRESH_INTERVAL
+        assert config.check_for_updates is True
 
     def test_config_is_frozen_and_immutable(self) -> None:
         config = Config()
@@ -116,6 +117,7 @@ class TestLoadConfig:
         monkeypatch.setenv("ENABLE_EPG", "false")
         monkeypatch.setenv("CHANNEL_REFRESH_INTERVAL", str(new_channel_interval))
         monkeypatch.setenv("GUIDE_REFRESH_INTERVAL", str(new_guide_interval))
+        monkeypatch.setenv("CHECK_FOR_UPDATES", "false")
 
         config = load_config()
 
@@ -131,6 +133,7 @@ class TestLoadConfig:
         assert config.cache_ttl == new_cache_ttl
         assert config.channel_refresh_interval == new_channel_interval
         assert config.guide_refresh_interval == new_guide_interval
+        assert config.check_for_updates is False
 
     def test_log_level_uppercased(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("LOG_LEVEL", "info")

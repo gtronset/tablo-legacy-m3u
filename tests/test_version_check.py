@@ -120,7 +120,11 @@ class TestVersionChecker:
         )
 
         checker = VersionChecker()
+
         assert checker.get_latest_version() is None
+
+        checker._executor.submit(lambda: None).result(timeout=5)
+        checker.shutdown()
 
     @responses.activate
     def test_returns_cached_version_after_refresh(self) -> None:

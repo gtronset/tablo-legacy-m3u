@@ -135,8 +135,14 @@ class TestVersionChecker:
 
         assert checker.get_latest_version() == "99.0.0"
 
+    def test_disabled_returns_none(self) -> None:
+        checker = VersionChecker(enabled=False)
+
+        assert checker.get_latest_version() is None
+
     @responses.activate
-    def test_no_cache_when_no_update(self) -> None:
+    def test_no_update_prevents_refetch(self) -> None:
+        """A 'no update' result is cached so subsequent calls don't re-fetch."""
         responses.add(
             responses.GET,
             RELEASES_URL,
@@ -150,9 +156,11 @@ class TestVersionChecker:
         checker._executor.submit(lambda: None).result(timeout=5)
 
         assert checker.get_latest_version() is None
+        assert len(responses.calls) == 1
 
     @responses.activate
-    def test_no_cache_on_failure(self) -> None:
+    def test_failure_prevents_refetch(self) -> None:
+        """A failed fetch is cached so subsequent calls don't re-fetch."""
         responses.add(
             responses.GET,
             RELEASES_URL,
@@ -165,8 +173,23 @@ class TestVersionChecker:
         checker._executor.submit(lambda: None).result(timeout=5)
 
         assert checker.get_latest_version() is None
+        assert len(responses.calls) == 1
 
-    def test_disabled_returns_none(self) -> None:
-        checker = VersionChecker(enabled=False)
+    @responses.activate
+    def test_concurrent_calls_coalesce(self) -> None:
+        """Multiple cache misses submit only one background refresh."""
+        responses.add(
+            responses.GET,
+            RELEASES_URL,
+            json={"tag_name": "v99.0.0"},
+            status=200,
+        )
 
-        assert checker.get_latest_version() is None
+        checker = VersionChecker()
+        checker.get_latest_version()
+        checker.get_latest_version()
+        checker.get_latest_version()
+
+        checker._executor.submit(lambda: None).result(timeout=5)
+
+        assert len(responses.calls) == 1

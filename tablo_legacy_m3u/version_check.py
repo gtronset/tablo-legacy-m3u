@@ -1,8 +1,9 @@
 """Utilities for checking the latest release version on GitHub."""
 
 import logging
+import threading
 
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 
 import requests
 
@@ -25,28 +26,50 @@ class VersionChecker:
     def __init__(self, *, enabled: bool = True) -> None:
         """Initialize the version checker."""
         self._enabled = enabled
+        self._lock = threading.Lock()
         self._cache: TTLCache[str, str | None] = TTLCache(
             maxsize=1, ttl=CACHE_TTL_SECONDS
         )
         self._executor = ThreadPoolExecutor(max_workers=1)
+        self._refresh_future: Future[None] | None = None
+
+    def _submit_refresh(self) -> None:
+        """Submit a background refresh if one isn't already in flight."""
+        with self._lock:
+            if self._refresh_future is not None and not self._refresh_future.done():
+                return
+            self._refresh_future = self._executor.submit(self._refresh)
 
     def get_latest_version(self) -> str | None:
-        """Return the cached latest version, refreshing in the background if stale."""
+        """Return the cached latest version, refreshing in the background if stale.
+
+        Caches negative results to avoid repeated failed fetches.
+        """
         if not self._enabled:
             return None
 
-        cached = self._cache.get("latest")
-        if cached is not None:
-            return cached
+        with self._lock:
+            cached = self._cache.get("latest")
 
-        self._executor.submit(self._refresh)
+        if cached is not None:
+            return cached or None
+
+        self._submit_refresh()
+
         return None
 
     def _refresh(self) -> None:
-        """Fetch and cache the latest version."""
+        """Fetch and cache the latest version.
+
+        Caches negative results as empty string to avoid repeated failed fetches.
+        """
         latest = check_latest_version()
-        if is_update_available(current=__version__, latest=latest):
-            self._cache["latest"] = latest
+
+        with self._lock:
+            if is_update_available(current=__version__, latest=latest):
+                self._cache["latest"] = latest
+            else:
+                self._cache["latest"] = ""
 
 
 def check_latest_version() -> str | None:

@@ -195,7 +195,7 @@ def main() -> None:
         )
         return
 
-    app_state = AppState()
+    app_state = AppState(check_for_updates=config.check_for_updates)
     app = create_app(config=config, app_state=app_state)
 
     init_thread = threading.Thread(

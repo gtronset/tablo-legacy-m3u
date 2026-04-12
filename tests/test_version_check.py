@@ -1,5 +1,9 @@
 """Tests for version check utilities."""
 
+import threading
+
+from unittest.mock import patch
+
 import responses
 
 from tablo_legacy_m3u.version_check import (
@@ -177,7 +181,13 @@ class TestVersionChecker:
 
     @responses.activate
     def test_concurrent_calls_coalesce(self) -> None:
-        """Multiple cache misses submit only one background refresh."""
+        """Multiple cache misses submit only one background refresh.
+
+        Uses a gate to block the refresh until multiple calls are waiting, then checks
+        that only one call was made.
+        """
+        gate = threading.Event()
+
         responses.add(
             responses.GET,
             RELEASES_URL,
@@ -186,11 +196,19 @@ class TestVersionChecker:
         )
 
         checker = VersionChecker()
-        checker.get_latest_version()
-        checker.get_latest_version()
-        checker.get_latest_version()
+        original_refresh = checker._refresh
 
-        checker._executor.submit(lambda: None).result(timeout=5)
+        def gated_refresh() -> None:
+            gate.wait(timeout=5)
+            original_refresh()
+
+        with patch.object(checker, "_refresh", gated_refresh):
+            checker.get_latest_version()
+            checker.get_latest_version()
+            checker.get_latest_version()
+
+            gate.set()
+            checker._executor.submit(lambda: None).result(timeout=5)
 
         assert len(responses.calls) == 1
 

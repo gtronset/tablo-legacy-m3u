@@ -71,13 +71,20 @@ class VersionChecker:
             else:
                 self._cache["latest"] = ""
 
+    def shutdown(self) -> None:
+        """Shut down the background executor."""
+        self._executor.shutdown(wait=False, cancel_futures=True)
+
 
 def check_latest_version() -> str | None:
     """Fetch the latest release version from GitHub. Returns None on failure."""
     try:
         resp = requests.get(
             RELEASES_URL,
-            headers={"Accept": "application/vnd.github.v3+json"},
+            headers={
+                "Accept": "application/vnd.github.v3+json",
+                "User-Agent": f"tablo-legacy-m3u/{__version__}",
+            },
             timeout=5,
         )
         resp.raise_for_status()

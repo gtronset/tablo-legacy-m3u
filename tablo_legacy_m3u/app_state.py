@@ -114,6 +114,7 @@ class AppState:
     def shutdown_executor(self) -> None:
         """Shut down the tuner refresh executor."""
         self._tuner_executor.shutdown(wait=False, cancel_futures=True)
+        self.version_checker.shutdown()
 
     @property
     def phase(self) -> InitPhase:

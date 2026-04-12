@@ -193,3 +193,9 @@ class TestVersionChecker:
         checker._executor.submit(lambda: None).result(timeout=5)
 
         assert len(responses.calls) == 1
+
+    def test_shutdown_stops_executor(self) -> None:
+        checker = VersionChecker()
+        checker.shutdown()
+
+        assert checker._executor._shutdown
